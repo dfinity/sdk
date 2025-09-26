@@ -1,7 +1,7 @@
+use crate::DfxInterfaceBuilder;
 use crate::config::model::dfinity::{Config, NetworksConfig};
 use crate::config::model::network_descriptor::NetworkDescriptor;
 use crate::error::builder::BuildDfxInterfaceError;
-use crate::DfxInterfaceBuilder;
 use ic_agent::{Agent, Identity};
 use std::sync::Arc;
 

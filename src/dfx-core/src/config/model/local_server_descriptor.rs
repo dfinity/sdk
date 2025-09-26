@@ -1,9 +1,9 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsProxy,
-    ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
-    DEFAULT_SHARED_LOCAL_BIND,
+    ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsProxy, ConfigDefaultsReplica,
+    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND, ReplicaLogLevel, ReplicaSubnetType,
+    to_socket_addr,
 };
 use crate::config::model::replica_config::CachedConfig;
 use crate::error::network_config::{
@@ -13,7 +13,7 @@ use crate::error::structured_file::StructuredFileError;
 use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
 use serde::{Deserialize, Serialize};
-use slog::{debug, info, Logger};
+use slog::{Logger, debug, info};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use time::OffsetDateTime;

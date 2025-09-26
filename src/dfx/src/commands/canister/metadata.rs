@@ -1,10 +1,10 @@
+use crate::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::Environment;
 use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 
 /// Displays metadata in a canister.
 #[derive(Parser)]

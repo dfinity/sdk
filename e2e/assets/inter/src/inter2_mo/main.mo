@@ -1,6 +1,6 @@
 import CounterRs "canister:inter_rs";
 
-actor Counter {
+persistent actor Counter {
     public func inc() : async () {
         await CounterRs.inc()
     };

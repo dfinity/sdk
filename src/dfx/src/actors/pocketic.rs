@@ -1,10 +1,10 @@
 #![cfg_attr(windows, allow(unused))]
 
 use crate::actors::post_start::signals::{PocketIcReadySignal, PocketIcReadySubscribe};
-use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown::{ChildOrReceiver, wait_for_child_or_receiver};
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
@@ -19,13 +19,13 @@ use actix::{
 use anyhow::{anyhow, bail};
 #[cfg(unix)]
 use candid::Principal;
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{Receiver, Sender, unbounded};
 #[cfg(unix)]
 use dfx_core::config::model::replica_config::CachedConfig;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 #[cfg(unix)]
 use dfx_core::json::save_json_file;
-use slog::{debug, error, warn, Logger};
+use slog::{Logger, debug, error, warn};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -379,8 +379,8 @@ async fn initialize_pocketic(
 ) -> DfxResult<usize> {
     use dfx_core::config::model::dfinity::ReplicaSubnetType;
     use pocket_ic::common::rest::{
-        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
-        RawTime, SubnetSpec,
+        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, IcpConfig,
+        IcpConfigFlag, IcpFeatures, IcpFeaturesConfig, InstanceConfig, RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
@@ -403,16 +403,39 @@ async fn initialize_pocketic(
             subnet_config_set.verified_application.push(<_>::default())
         }
     }
+
+    let icp_features = if replica_config.system_canisters {
+        // Explicitly enabling specific system canisters here
+        // ensures we'll notice if pocket-ic adds support for additional ones
+        Some(IcpFeatures {
+            registry: Some(IcpFeaturesConfig::default()),
+            cycles_minting: Some(IcpFeaturesConfig::default()),
+            icp_token: Some(IcpFeaturesConfig::default()),
+            cycles_token: Some(IcpFeaturesConfig::default()),
+            nns_governance: Some(IcpFeaturesConfig::default()),
+            sns: Some(IcpFeaturesConfig::default()),
+            ii: Some(IcpFeaturesConfig::default()),
+            // FIXME(SDK-2346): if the `nns_ui` feature is enabled, the pocket-ic instance creation will fail with errors like:
+            // `Failed to initialize PocketIC: HTTP status client error (400 Bad Request) for url (http://localhost:56833/instances)`
+            nns_ui: None,
+        })
+    } else {
+        None
+    };
+
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&InstanceConfig {
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
-            nonmainnet_features: true,
+            icp_config: Some(IcpConfig {
+                beta_features: Some(IcpConfigFlag::Enabled),
+                ..Default::default()
+            }),
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
-            icp_features: None,
-            allow_incomplete_state: None,
+            icp_features,
+            ..Default::default()
         })
         .send()
         .await?
@@ -426,6 +449,7 @@ async fn initialize_pocketic(
         CreateInstanceResponse::Created {
             instance_id,
             topology,
+            http_gateway_info: _,
         } => {
             let default_effective_canister_id: Principal =
                 topology.default_effective_canister_id.into();

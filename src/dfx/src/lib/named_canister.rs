@@ -5,12 +5,12 @@ use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, telemetry::Telemetry};
 use crate::util;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use fn_error_context::context;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
 use slog::debug;
 use std::io::Read;
 use url::{Host::Domain, Url};
@@ -69,7 +69,7 @@ pub async fn install_ui_canister(
     };
     spinner.set_message("Installing code into UI canister".into());
     mgr.install_code(&canister_id, wasm.as_slice())
-        .with_mode(InstallMode::Install)
+        .with_mode(CanisterInstallMode::Install)
         .await
         .context("Install wasm call failed.")?;
     id_store.add(env.get_logger(), UI_CANISTER, &canister_id.to_text(), None)?;

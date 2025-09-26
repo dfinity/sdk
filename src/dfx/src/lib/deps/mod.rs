@@ -1,5 +1,5 @@
 use crate::lib::{environment::Environment, error::DfxResult};
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal;
 use dfx_core::{
     config::cache::get_cache_root,

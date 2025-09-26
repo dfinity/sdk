@@ -2,20 +2,20 @@ use crate::config::cache::VersionCache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::program;
 use crate::util;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use candid::Principal as CanisterId;
 use console::style;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
 use itertools::Itertools;
-use slog::{debug, info, o, Logger};
+use slog::{Logger, debug, info, o};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;

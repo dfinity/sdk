@@ -1,7 +1,7 @@
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownTrigger;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient};
-use slog::{info, Logger};
+use slog::{Logger, info};
 use std::time::Duration;
 
 pub mod signals {

@@ -642,3 +642,55 @@ teardown() {
   assert_not_contains "${WALLET_PRINCIPAL}"
 
 }
+
+@test "sync canister settings" {
+  dfx_new_assets hello
+
+  assert_command dfx identity new --storage-mode plaintext alice
+  assert_command dfx identity new --storage-mode plaintext bob
+  ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+  BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
+
+  dfx identity use alice
+
+  dfx_start
+  dfx deploy
+
+  # Fabricate cycles for setting compute allocation.
+  dfx ledger fabricate-cycles --canister hello_frontend --cycles 100000000000000
+  dfx ledger fabricate-cycles --canister hello_backend --cycles 100000000000000
+
+  # Update hello_frontend canister settings for syncing.
+  assert_command dfx canister update-settings hello_frontend --add-controller "${BOB_PRINCIPAL}" --compute-allocation 1 --memory-allocation 2GB --freezing-threshold 8640000 --reserved-cycles-limit 650000 --wasm-memory-limit 4GiB --wasm-memory-threshold 4GiB --log-visibility public
+  assert_command dfx canister status hello_frontend
+  assert_contains "${BOB_PRINCIPAL}"
+  assert_contains "Compute allocation: 1 %"
+  assert_contains "Memory allocation: 2_000_000_000 Bytes"
+  assert_contains "Freezing threshold: 8_640_000 Seconds"
+  assert_contains "Reserved cycles limit: 650_000 Cycles"
+  assert_contains "Wasm memory limit: 4_294_967_296 Bytes"
+  assert_contains "Wasm memory threshold: 4_294_967_296 Bytes"
+  assert_contains "Log visibility: public"
+
+  assert_command dfx canister status hello_backend
+  assert_not_contains "${BOB_PRINCIPAL}"
+  assert_not_contains "Compute allocation: 1 %"
+  assert_not_contains "Memory allocation: 2_000_000_000 Bytes"
+  assert_not_contains "Freezing threshold: 8_640_000 Seconds"
+  assert_not_contains "Reserved cycles limit: 650_000 Cycles"
+  assert_not_contains "Wasm memory limit: 4_294_967_296 Bytes"
+  assert_not_contains "Wasm memory threshold: 4_294_967_296 Bytes"
+  assert_not_contains "Log visibility: public"
+
+  # Sync canister settings from hello_frontend to hello_backend.
+  assert_command dfx canister update-settings hello_backend --sync-with hello_frontend --yes
+  assert_command dfx canister status hello_backend
+  assert_contains "${BOB_PRINCIPAL}"
+  assert_contains "Compute allocation: 1 %"
+  assert_contains "Memory allocation: 2_000_000_000 Bytes"
+  assert_contains "Freezing threshold: 8_640_000 Seconds"
+  assert_contains "Reserved cycles limit: 650_000 Cycles"
+  assert_contains "Wasm memory limit: 4_294_967_296 Bytes"
+  assert_contains "Wasm memory threshold: 4_294_967_296 Bytes"
+  assert_contains "Log visibility: public"
+}

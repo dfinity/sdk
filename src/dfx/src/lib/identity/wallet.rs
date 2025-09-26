@@ -1,9 +1,9 @@
+use crate::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::telemetry::Telemetry;
 use crate::util::assets::wallet_wasm;
-use crate::Environment;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
@@ -11,9 +11,9 @@ use dfx_core::error::canister::CanisterBuilderError;
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::identity::wallet::{get_wallet_config_path, wallet_canister_id};
 use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap};
-use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_agent::agent::{RejectCode, RejectResponse};
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use slog::info;
 use std::collections::BTreeMap;
@@ -102,7 +102,7 @@ pub async fn create_wallet(
 
     match mgr
         .install_code(&canister_id, wasm.as_slice())
-        .with_mode(InstallMode::Install)
+        .with_mode(CanisterInstallMode::Install)
         .await
     {
         Err(AgentError::CertifiedReject {

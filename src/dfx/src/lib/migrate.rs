@@ -1,17 +1,17 @@
 use crate::lib::operations::canister::install_wallet;
 use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error, bail};
 use candid::{CandidType, Deserialize, Principal};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::identity::wallet::wallet_canister_id;
 use dfx_core::identity::Identity;
+use dfx_core::identity::wallet::wallet_canister_id;
 use ic_agent::{Agent, Identity as _};
 use ic_utils::{
-    interfaces::{
-        management_canister::builders::{CanisterSettings, InstallMode},
-        WalletCanister,
-    },
     Argument,
+    interfaces::{
+        WalletCanister,
+        management_canister::builders::{CanisterInstallMode, CanisterSettings},
+    },
 };
 use itertools::Itertools;
 
@@ -32,7 +32,10 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         wallet
     } else {
         let controllers = agent.read_state_canister_controllers(wallet).await?;
-        bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
+        bail!(
+            "This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}",
+            controllers.into_iter().join(", ")
+        )
     };
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
     if let Some(canisters) = &config.canisters {
@@ -66,7 +69,7 @@ async fn migrate_wallet(
                 env,
                 agent,
                 *wallet.canister_id_(),
-                InstallMode::Upgrade(None),
+                CanisterInstallMode::Upgrade(None),
             )
             .await?
         } else {
@@ -116,6 +119,7 @@ async fn migrate_canister(
                             wasm_memory_limit: None,
                             wasm_memory_threshold: None,
                             log_visibility: None,
+                            environment_variables: None,
                         },
                     },)),
                     0,
@@ -123,7 +127,9 @@ async fn migrate_canister(
                 .await
                 .context("Could not update canister settings")?;
         } else {
-            println!("Canister {canister_name} is outdated; run `dfx canister update-settings` with the --add-controller flag")
+            println!(
+                "Canister {canister_name} is outdated; run `dfx canister update-settings` with the --add-controller flag"
+            )
         }
         Ok(true)
     } else {

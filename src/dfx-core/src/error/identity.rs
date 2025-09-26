@@ -25,7 +25,8 @@ pub enum CallSenderFromWalletError {
     #[error("Failed to read principal from id '{0}', and did not find a wallet for that identity")]
     ParsePrincipalFromIdFailedAndNoWallet(String, #[source] PrincipalError),
 
-    #[error("Failed to read principal from id '{0}' ({1}), and failed to load the wallet for that identity"
+    #[error(
+        "Failed to read principal from id '{0}' ({1}), and failed to load the wallet for that identity"
     )]
     ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed(
         String,
@@ -270,7 +271,9 @@ pub enum RemoveIdentityError {
     #[error("Failed to display linked wallets")]
     DisplayLinkedWalletsFailed(#[source] WalletConfigError),
 
-    #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
+    #[error(
+        "If you want to remove an identity with configured wallets, please use the --drop-wallets flag."
+    )]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
     #[error("failed to remove identity directory")]

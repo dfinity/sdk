@@ -14,9 +14,9 @@ use crate::util::{
     ask_for_consent, blob_from_arguments, get_candid_init_type, read_module_metadata,
     with_suspend_all_spinners,
 };
-use anyhow::{anyhow, bail, Context};
-use backoff::backoff::Backoff;
+use anyhow::{Context, anyhow, bail};
 use backoff::ExponentialBackoff;
+use backoff::backoff::Backoff;
 use candid::Principal;
 use dfx_core::canister::{
     build_wallet_canister, install_canister_wasm, install_mode_to_past_tense,
@@ -27,9 +27,11 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryPersistence};
-use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use ic_utils::interfaces::ManagementCanister;
+use ic_utils::interfaces::management_canister::builders::{
+    CanisterInstallMode, WasmMemoryPersistence,
+};
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
 use slog::{debug, info, warn};
@@ -96,39 +98,59 @@ pub async fn install_canister(
         )
         .into(),
     );
-    if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
+    if !skip_consent
+        && matches!(
+            mode,
+            CanisterInstallMode::Reinstall | CanisterInstallMode::Upgrade { .. }
+        )
+    {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {
             match check_candid_compatibility(canister_info, candid) {
                 Ok(None) => (),
                 Ok(Some(err)) => {
-                    let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
+                    let msg = format!(
+                        "Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n",
+                        canister_info.get_name()
+                    ) + &err;
                     ask_for_consent(env, &msg)?;
                 }
                 Err(e) => {
-                    let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
+                    let msg = format!(
+                        "An error occurred during Candid interface compatibility check for canister '{}'.\n\n",
+                        canister_info.get_name()
+                    ) + &e.to_string();
                     ask_for_consent(env, &msg)?;
                 }
             }
         }
     }
-    if canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. }) {
+    if canister_info.is_motoko() && matches!(mode, CanisterInstallMode::Upgrade { .. }) {
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = &stable_types {
             match check_stable_compatibility(canister_info, env, stable_types) {
                 Ok(StableCompatibility::Okay) => (),
                 Ok(StableCompatibility::Warning(details)) => {
-                    let msg = format!("Stable interface compatibility check issued a WARNING for canister '{}'.\n\n", canister_info.get_name()) + &details;
+                    let msg = format!(
+                        "Stable interface compatibility check issued a WARNING for canister '{}'.\n\n",
+                        canister_info.get_name()
+                    ) + &details;
                     if !skip_consent {
                         ask_for_consent(env, &msg)?;
                     }
                 }
                 Ok(StableCompatibility::Error(details)) => {
-                    let msg = format!("Stable interface compatibility check issued an ERROR for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &details;
+                    let msg = format!(
+                        "Stable interface compatibility check issued an ERROR for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n",
+                        canister_info.get_name()
+                    ) + &details;
                     bail!(msg);
                 }
                 Err(e) => {
-                    let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
+                    let msg = format!(
+                        "An error occurred during stable interface compatibility check for canister '{}'.\n\n",
+                        canister_info.get_name()
+                    ) + &e.to_string();
                     bail!(msg);
                 }
             }
@@ -148,7 +170,7 @@ pub async fn install_canister(
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
-    if matches!(mode, InstallMode::Upgrade { .. })
+    if matches!(mode, CanisterInstallMode::Upgrade { .. })
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
@@ -313,7 +335,7 @@ fn check_candid_compatibility(
     canister_info: &CanisterInfo,
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
-    use candid::types::subtype::{subtype_with_config, OptReport};
+    use candid::types::subtype::{OptReport, subtype_with_config};
     use candid_parser::utils::CandidSource;
     let candid_path = canister_info.get_constructor_idl_path();
     let deployed_path = canister_info
@@ -366,7 +388,7 @@ async fn wait_for_module_hash(
                 }
                 if reported_hash[..] == new_hash[..] {
                     break;
-                } else if old_hash.map_or(true, |old_hash| old_hash == reported_hash) {
+                } else if old_hash.is_none_or(|old_hash| old_hash == reported_hash) {
                     times += 1;
                     if times > 3 {
                         info!(
@@ -380,14 +402,15 @@ async fn wait_for_module_hash(
                                 No post-installation tasks have been run, including asset uploads.")?;
                     tokio::time::sleep(interval).await;
                 } else {
-                    bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
+                    bail!(
+                        "The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
                             It has likely been modified while this command is running. \
                             The state of the canister is unknown. \
                             For this reason, no post-installation tasks have been run, including asset uploads.",
-                            old = old_hash.map_or_else(|| "none".to_string(), hex::encode),
-                            new = hex::encode(new_hash),
-                            reported = hex::encode(reported_hash),
-                        )
+                        old = old_hash.map_or_else(|| "none".to_string(), hex::encode),
+                        new = hex::encode(new_hash),
+                        reported = hex::encode(reported_hash),
+                    )
                 }
             }
             None => {
@@ -398,10 +421,11 @@ async fn wait_for_module_hash(
                         "Waiting for module change to be reflected in system state tree..."
                     )
                 }
-                let interval = retry_policy.next_backoff()
-                        .context("Timed out waiting for the module to update to the new hash in the state tree. \
+                let interval = retry_policy.next_backoff().context(
+                    "Timed out waiting for the module to update to the new hash in the state tree. \
                             Something may have gone wrong with the upload. \
-                            No post-installation tasks have been run, including asset uploads.")?;
+                            No post-installation tasks have been run, including asset uploads.",
+                )?;
                 tokio::time::sleep(interval).await;
             }
         }
@@ -544,7 +568,7 @@ pub async fn install_wallet(
     env: &dyn Environment,
     agent: &Agent,
     id: Principal,
-    mode: InstallMode,
+    mode: CanisterInstallMode,
 ) -> DfxResult {
     if env.get_network_descriptor().is_playground() {
         bail!("Refusing to install wallet. Wallets do not work for playground networks.");

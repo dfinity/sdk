@@ -1,6 +1,6 @@
 import Prim "mo:prim";
 
-actor {
+persistent actor {
     stable var version = 0;
 
     version += 1;

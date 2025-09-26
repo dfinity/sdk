@@ -4,8 +4,8 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers;
 use crate::util::print_idl_blob;
 use anyhow::Context;
-use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
+use backoff::backoff::Backoff;
 use candid::Principal;
 use clap::Parser;
 use ic_agent::agent::RequestStatusResponse;
@@ -60,7 +60,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     return Err(DfxError::new(AgentError::CertifiedReject {
                         reject: response,
                         operation: None,
-                    }))
+                    }));
                 }
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Received | RequestStatusResponse::Processing => {
@@ -77,7 +77,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                 RequestStatusResponse::Done => {
                     return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
                         String::from(request_id),
-                    )))
+                    )));
                 }
             };
 
@@ -87,8 +87,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
             tokio::time::sleep(interval).await;
         }
     }
-    .await
-    .map_err(DfxError::from)?;
+    .await?;
 
     let output_type = opts.output.as_deref();
     print_idl_blob(&blob, output_type, &None)?;

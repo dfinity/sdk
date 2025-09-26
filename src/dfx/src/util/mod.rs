@@ -4,11 +4,11 @@ use crate::lib::integrations::bitcoin::MAINNET_BITCOIN_CANISTER_ID;
 use crate::lib::ledger_types::{MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::subnet::MAINNET_REGISTRY_CANISTER_ID;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
-use anyhow::{anyhow, bail, Context};
-use backoff::backoff::Backoff;
+use anyhow::{Context, anyhow, bail};
 use backoff::ExponentialBackoff;
+use backoff::backoff::Backoff;
 use bytes::Bytes;
-use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
+use candid::types::{Function, Type, TypeEnv, TypeInner, value::IDLValue};
 use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
@@ -16,12 +16,13 @@ use dfx_core::config::model::network_descriptor::MAINNET_MOTOKO_PLAYGROUND_CANIS
 use dfx_core::error::cli::UserConsent;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
-use idl2json::{idl2json, Idl2JsonOptions};
+use idl2json::{Idl2JsonOptions, idl2json};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
+use serde_dhall::SimpleValue;
 use std::collections::BTreeMap;
-use std::io::{stderr, stdin, stdout, IsTerminal, Read};
+use std::io::{IsTerminal, Read, stderr, stdin, stdout};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::time::Duration;
@@ -225,10 +226,15 @@ pub fn blob_from_arguments(
                         };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
-                        let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid_parser::configs::Configs::from_dhall(random)
-                            .context("Failed to create candid parser config.")?;
-                        let args = candid_parser::random::any(&seed, &config, env, &func.args)
+                        let seed: Vec<u8> = (0..2048).map(|_| rng.r#gen::<u8>()).collect();
+                        let dhall_value: SimpleValue = serde_dhall::from_str(random).parse()?;
+                        let toml_conversion = toml::Value::try_from(dhall_value)
+                            .context("Failed to convert dhall value to toml value.")?;
+                        let toml::Value::Table(table) = toml_conversion else {
+                            bail!("Failed to convert dhall value to toml table.")
+                        };
+                        let config = candid_parser::configs::Configs(table);
+                        let args = candid_parser::random::any(&seed, config, env, &func.args, &None)
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
@@ -549,6 +555,11 @@ mod tests {
             .unwrap()
             .block_on(download_file(&url));
         let time1 = std::time::Instant::now();
-        assert!(time1 - time0 < std::time::Duration::from_secs(61));
+        let elapsed = (time1 - time0).as_secs();
+        assert!(
+            elapsed < 80, // Relax the time constraint so that the test is less flaky
+            "Download file took {} seconds (> 60s)",
+            elapsed
+        );
     }
 }

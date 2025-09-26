@@ -1,6 +1,6 @@
 use crate::lib::builders::{
-    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
-    WasmBuildOutput,
+    BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    custom_download,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -9,7 +9,7 @@ use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
 use crate::util::{assets, with_suspend_all_spinners};
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -17,12 +17,12 @@ use dfx_core::config::model::dfinity::{
     CanisterMetadataSection, Config, MetadataVisibility, TechStack, WasmOptLevel,
 };
 use fn_error_context::context;
-use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+use ic_wasm::metadata::{Kind, add_metadata, remove_metadata};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
-use rand::{thread_rng, RngCore};
-use slog::{error, info, trace, warn, Logger};
+use rand::{RngCore, thread_rng};
+use slog::{Logger, error, info, trace, warn};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
@@ -103,7 +103,7 @@ impl Canister {
     #[context("Failed to generate random canister id.")]
     pub fn generate_random_canister_id() -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
-        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
+        let mut v: Vec<u8> = std::iter::repeat_n(0u8, 8).collect();
         rng.fill_bytes(v.as_mut_slice());
         CanisterId::try_from(v).context("Failed to convert bytes to canister id.")
     }
@@ -273,9 +273,9 @@ impl Canister {
                 (None, Some(s)) => s.clone().into_bytes(),
                 (Some(_), Some(_)) => {
                     bail!(
-                    "Metadata section could not specify path and content at the same time. section: {:?}",
-                    &section
-                )
+                        "Metadata section could not specify path and content at the same time. section: {:?}",
+                        &section
+                    )
                 }
                 (None, None) => {
                     bail!(
@@ -394,10 +394,7 @@ fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
 fn separate_candid(path: &Path) -> DfxResult<(String, String, String)> {
     use candid::pretty::candid::{compile, pp_args};
     use candid::types::internal::TypeInner;
-    use candid_parser::{
-        pretty_parse,
-        types::{Dec, IDLProg},
-    };
+    use candid_parser::{IDLProg, pretty_parse, syntax::Dec};
     let did = dfx_core::fs::read_to_string(path)?;
     let prog = pretty_parse::<IDLProg>(&format!("{}", path.display()), &did)?;
     let has_imports = prog
@@ -426,7 +423,7 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String, String)> {
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
-    use candid::types::subtype::{subtype_with_config, OptReport};
+    use candid::types::subtype::{OptReport, subtype_with_config};
     let (mut env, opt_specified) = CandidSource::File(specified_idl_path)
         .load()
         .context("Checking specified candid file.")?;
@@ -913,10 +910,16 @@ impl CanisterPool {
             if out.status.success() {
                 info!(self.logger, "Audit found no vulnerabilities.")
             } else {
-                error!(self.logger, "Audit found vulnerabilities in rust canisters. Please address these problems as soon as possible!");
+                error!(
+                    self.logger,
+                    "Audit found vulnerabilities in rust canisters. Please address these problems as soon as possible!"
+                );
             }
         } else {
-            warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
+            warn!(
+                self.logger,
+                "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected."
+            );
         }
         Ok(())
     }
@@ -953,8 +956,8 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     let output_did_ts_path = canister_info
         .get_service_idl_path()
         .with_extension("did.d.ts");
-
-    let (env, ty) = CandidSource::File(&canister_info.get_constructor_idl_path()).load()?;
+    let (env, ty, prog) =
+        candid_parser::pretty_check_file(&canister_info.get_constructor_idl_path())?;
     let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
@@ -962,7 +965,9 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
             output_did_js_path.to_string_lossy()
         )
     })?;
-    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(
+        &env, &ty, &prog,
+    ));
     std::fs::write(&output_did_ts_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",

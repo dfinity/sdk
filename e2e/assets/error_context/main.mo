@@ -1,2 +1,2 @@
-actor {
+persistent actor {
 }

@@ -11,10 +11,10 @@ use dfx_core::error::cache::{
     DeleteCacheError, GetBinaryCommandPathError, InstallCacheError, IsCacheInstalledError,
 };
 use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use semver::Version;
 use slog::info;
-use std::io::{stderr, IsTerminal};
+use std::io::{IsTerminal, stderr};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
@@ -126,7 +126,8 @@ pub fn install_version(
             #[cfg(unix)]
             {
                 let archive_path = dfx_core::fs::get_archive_path(&file)?;
-                let mode = if archive_path.starts_with("base/") {
+                let mode = if archive_path.starts_with("base/") || archive_path.starts_with("core/")
+                {
                     READ_USER_ONLY_PERMISSION
                 } else {
                     EXEC_READ_USER_ONLY_PERMISSION

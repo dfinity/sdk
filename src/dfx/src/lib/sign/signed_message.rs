@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::RequestId;
@@ -182,7 +182,11 @@ impl SignedMessageV1 {
 }
 
 mod date_time_utc {
-    time::serde::format_description!(date_time, PrimitiveDateTime, "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC");
+    time::serde::format_description!(
+        date_time,
+        PrimitiveDateTime,
+        "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC"
+    );
 
     use serde::{Deserializer, Serializer};
     use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};

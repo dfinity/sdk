@@ -21,14 +21,14 @@ use crate::{
     },
     util::assets::wallet_wasm,
 };
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::wallet::wallet_canister_id;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{
-    management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
+    ManagementCanister, WalletCanister, management_canister::builders::CanisterInstallMode,
 };
 use num_traits::Inv;
 use rust_decimal::Decimal;
@@ -109,7 +109,7 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
         let mgmt = ManagementCanister::create(agent);
         let wasm = wallet_wasm(env.get_logger())?;
         mgmt.install_code(&id, &wasm)
-            .with_mode(InstallMode::Install)
+            .with_mode(CanisterInstallMode::Install)
             .await?;
         WalletCanister::create(agent, id).await?
     };
@@ -218,7 +218,7 @@ async fn step_finish_wallet(
     ident: &str,
 ) -> DfxResult {
     let install_spinner = env.new_spinner("Installing the wallet code to the canister...".into());
-    install_wallet(env, agent, wallet, InstallMode::Install)
+    install_wallet(env, agent, wallet, CanisterInstallMode::Install)
         .await
         .context("Failed to install the wallet code to the canister")?;
     set_wallet_id(env.get_network_descriptor(), ident, wallet)
@@ -231,10 +231,18 @@ async fn step_finish_wallet(
 
 fn step_explain_deploy(acct: AccountIdentifier, needed_icp: Decimal) {
     eprintln!("\nYou need {needed_icp:.8} more ICP to deploy a 10 TC wallet canister on mainnet.");
-    eprintln!("Deposit at least {needed_icp:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
+    eprintln!(
+        "Deposit at least {needed_icp:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet."
+    );
     eprintln!("\nAlternatively:");
-    eprintln!("- If you have ICP in an NNS account, you can create a new canister through the NNS interface");
-    eprintln!("- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org");
+    eprintln!(
+        "- If you have ICP in an NNS account, you can create a new canister through the NNS interface"
+    );
+    eprintln!(
+        "- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org"
+    );
     eprintln!("Either of these options will ask for your DFX user principal, listed above.");
-    eprintln!("And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option.");
+    eprintln!(
+        "And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option."
+    );
 }

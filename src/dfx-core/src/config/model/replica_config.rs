@@ -55,6 +55,7 @@ pub struct ReplicaConfig {
     pub canister_http_adapter: CanisterHttpAdapterConfig,
     pub log_level: ReplicaLogLevel,
     pub artificial_delay: u32,
+    pub system_canisters: bool,
 }
 
 impl ReplicaConfig {
@@ -89,6 +90,7 @@ impl ReplicaConfig {
             },
             log_level,
             artificial_delay,
+            system_canisters: false,
         }
     }
 
@@ -129,6 +131,13 @@ impl ReplicaConfig {
     pub fn with_canister_http_adapter_socket(self, socket_path: PathBuf) -> Self {
         ReplicaConfig {
             canister_http_adapter: self.canister_http_adapter.with_socket_path(socket_path),
+            ..self
+        }
+    }
+
+    pub fn with_system_canisters(self) -> Self {
+        ReplicaConfig {
+            system_canisters: true,
             ..self
         }
     }

@@ -1,6 +1,6 @@
 #![cfg_attr(windows, allow(unused))]
-use crate::lib::deps::deploy::try_create_canister;
 use crate::lib::deps::PulledCanister;
+use crate::lib::deps::deploy::try_create_canister;
 use crate::lib::environment::create_agent;
 use crate::lib::error::DfxResult;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
@@ -11,10 +11,10 @@ use dfx_core::identity::Identity;
 use dfx_core::{error::root_key::FetchRootKeyError, util::expiry_duration};
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
 use sha2::Digest;
-use slog::{debug, info, Logger};
+use slog::{Logger, debug, info};
 use std::time::Duration;
 
 pub mod bitcoin;
@@ -67,7 +67,7 @@ async fn install_canister(
     ManagementCanister::create(agent)
         .install_code(canister_id, wasm)
         // always reinstall pulled canister
-        .with_mode(InstallMode::Reinstall)
+        .with_mode(CanisterInstallMode::Reinstall)
         .with_raw_arg(install_args)
         .await?;
     Ok(())

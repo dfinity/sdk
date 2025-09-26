@@ -3,7 +3,7 @@ name: Check Bitcoin Canister Release Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" # Runs at UTC midnight every day
+    - cron: "0 4 * * 3" # 4:00 AM UTC every Wednesday
 
 env:
   # When getting Rust dependencies, retry on network error:
@@ -43,7 +43,7 @@ jobs:
 
       - name: Check if the latest release tag has been updated
         run: |
-          CURRENT_TAG=$(jq -r '.commmon."ic-btc-canister".version' src/dfx/assets/dfx-asset-sources.json)
+          CURRENT_TAG=$(jq -r '.common."ic-btc-canister".version' src/dfx/assets/dfx-asset-sources.json)
           echo "Current tag is $CURRENT_TAG"
           if [[ "$CURRENT_TAG" == "$LATEST_TAG" ]]; then
             echo "No update is required."
@@ -54,13 +54,6 @@ jobs:
 
       - name: Update sources to use the latest bitcoin canister version
         run: ./scripts/update-btc-canister.sh "$LATEST_TAG"
-
-      - name: Create GitHub App Token
-        uses: actions/create-github-app-token@v2
-        id: app-token
-        with:
-          app-id: ${{ vars.PR_AUTOMATION_BOT_PUBLIC_APP_ID }}
-          private-key: ${{ secrets.PR_AUTOMATION_BOT_PUBLIC_PRIVATE_KEY }}
 
       - name: Create PR
         env:

@@ -1,3 +1,4 @@
+use crate::AssetSyncProgressRenderer;
 use crate::asset::config::AssetConfig;
 use crate::asset::content::Content;
 use crate::asset::content_encoder::ContentEncoder;
@@ -10,18 +11,17 @@ use crate::error::CreateEncodingError;
 use crate::error::CreateEncodingError::EncodeContentFailed;
 use crate::error::CreateProjectAssetError;
 use crate::error::SetEncodingError;
-use crate::AssetSyncProgressRenderer;
 use candid::Nat;
-use futures::future::try_join_all;
 use futures::TryFutureExt;
+use futures::future::try_join_all;
 use ic_utils::Canister;
 use mime::Mime;
-use slog::{debug, Logger};
+use slog::{Logger, debug};
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::sync::Mutex;
 
 const CONTENT_ENCODING_IDENTITY: &str = "identity";
@@ -158,10 +158,9 @@ impl<'agent> ChunkUploader<'agent> {
         for uploader_id in uploader_ids {
             if let Some(item) = mapping.get(uploader_id) {
                 chunk_ids.push(item.clone());
-            } else if let Some(last_chunk_data) =
-                queue
-                    .iter()
-                    .find_map(|(id, data)| if id == uploader_id { Some(data) } else { None })
+            } else if let Some(last_chunk_data) = queue
+                .iter()
+                .find_map(|(id, data)| if id == uploader_id { Some(data) } else { None })
             {
                 match last_chunk.as_mut() {
                     Some(existing_data) => existing_data.extend(last_chunk_data.iter()),
@@ -416,7 +415,7 @@ async fn make_project_asset(
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<ProjectAsset, CreateProjectAssetError> {
     let file_size = dfx_core::fs::metadata(&asset_descriptor.source)?.len();
-    let permits = (((file_size + 999999) / 1000000) as usize).clamp(1, MAX_COST_SINGLE_FILE_MB);
+    let permits = (file_size.div_ceil(1000000) as usize).clamp(1, MAX_COST_SINGLE_FILE_MB);
     let _releaser = semaphores.file.acquire(permits).await;
     let content = Content::load(&asset_descriptor.source)
         .map_err(CreateProjectAssetError::LoadContentFailed)?;

@@ -4,7 +4,7 @@ use crate::error::config::{
     ApplyExtensionCanisterTypesError, MergeTechStackError, RenderErrorWithContext,
 };
 use crate::extension::manager::ExtensionManager;
-use crate::extension::manifest::{extension::ExtensionCanisterType, ExtensionManifest};
+use crate::extension::manifest::{ExtensionManifest, extension::ExtensionCanisterType};
 use handlebars::{Handlebars, RenderError};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet};

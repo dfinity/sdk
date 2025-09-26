@@ -1,37 +1,46 @@
 //! This module contains a pure implementation of the certified assets state machine.
 
+mod v1;
+mod v2;
+
+pub use v1::StableStateV1;
+pub use v2::StableStateV2;
+
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
 use crate::{
     asset_certification::{
+        CertifiedResponses,
         types::{
             certification::{
                 AssetKey, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
                 RequestHash, ResponseHash, WitnessResult,
             },
             http::{
+                CallbackFunc, FALLBACK_FILE, HttpRequest, HttpResponse,
+                StreamingCallbackHttpResponse, StreamingCallbackToken,
                 build_ic_certificate_expression_from_headers_and_encoding,
-                build_ic_certificate_expression_header, response_hash, CallbackFunc, HttpRequest,
-                HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
+                build_ic_certificate_expression_header, response_hash,
             },
             rc_bytes::RcBytes,
         },
-        CertifiedResponses,
     },
-    evidence::{EvidenceComputation, EvidenceComputation::Computed},
+    cookies::add_ic_env_cookie,
+    evidence::EvidenceComputation::{self, Computed},
+    system_context::SystemContext,
     types::*,
-    url_decode::url_decode,
+    url::url_decode,
 };
-use candid::{CandidType, Deserialize, Int, Nat, Principal};
+use candid::{CandidType, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use itertools::fold;
 use num_traits::ToPrimitive;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -68,7 +77,7 @@ const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type Timestamp = Int;
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct AssetEncoding {
     pub modified: Timestamp,
     pub content_chunks: Vec<RcBytes>,
@@ -82,22 +91,6 @@ pub struct AssetEncoding {
 }
 
 impl AssetEncoding {
-    fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 8; // modified
-        size += self.total_length + self.content_chunks.len() * 4;
-        size += 5; // total_length
-        size += 1; //  certified
-        size += self.sha256.len();
-        size += 1 + self
-            .certificate_expression
-            .as_ref()
-            .map_or(0, |ce| 2 + ce.expression.len() + ce.expression_hash.len());
-        size += 1 + self.response_hashes.as_ref().map_or(0, |hashes| {
-            hashes.iter().fold(2, |acc, (_k, v)| acc + 2 + v.len())
-        });
-        size
-    }
     fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
@@ -127,7 +120,7 @@ impl AssetEncoding {
 
     fn compute_response_hashes(
         &self,
-        headers: &Option<HashMap<String, String>>,
+        headers: &Option<BTreeMap<String, String>>,
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
@@ -155,20 +148,22 @@ impl AssetEncoding {
         response_hashes.insert(200, response_hash_200);
         response_hashes.insert(304, response_hash_304);
 
-        debug_assert!(STATUS_CODES_TO_CERTIFY
-            .iter()
-            .all(|code| response_hashes.contains_key(code)));
+        debug_assert!(
+            STATUS_CODES_TO_CERTIFY
+                .iter()
+                .all(|code| response_hashes.contains_key(code))
+        );
 
         response_hashes
     }
 }
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }
@@ -215,30 +210,11 @@ pub struct Batch {
     pub chunk_content_total_size: usize,
 }
 
-#[derive(Clone, Debug, Default, CandidType, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct Configuration {
     pub max_batches: Option<u64>,
     pub max_chunks: Option<u64>,
     pub max_bytes: Option<u64>,
-}
-
-impl Configuration {
-    fn estimate_size(&self) -> usize {
-        1 + self
-            .max_batches
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<u64>())
-            + 1
-            + self
-                .max_chunks
-                .as_ref()
-                .map_or(0, |_| std::mem::size_of::<u64>())
-            + 1
-            + self
-                .max_bytes
-                .as_ref()
-                .map_or(0, |_| std::mem::size_of::<u64>())
-    }
 }
 
 #[derive(Default)]
@@ -258,75 +234,11 @@ pub struct State {
     manage_permissions_principals: BTreeSet<Principal>,
 
     asset_hashes: CertifiedResponses,
-}
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StableStatePermissions {
-    commit: BTreeSet<Principal>,
-    prepare: BTreeSet<Principal>,
-    manage_permissions: BTreeSet<Principal>,
-}
-
-impl StableStatePermissions {
-    fn estimate_size(&self) -> usize {
-        8 + self.commit.len() * std::mem::size_of::<Principal>()
-            + 8
-            + self.prepare.len() * std::mem::size_of::<Principal>()
-            + 8
-            + self.manage_permissions.len() * std::mem::size_of::<Principal>()
-    }
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StableState {
-    authorized: Vec<Principal>, // ignored if permissions is Some(_)
-    permissions: Option<StableStatePermissions>,
-    stable_assets: HashMap<String, Asset>,
-
-    next_batch_id: Option<BatchId>,
-    configuration: Option<Configuration>,
-}
-
-impl StableState {
-    pub fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 2 + self.authorized.len() * std::mem::size_of::<Principal>();
-        size += 1 + self.permissions.as_ref().map_or(0, |p| p.estimate_size());
-        size += self.stable_assets.iter().fold(2, |acc, (name, asset)| {
-            acc + 2 + name.len() + asset.estimate_size()
-        });
-        size += 1 + self.next_batch_id.as_ref().map_or(0, |_| 8);
-        size += 1 + self.configuration.as_ref().map_or(0, |c| c.estimate_size());
-        size
-    }
+    encoded_canister_env: String,
 }
 
 impl Asset {
-    fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 1 + self.content_type.len();
-        size += self.encodings.iter().fold(1, |acc, (name, encoding)| {
-            acc + 1 + name.len() + encoding.estimate_size()
-        });
-        size += 1 + self
-            .max_age
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<u64>());
-        size += 1 + self.headers.as_ref().map_or(0, |hm| {
-            hm.iter()
-                .fold(2, |acc, (k, v)| acc + 1 + k.len() + 2 + v.len())
-        });
-        size += 1 + self
-            .is_aliased
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<bool>());
-        size += 1 + self
-            .allow_raw_access
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<bool>());
-        size
-    }
-
     fn allow_raw_access(&self) -> bool {
         self.allow_raw_access.unwrap_or(true)
     }
@@ -448,6 +360,7 @@ impl State {
         if self.assets.contains_key(&arg.key) {
             return Err("asset already exists".to_string());
         }
+
         self.assets.insert(
             arg.key,
             Asset {
@@ -465,7 +378,7 @@ impl State {
     pub fn set_asset_content(
         &mut self,
         arg: SetAssetContentArguments,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<(), String> {
         if arg.chunk_ids.is_empty() && arg.last_chunk.is_none() {
             return Err("encoding must have at least one chunk or contain last_chunk".to_string());
@@ -477,7 +390,7 @@ impl State {
             .get_mut(&arg.key)
             .ok_or_else(|| "asset not found".to_string())?;
 
-        let now = Int::from(now);
+        let now = Int::from(system_context.current_timestamp_ns);
 
         let mut content_chunks = vec![];
         for chunk_id in arg.chunk_ids.iter() {
@@ -514,7 +427,13 @@ impl State {
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+        on_asset_change(
+            &mut self.asset_hashes,
+            &arg.key,
+            asset,
+            dependent_keys,
+            Some(&self.encoded_canister_env),
+        );
 
         Ok(())
     }
@@ -527,7 +446,13 @@ impl State {
             .ok_or_else(|| "asset not found".to_string())?;
 
         if asset.encodings.remove(&arg.content_encoding).is_some() {
-            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+            on_asset_change(
+                &mut self.asset_hashes,
+                &arg.key,
+                asset,
+                dependent_keys,
+                None,
+            );
         }
 
         Ok(())
@@ -550,7 +475,7 @@ impl State {
             if self.assets.contains_key(&key) {
                 let dependent_keys = self.dependent_keys(&key);
                 if let Some(asset) = self.assets.get_mut(&key) {
-                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys);
+                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys, None);
                 }
             }
         }
@@ -606,7 +531,7 @@ impl State {
         Ok(id_enc.content_chunks[0].clone())
     }
 
-    pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
+    pub fn store(&mut self, arg: StoreArg, system_context: &SystemContext) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
@@ -622,14 +547,21 @@ impl State {
         let encoding = asset.encodings.entry(arg.content_encoding).or_default();
         encoding.total_length = arg.content.len();
         encoding.content_chunks = vec![RcBytes::from(arg.content)];
-        encoding.modified = Int::from(time);
+        encoding.modified = Int::from(system_context.current_timestamp_ns);
         encoding.sha256 = hash;
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+        on_asset_change(
+            &mut self.asset_hashes,
+            &arg.key,
+            asset,
+            dependent_keys,
+            Some(&self.encoded_canister_env),
+        );
         Ok(())
     }
 
-    pub fn create_batch(&mut self, now: u64) -> Result<BatchId, String> {
+    pub fn create_batch(&mut self, system_context: &SystemContext) -> Result<BatchId, String> {
+        let now = system_context.current_timestamp_ns;
         self.batches.retain(|_, b| {
             b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
         });
@@ -642,8 +574,14 @@ impl State {
             .find(|(_batch_id, batch)| batch.commit_batch_arguments.is_some())
         {
             let message = match batch.evidence_computation {
-                Some(Computed(_)) => format!("Batch {} is already proposed.  Delete or execute it to propose another.", batch_id),
-                _ => format!("Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.", batch_id),
+                Some(Computed(_)) => format!(
+                    "Batch {} is already proposed.  Delete or execute it to propose another.",
+                    batch_id
+                ),
+                _ => format!(
+                    "Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.",
+                    batch_id
+                ),
             };
             return Err(message);
         }
@@ -669,8 +607,12 @@ impl State {
         Ok(batch_id)
     }
 
-    pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
-        let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], now)?;
+    pub fn create_chunk(
+        &mut self,
+        arg: CreateChunkArg,
+        system_context: &SystemContext,
+    ) -> Result<ChunkId, String> {
+        let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], system_context)?;
         ids.into_iter()
             .next()
             .ok_or_else(|| "Bug: created chunk did not return a chunk id.".to_string())
@@ -682,9 +624,9 @@ impl State {
             batch_id,
             content: chunks,
         }: CreateChunksArg,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<Vec<ChunkId>, String> {
-        self.create_chunks_helper(batch_id, chunks, now)
+        self.create_chunks_helper(batch_id, chunks, system_context)
     }
 
     /// Post-condition: `chunks.len() == output_chunk_ids.len()`
@@ -692,7 +634,7 @@ impl State {
         &mut self,
         batch_id: Nat,
         chunks: Vec<ByteBuf>,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<Vec<ChunkId>, String> {
         self.check_batch_limits(chunks.len(), chunks.iter().map(|chunk| chunk.len()).sum())?;
         let batch = self
@@ -703,7 +645,7 @@ impl State {
             return Err(format!("batch {} has been proposed", batch_id));
         }
 
-        batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
+        batch.expires_at = Int::from(system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS);
 
         let chunks_len = chunks.len();
 
@@ -770,7 +712,14 @@ impl State {
         )
     }
 
-    pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+    pub fn commit_batch(
+        &mut self,
+        arg: CommitBatchArguments,
+        system_context: &SystemContext,
+    ) -> Result<(), String> {
+        // Reload the canister env to get the latest values
+        self.encoded_canister_env = system_context.get_canister_env().to_cookie_value();
+
         let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
         self.check_batch_limits(chunks_added, bytes_added)?;
 
@@ -778,7 +727,9 @@ impl State {
         for op in arg.operations {
             match op {
                 BatchOperation::CreateAsset(arg) => self.create_asset(arg)?,
-                BatchOperation::SetAssetContent(arg) => self.set_asset_content(arg, now)?,
+                BatchOperation::SetAssetContent(arg) => {
+                    self.set_asset_content(arg, system_context)?
+                }
                 BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
                 BatchOperation::DeleteAsset(arg) => self.delete_asset(arg),
                 BatchOperation::Clear(_) => self.clear(),
@@ -787,6 +738,9 @@ impl State {
         }
         self.batches.remove(&batch_id);
         self.certify_404_if_required();
+
+        self.update_ic_env_cookie_in_html_files();
+
         Ok(())
     }
 
@@ -808,12 +762,12 @@ impl State {
     pub fn commit_proposed_batch(
         &mut self,
         arg: CommitProposedBatchArguments,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<(), String> {
         self.validate_commit_proposed_batch_args(&arg)?;
         let batch = self.batches.get_mut(&arg.batch_id).unwrap();
         let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
-        self.commit_batch(proposed_batch_arguments, now)
+        self.commit_batch(proposed_batch_arguments, system_context)
     }
 
     pub fn validate_commit_proposed_batch(
@@ -849,6 +803,28 @@ impl State {
             ));
         }
         Ok(())
+    }
+
+    fn update_ic_env_cookie_in_html_files(&mut self) {
+        let assets_keys: Vec<_> = self
+            .assets
+            .keys()
+            .filter(|key| is_html_key(key))
+            .cloned()
+            .collect();
+
+        for key in assets_keys {
+            let dependent_keys = self.dependent_keys(&key);
+            if let Some(asset) = self.assets.get_mut(&key) {
+                on_asset_change(
+                    &mut self.asset_hashes,
+                    &key,
+                    asset,
+                    dependent_keys,
+                    Some(&self.encoded_canister_env),
+                );
+            }
+        }
     }
 
     pub fn compute_evidence(
@@ -1144,7 +1120,13 @@ impl State {
             asset.is_aliased = is_aliased
         }
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+        on_asset_change(
+            &mut self.asset_hashes,
+            &arg.key,
+            asset,
+            dependent_keys,
+            Some(&self.encoded_canister_env),
+        );
 
         Ok(())
     }
@@ -1210,25 +1192,8 @@ impl State {
     }
 }
 
-impl From<State> for StableState {
-    fn from(state: State) -> Self {
-        let permissions = StableStatePermissions {
-            commit: state.commit_principals,
-            prepare: state.prepare_principals,
-            manage_permissions: state.manage_permissions_principals,
-        };
-        Self {
-            authorized: vec![],
-            permissions: Some(permissions),
-            stable_assets: state.assets,
-            next_batch_id: Some(state.next_batch_id),
-            configuration: Some(state.configuration),
-        }
-    }
-}
-
-impl From<StableState> for State {
-    fn from(stable_state: StableState) -> Self {
+impl From<StableStateV2> for State {
+    fn from(stable_state: StableStateV2) -> Self {
         let (commit_principals, prepare_principals, manage_permissions_principals) =
             if let Some(permissions) = stable_state.permissions {
                 (
@@ -1247,11 +1212,19 @@ impl From<StableState> for State {
             commit_principals,
             prepare_principals,
             manage_permissions_principals,
-            assets: stable_state.stable_assets,
+            assets: stable_state
+                .stable_assets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
             next_batch_id: stable_state
                 .next_batch_id
+                .map(BatchId::from)
                 .unwrap_or_else(|| Nat::from(1_u8)),
-            configuration: stable_state.configuration.unwrap_or_default(),
+            configuration: stable_state
+                .configuration
+                .map(Into::into)
+                .unwrap_or_default(),
             ..Self::default()
         };
 
@@ -1262,7 +1235,8 @@ impl From<StableState> for State {
                 for enc in asset.encodings.values_mut() {
                     enc.certified = false;
                 }
-                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys);
+                // Do not pass the canister env here, because we want to load the assets as they are (with the old cookie value)
+                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys, None);
             } else {
                 // shouldn't reach this
             }
@@ -1303,6 +1277,7 @@ fn on_asset_change(
     key: &str,
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
+    encoded_canister_env: Option<&String>,
 ) {
     let mut affected_keys = dependent_keys;
     affected_keys.push(key.to_string());
@@ -1317,6 +1292,14 @@ fn on_asset_change(
         enc.certified = false;
     }
 
+    // Add ic_env cookie for html files, if the cookie value (canister env) is provided
+    if let Some(encoded_canister_env) = encoded_canister_env {
+        if is_html_key(key) {
+            let headers = asset.headers.get_or_insert_default();
+            add_ic_env_cookie(headers, encoded_canister_env);
+        }
+    }
+
     asset.update_ic_certificate_expressions();
 
     let most_important_encoding_v1 = asset.most_important_encoding_v1();
@@ -1327,6 +1310,7 @@ fn on_asset_change(
         headers,
         ..
     } = asset;
+
     // Insert certified response values into hash_tree
     // Once certification v1 support is removed, encoding_certification_order().iter() can be replaced with asset.encodings.iter_mut()
     for enc_name in encoding_certification_order(encodings.keys()).iter() {
@@ -1393,7 +1377,7 @@ fn insert_new_response_hashes_for_encoding(
 fn aliases_of(key: &AssetKey) -> Vec<AssetKey> {
     if key.ends_with('/') {
         vec![format!("{}index.html", key)]
-    } else if !key.ends_with(".html") {
+    } else if !is_html_key(key) {
         vec![format!("{}.html", key), format!("{}/index.html", key)]
     } else {
         Vec::new()
@@ -1414,9 +1398,13 @@ fn aliased_by(key: &AssetKey) -> Vec<AssetKey> {
             key[..(key.len() - 10)].into(),
             key[..(key.len() - 11)].to_string(),
         ]
-    } else if key.ends_with(".html") {
+    } else if is_html_key(key) {
         vec![key[..(key.len() - 5)].to_string()]
     } else {
         Vec::new()
     }
+}
+
+fn is_html_key<T: AsRef<str>>(key: T) -> bool {
+    key.as_ref().ends_with(".html")
 }

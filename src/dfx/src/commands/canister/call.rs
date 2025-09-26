@@ -8,20 +8,20 @@ use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
 use anyhow::bail;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
-use ic_agent::agent::CallResponse;
 use ic_agent::RequestId;
+use ic_agent::agent::CallResponse;
 use ic_utils::canister::Argument;
-use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
-use ic_utils::interfaces::management_canister::MgmtMethod;
-use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
+use ic_utils::interfaces::management_canister::MgmtMethod;
+use ic_utils::interfaces::management_canister::builders::{CanisterSettings, InstallCodeArgs};
+use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use pocket_ic::common::rest::RawEffectivePrincipal;
 use slog::warn;
 use std::option::Option;
@@ -160,7 +160,7 @@ pub fn get_effective_canister_id(
         | MgmtMethod::NodeMetricsHistory => Ok(CanisterId::management_canister()),
         MgmtMethod::InstallCode => {
             // TODO: Maybe this case can be merged with the following one.
-            let install_args = candid::Decode!(arg_value, CanisterInstall)
+            let install_args = candid::Decode!(arg_value, InstallCodeArgs)
                 .context("Failed to decode arguments.")?;
             Ok(install_args.canister_id)
         }
@@ -241,7 +241,10 @@ pub async fn exec(
     } else if let Some(did) = fetch_remote_did_file(agent, canister_id).await {
         get_candid_type(CandidSource::Text(&did), method_name)
     } else if let Some(path) = maybe_local_candid_path {
-        warn!(env.get_logger(), "DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.");
+        warn!(
+            env.get_logger(),
+            "DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata."
+        );
         warn!(
             env.get_logger(),
             r#"Please add the following to dfx.json to store local candid file into metadata:
@@ -256,7 +259,10 @@ pub async fn exec(
         None
     };
     if method_type.is_none() {
-        warn!(env.get_logger(), "Cannot fetch Candid interface for {method_name}, sending arguments with inferred types.");
+        warn!(
+            env.get_logger(),
+            "Cannot fetch Candid interface for {method_name}, sending arguments with inferred types."
+        );
     }
 
     let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;

@@ -1,4 +1,4 @@
-actor Multiply {
+persistent actor Multiply {
 
     var cell : Nat = 1;
 

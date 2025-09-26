@@ -20,7 +20,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tar::Archive;
-use tempfile::{tempdir_in, TempDir};
+use tempfile::{TempDir, tempdir_in};
 
 pub enum InstallOutcome {
     Installed(String, Version),

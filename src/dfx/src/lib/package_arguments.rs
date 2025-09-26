@@ -1,6 +1,6 @@
+use crate::Environment;
 use crate::config::cache::VersionCache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::Environment;
 use anyhow::{anyhow, bail};
 use fn_error_context::context;
 use std::path::Path;
@@ -8,7 +8,7 @@ use std::process::Command;
 
 /// Package arguments for moc as returned by a package tool like
 /// https://github.com/kritzcreek/vessel or, if there is no package
-/// tool, the base library.
+/// tool, the `base` and `core` packages.
 pub type PackageArguments = Vec<String>;
 
 #[context("Failed to load package arguments.")]
@@ -19,13 +19,20 @@ pub fn load(
     project_root: &Path,
 ) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
-        let stdlib_path = cache
-            .get_binary_command_path(env, "base")?
-            .into_os_string()
-            .into_string()
-            .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;
-        let base = vec![String::from("--package"), String::from("base"), stdlib_path];
-        return Ok(base);
+        let mut flags = Vec::new();
+        for package_name in ["base", "core"] {
+            let package_path = cache
+                .get_binary_command_path(env, package_name)?
+                .into_os_string()
+                .into_string()
+                .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;
+            flags.extend_from_slice(&[
+                String::from("--package"),
+                String::from(package_name),
+                package_path,
+            ]);
+        }
+        return Ok(flags);
     }
 
     let commandline: Vec<String> = packtool

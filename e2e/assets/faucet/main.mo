@@ -4,7 +4,7 @@ import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Debug "mo:base/Debug";
 
-actor class Coupon() = self {
+persistent actor class Coupon() = self {
     type Management = actor {
         deposit_cycles : ({ canister_id : Principal }) -> async ();
     };

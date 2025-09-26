@@ -8,24 +8,26 @@ use crate::lib::operations::{
 use crate::lib::{
     error::DfxResult,
     ledger_types::{
-        AccountBalanceArgs, IcpXdrConversionRateCertifiedResponse, TimeStamp, TransferArgs,
-        TransferResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+        AccountBalanceArgs, IcpXdrConversionRateCertifiedResponse,
+        MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID, TimeStamp, TransferArgs,
+        TransferResult,
     },
     nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
 };
-use anyhow::{anyhow, bail, ensure, Context};
+use anyhow::{Context, anyhow, bail, ensure};
+use backoff::ExponentialBackoff;
 use backoff::backoff::Backoff;
 use backoff::future::retry;
-use backoff::ExponentialBackoff;
 use candid::{Decode, Encode, Nat, Principal};
 use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{
+    Agent, AgentError,
     hash_tree::{HashTree, LookupResult},
-    lookup_value, Agent, AgentError,
+    lookup_value,
 };
-use ic_utils::{call::SyncCall, Canister};
+use ic_utils::{Canister, call::SyncCall};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::transfer::BlockIndex;
 use icrc_ledger_types::icrc1::transfer::TransferError as ICRC1TransferError;
@@ -33,7 +35,7 @@ use icrc_ledger_types::icrc2;
 use icrc_ledger_types::icrc2::allowance::Allowance;
 use icrc_ledger_types::icrc2::approve::ApproveError;
 use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
-use slog::{info, Logger};
+use slog::{Logger, info};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance";

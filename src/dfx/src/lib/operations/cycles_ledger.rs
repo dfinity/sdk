@@ -19,9 +19,9 @@ use crate::lib::operations::{
 use crate::lib::retryable::retryable;
 use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
-use anyhow::{anyhow, bail, Context};
-use backoff::future::retry;
+use anyhow::{Context, anyhow, bail};
 use backoff::ExponentialBackoff;
+use backoff::future::retry;
 use candid::{Decode, Encode, Nat, Principal};
 use dfx_core::canister::build_wallet_canister;
 use fn_error_context::context;
@@ -34,7 +34,7 @@ use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
 use icrc_ledger_types::icrc2;
 use icrc_ledger_types::icrc2::approve::ApproveError;
 use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
-use slog::{info, Logger};
+use slog::{Logger, info};
 
 const WITHDRAW_METHOD: &str = "withdraw";
 const CREATE_CANISTER_METHOD: &str = "create_canister";
@@ -375,7 +375,10 @@ pub async fn create_with_cycles_ledger(
             canister_id,
         }) => {
             if let Some(canister) = canister_id {
-                info!(env.get_logger(), "Duplicate of block {duplicate_of}. Canister already created with id {canister}.");
+                info!(
+                    env.get_logger(),
+                    "Duplicate of block {duplicate_of}. Canister already created with id {canister}."
+                );
                 Ok(canister)
             } else {
                 bail!("Duplicate of block {duplicate_of} but no canister id is available.");

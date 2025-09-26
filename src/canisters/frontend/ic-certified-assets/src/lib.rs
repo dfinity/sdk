@@ -1,25 +1,28 @@
 //! This module declares canister methods expected by the assets canister client.
 pub mod asset_certification;
+mod cookies;
 pub mod evidence;
 pub mod state_machine;
+pub mod system_context;
 pub mod types;
-mod url_decode;
+mod url;
 
 #[cfg(test)]
 mod tests;
 
-pub use crate::state_machine::StableState;
+pub use crate::state_machine::{StableStateV1, StableStateV2};
 use crate::{
     asset_certification::types::http::{
         CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
         StreamingCallbackToken,
     },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
+    system_context::SystemContext,
     types::*,
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::Principal;
-use ic_cdk::api::{canister_self, certified_data_set, data_certificate, msg_caller, time, trap};
+use ic_cdk::api::{canister_self, certified_data_set, data_certificate, msg_caller, trap};
 use std::cell::RefCell;
 
 // Re-export for use in macros
@@ -120,8 +123,10 @@ pub fn retrieve(key: AssetKey) -> RcBytes {
 }
 
 pub fn store(arg: StoreArg) {
+    let system_context = SystemContext::new();
+
     with_state_mut(|s| {
-        if let Err(msg) = s.store(arg, time()) {
+        if let Err(msg) = s.store(arg, &system_context) {
             trap(&msg);
         }
         certified_data_set(s.root_hash());
@@ -129,21 +134,27 @@ pub fn store(arg: StoreArg) {
 }
 
 pub fn create_batch() -> CreateBatchResponse {
-    with_state_mut(|s| match s.create_batch(time()) {
+    let system_context = SystemContext::new();
+
+    with_state_mut(|s| match s.create_batch(&system_context) {
         Ok(batch_id) => CreateBatchResponse { batch_id },
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
-    with_state_mut(|s| match s.create_chunk(arg, time()) {
+    let system_context = SystemContext::new();
+
+    with_state_mut(|s| match s.create_chunk(arg, &system_context) {
         Ok(chunk_id) => CreateChunkResponse { chunk_id },
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn create_chunks(arg: CreateChunksArg) -> CreateChunksResponse {
-    with_state_mut(|s| match s.create_chunks(arg, time()) {
+    let system_context = SystemContext::new();
+
+    with_state_mut(|s| match s.create_chunks(arg, &system_context) {
         Ok(chunk_ids) => CreateChunksResponse { chunk_ids },
         Err(msg) => trap(&msg),
     })
@@ -159,8 +170,10 @@ pub fn create_asset(arg: CreateAssetArguments) {
 }
 
 pub fn set_asset_content(arg: SetAssetContentArguments) {
+    let system_context = SystemContext::new();
+
     with_state_mut(|s| {
-        if let Err(msg) = s.set_asset_content(arg, time()) {
+        if let Err(msg) = s.set_asset_content(arg, &system_context) {
             trap(&msg);
         }
         certified_data_set(s.root_hash());
@@ -191,8 +204,10 @@ pub fn clear() {
 }
 
 pub fn commit_batch(arg: CommitBatchArguments) {
+    let system_context = SystemContext::new();
+
     with_state_mut(|s| {
-        if let Err(msg) = s.commit_batch(arg, time()) {
+        if let Err(msg) = s.commit_batch(arg, &system_context) {
             trap(&msg);
         }
         certified_data_set(s.root_hash());
@@ -216,8 +231,10 @@ pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_as
 }
 
 pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    let system_context = SystemContext::new();
+
     with_state_mut(|s| {
-        if let Err(msg) = s.commit_proposed_batch(arg, time()) {
+        if let Err(msg) = s.commit_proposed_batch(arg, &system_context) {
             trap(&msg);
         }
         certified_data_set(s.root_hash());
@@ -357,7 +374,9 @@ pub fn init(args: Option<AssetCanisterArgs>) {
 
     if let Some(upgrade_arg) = args {
         let AssetCanisterArgs::Init(init_args) = upgrade_arg else {
-            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
+            ic_cdk::trap(
+                "Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.",
+            )
         };
         with_state_mut(|s| {
             if let Some(set_permissions) = init_args.set_permissions {
@@ -367,11 +386,11 @@ pub fn init(args: Option<AssetCanisterArgs>) {
     }
 }
 
-pub fn pre_upgrade() -> StableState {
+pub fn pre_upgrade() -> StableStateV2 {
     STATE.with(|s| s.take().into())
 }
 
-pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) {
+pub fn post_upgrade(stable_state: StableStateV2, args: Option<AssetCanisterArgs>) {
     let set_permissions = args.and_then(|args| {
         let AssetCanisterArgs::Upgrade(UpgradeArgs { set_permissions }) = args else {ic_cdk::trap("Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.")};
         set_permissions
@@ -417,7 +436,7 @@ macro_rules! export_canister_methods {
         use $crate::is_manager_or_controller as __ic_certified_assets_is_manager_or_controller;
 
         #[cfg(target_arch = "wasm32")]
-        #[link_section = "icp:public supported_certificate_versions"]
+        #[unsafe(link_section = "icp:public supported_certificate_versions")]
         static CERTIFICATE_VERSIONS: [u8; 3] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
 
         // Query methods
@@ -674,7 +693,7 @@ macro_rules! export_canister_methods {
 
 #[test]
 fn candid_interface_compatibility() {
-    use candid_parser::utils::{service_compatible, CandidSource};
+    use candid_parser::utils::{CandidSource, service_compatible};
     use std::path::PathBuf;
 
     export_canister_methods!();
