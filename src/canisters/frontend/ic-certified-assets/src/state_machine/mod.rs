@@ -40,7 +40,7 @@ use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -120,7 +120,7 @@ impl AssetEncoding {
 
     fn compute_response_hashes(
         &self,
-        headers: &Option<HashMap<String, String>>,
+        headers: &Option<BTreeMap<String, String>>,
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
@@ -163,7 +163,7 @@ pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }
@@ -1292,6 +1292,14 @@ fn on_asset_change(
         enc.certified = false;
     }
 
+    // Add ic_env cookie for html files, if the cookie value (canister env) is provided
+    if let Some(encoded_canister_env) = encoded_canister_env {
+        if is_html_key(key) {
+            let headers = asset.headers.get_or_insert_default();
+            add_ic_env_cookie(headers, encoded_canister_env);
+        }
+    }
+
     asset.update_ic_certificate_expressions();
 
     let most_important_encoding_v1 = asset.most_important_encoding_v1();
@@ -1302,14 +1310,6 @@ fn on_asset_change(
         headers,
         ..
     } = asset;
-
-    // Add ic_env cookie for html files, if the cookie value (canister env) is provided
-    if let Some(encoded_canister_env) = encoded_canister_env {
-        if is_html_key(key) {
-            let headers = headers.get_or_insert_default();
-            add_ic_env_cookie(headers, encoded_canister_env);
-        }
-    }
 
     // Insert certified response values into hash_tree
     // Once certification v1 support is removed, encoding_certification_order().iter() can be replaced with asset.encodings.iter_mut()
