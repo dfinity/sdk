@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use ic_cdk::api::{env_var_count, env_var_name, env_var_value, root_key};
 
@@ -15,7 +15,7 @@ pub struct CanisterEnv {
     /// for both the key and the value. Total size: 20 * 128 * 2 = 4096 bytes
     ///
     /// Numbers from https://github.com/dfinity/ic/blob/34bd4301f941cdfa1596a0eecf9f58ad6407293c/rs/config/src/execution_environment.rs#L175-L183
-    pub icp_public_env_vars: HashMap<String, String>,
+    pub icp_public_env_vars: BTreeMap<String, String>,
 }
 
 impl CanisterEnv {
@@ -45,8 +45,8 @@ impl CanisterEnv {
     }
 }
 
-fn load_icp_public_env_vars() -> HashMap<String, String> {
-    let mut public_env_vars = HashMap::new();
+fn load_icp_public_env_vars() -> BTreeMap<String, String> {
+    let mut public_env_vars = BTreeMap::new();
     let env_var_count = env_var_count();
 
     for i in 0..env_var_count {
