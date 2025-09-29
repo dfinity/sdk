@@ -11,7 +11,7 @@ use crate::types::{
     DeleteBatchArguments, GetArg, GetChunkArg, SetAssetContentArguments,
     SetAssetPropertiesArguments,
 };
-use crate::url::{UrlDecodeError, url_decode};
+use crate::url::{UrlDecodeError, url_decode, url_encode};
 use candid::{Nat, Principal};
 use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
@@ -1167,6 +1167,33 @@ fn check_url_decode() {
 }
 
 #[test]
+fn check_url_encode() {
+    assert_eq!(url_encode("/"), "%2F");
+    assert_eq!(url_encode("/%"), "%2F%25");
+    assert_eq!(url_encode("/%%"), "%2F%25%25");
+    assert_eq!(url_encode("/%e%"), "%2F%25e%25");
+    assert_eq!(url_encode("/ %a"), "%2F%20%25a");
+    assert_eq!(url_encode("%%+a +%@"), "%25%25%2Ba%20%2B%25%40");
+    assert_eq!(url_encode("has%percent.txt"), "has%25percent%2Etxt");
+    assert_eq!(url_encode("%%2"), "%25%252");
+    assert_eq!(url_encode("a+b+c d"), "a%2Bb%2Bc%20d");
+    assert_eq!(url_encode("key=value"), "key%3Dvalue");
+    assert_eq!(
+        url_encode("key=value&key2=value2"),
+        "key%3Dvalue%26key2%3Dvalue2"
+    );
+    assert_eq!(url_encode("KEY=VALUE"), "KEY%3DVALUE");
+    assert_eq!(
+        url_encode("KEY=VALUE&KEY2=VALUE2"),
+        "KEY%3DVALUE%26KEY2%3DVALUE2"
+    );
+    assert_eq!(
+        url_encode("capture-d’écran-2023-10-26-à.txt"),
+        "capture%2Dd%E2%80%99e%CC%81cran%2D2023%2D10%2D26%2Da%CC%80%2Etxt"
+    );
+}
+
+#[test]
 fn supports_custom_http_headers() {
     let mut state = State::default();
     let system_context = mock_system_context();
@@ -1486,10 +1513,12 @@ fn ic_env_cookie_only_for_html_files() {
     );
     assert_eq!(html_response.status_code, 200);
     let html_cookie = lookup_header(&html_response, "Set-Cookie").unwrap();
-    // Expect: ic_env=urlencode("ic_root_key=abcd&PUBLIC_TEST=ok")
     assert_eq!(
         html_cookie,
-        "ic_env=ic%5Froot%5Fkey%3Dabcd%26PUBLIC%5FTEST%3Dok; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=abcd&PUBLIC_TEST=ok")
+        )
     );
 
     let js_response = certified_http_request(
@@ -1534,10 +1563,12 @@ fn ic_env_cookie_encodes_root_key_and_public_env_vars_and_updates() {
     );
     assert_eq!(response.status_code, 200);
     let cookie1 = lookup_header(&response, "Set-Cookie").unwrap();
-    // Expect: ic_env=urlencode("ic_root_key=abcd&PUBLIC_TEST=ok")
     assert_eq!(
         cookie1,
-        "ic_env=ic%5Froot%5Fkey%3Dabcd%26PUBLIC%5FTEST%3Dok; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=abcd&PUBLIC_TEST=ok")
+        )
     );
 
     // Second commit with updated env: root_key=abcd, PUBLIC_TEST=ok2
@@ -1564,10 +1595,12 @@ fn ic_env_cookie_encodes_root_key_and_public_env_vars_and_updates() {
     );
     assert_eq!(response2.status_code, 200);
     let cookie2 = lookup_header(&response2, "Set-Cookie").unwrap();
-    // Expect: ic_env=urlencode("ic_root_key=abcd&PUBLIC_TEST=ok2")
     assert_eq!(
         cookie2,
-        "ic_env=ic%5Froot%5Fkey%3Dabcd%26PUBLIC%5FTEST%3Dok2; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=abcd&PUBLIC_TEST=ok2")
+        )
     );
 }
 
@@ -1602,10 +1635,12 @@ fn ic_env_cookie_replaces_old_public_env_vars() {
     );
     assert_eq!(resp1.status_code, 200);
     let cookie1 = lookup_header(&resp1, "Set-Cookie").unwrap();
-    // ic_env=urlencode("ic_root_key=aa&PUBLIC_OLD=v1")
     assert_eq!(
         cookie1,
-        "ic_env=ic%5Froot%5Fkey%3Daa%26PUBLIC%5FOLD%3Dv1; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=aa&PUBLIC_OLD=v1")
+        )
     );
 
     // Second commit with PUBLIC_NEW=v2 and root_key=bb
@@ -1634,10 +1669,12 @@ fn ic_env_cookie_replaces_old_public_env_vars() {
     );
     assert_eq!(resp2.status_code, 200);
     let cookie2 = lookup_header(&resp2, "Set-Cookie").unwrap();
-    // ic_env=urlencode("ic_root_key=bb&PUBLIC_NEW=v2")
     assert_eq!(
         cookie2,
-        "ic_env=ic%5Froot%5Fkey%3Dbb%26PUBLIC%5FNEW%3Dv2; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=bb&PUBLIC_NEW=v2")
+        )
     );
 }
 
@@ -1674,10 +1711,12 @@ fn ic_env_cookie_multiple_public_env_vars() {
     );
     assert_eq!(res_1.status_code, 200);
     let cookie_1 = lookup_header(&res_1, "Set-Cookie").unwrap();
-    // ic_env=urlencode("ic_root_key=aa&PUBLIC_A=va&PUBLIC_B=vb")
     assert_eq!(
         cookie_1,
-        "ic_env=ic%5Froot%5Fkey%3Daa%26PUBLIC%5FA%3Dva%26PUBLIC%5FB%3Dvb; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=aa&PUBLIC_A=va&PUBLIC_B=vb")
+        )
     );
 
     // Commit 2: modify PUBLIC_A=va2, keep PUBLIC_B=vb, add PUBLIC_C=vc
@@ -1706,10 +1745,12 @@ fn ic_env_cookie_multiple_public_env_vars() {
     );
     assert_eq!(res_2.status_code, 200);
     let cookie_2 = lookup_header(&res_2, "Set-Cookie").unwrap();
-    // ic_env=urlencode("ic_root_key=aa&PUBLIC_A=va2&PUBLIC_B=vb&PUBLIC_C=vc")
     assert_eq!(
         cookie_2,
-        "ic_env=ic%5Froot%5Fkey%3Daa%26PUBLIC%5FA%3Dva2%26PUBLIC%5FB%3Dvb%26PUBLIC%5FC%3Dvc; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=aa&PUBLIC_A=va2&PUBLIC_B=vb&PUBLIC_C=vc")
+        )
     );
 
     // Commit 3: remove PUBLIC_B, keep PUBLIC_A=va2 and PUBLIC_C=vc
@@ -1737,10 +1778,12 @@ fn ic_env_cookie_multiple_public_env_vars() {
     );
     assert_eq!(res_3.status_code, 200);
     let cookie_3 = lookup_header(&res_3, "Set-Cookie").unwrap();
-    // ic_env=urlencode("ic_root_key=aa&PUBLIC_A=va2&PUBLIC_C=vc")
     assert_eq!(
         cookie_3,
-        "ic_env=ic%5Froot%5Fkey%3Daa%26PUBLIC%5FA%3Dva2%26PUBLIC%5FC%3Dvc; SameSite=Lax"
+        format!(
+            "ic_env={}; SameSite=Lax",
+            url_encode("ic_root_key=aa&PUBLIC_A=va2&PUBLIC_C=vc")
+        )
     );
 }
 
