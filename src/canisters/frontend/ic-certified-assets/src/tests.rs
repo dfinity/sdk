@@ -1679,6 +1679,82 @@ fn ic_env_cookie_replaces_old_public_env_vars() {
 }
 
 #[test]
+fn ic_env_cookie_updates_all_assets() {
+    // Test that when env vars are updated, all assets (not just the updated one) get the new cookie
+    let mut state = State::default();
+    let ic_root_key = vec![0xaa];
+    let current_timestamp_ns = 100_000_000_000;
+
+    // First commit with PUBLIC_OLD=v1 and root_key=aa
+    let public_env_vars_1 = BTreeMap::from([("PUBLIC_OLD".to_string(), "v1".to_string())]);
+    let system_context_1 = SystemContext::new_with_options(
+        Some(CanisterEnv {
+            ic_root_key: ic_root_key.clone(),
+            icp_public_env_vars: public_env_vars_1,
+        }),
+        current_timestamp_ns,
+    );
+
+    create_assets(
+        &mut state,
+        &system_context_1,
+        vec![
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![b"<!DOCTYPE html><html>Index</html>"]),
+            AssetBuilder::new("/about.html", "text/html")
+                .with_encoding("identity", vec![b"<!DOCTYPE html><html>About</html>"]),
+        ],
+    );
+
+    // Second commit with PUBLIC_NEW=v2 and root_key=bb, updating only index.html
+    let public_env_vars_2 = BTreeMap::from([("PUBLIC_NEW".to_string(), "v2".to_string())]);
+    let system_context_2 = SystemContext::new_with_options(
+        Some(CanisterEnv {
+            ic_root_key: vec![0xbb],
+            icp_public_env_vars: public_env_vars_2,
+        }),
+        current_timestamp_ns,
+    );
+
+    create_assets(
+        &mut state,
+        &system_context_2,
+        vec![AssetBuilder::new("/index.html", "text/html").with_encoding(
+            "identity",
+            vec![b"<!DOCTYPE html><html>Index updated</html>"],
+        )],
+    );
+
+    let updated_cookie_value = url_encode("ic_root_key=bb&PUBLIC_NEW=v2");
+
+    // Verify that the updated asset gets the new cookie
+    let resp_index = certified_http_request(
+        &state,
+        RequestBuilder::get("/index.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+    );
+    let cookie_index = lookup_header(&resp_index, "Set-Cookie").unwrap();
+    assert_eq!(
+        cookie_index,
+        format!("ic_env={updated_cookie_value}; SameSite=Lax")
+    );
+
+    // Verify that an asset that was NOT updated also gets the new cookie
+    let resp_about = certified_http_request(
+        &state,
+        RequestBuilder::get("/about.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+    );
+    let cookie_about = lookup_header(&resp_about, "Set-Cookie").unwrap();
+    assert_eq!(
+        cookie_about,
+        format!("ic_env={updated_cookie_value}; SameSite=Lax")
+    );
+}
+
+#[test]
 fn ic_env_cookie_multiple_public_env_vars() {
     let mut state = State::default();
     let ic_root_key = vec![0xaa];
