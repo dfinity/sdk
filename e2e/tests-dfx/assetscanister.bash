@@ -2196,10 +2196,19 @@ EOF
 
   PORT=$(get_webserver_port)
 
-  IC_ENV_COOKIE_REGEX="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1; SameSite=Lax"
+  IC_ENV_COOKIE_REGEX_1="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1; SameSite=Lax"
 
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1"
+
+  # Redeploy with no PUBLIC_ prefixed (case sensitive!) environment variables
+  set_canister_environment_variables $ID public_TEST1=value1 TEST2=value2
+  dfx deploy
+
+  IC_ENV_COOKIE_REGEX_2="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+; SameSite=Lax"
+
+  assert_command curl -v "http://$ID.localhost:$PORT/app.html"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2"
 }
 
 @test "ic_env cookie updates on redeploy with new environment variables" {
