@@ -310,3 +310,24 @@ stop_and_delete() {
     assert_command dfx canister delete -y --no-withdrawal "$1"
     echo "Canister $1 deleted"
 }
+
+set_canister_environment_variables() {
+  local canister_id=$1
+  shift
+
+  # Build the Candid vec of records from the remaining arguments
+  # Each argument should be in format "NAME=VALUE"
+  local env_records=""
+  for env_var in "$@"; do
+    local name="${env_var%%=*}"
+    local value="${env_var#*=}"
+    if [ -n "$env_records" ]; then
+      env_records="$env_records; "
+    fi
+    env_records="${env_records}record { name = \"$name\"; value = \"$value\" }"
+  done
+
+  management_canister_id=aaaaa-aa
+
+  dfx canister call $management_canister_id update_settings "(record { canister_id = principal \"$canister_id\"; settings = record { environment_variables = opt vec { $env_records } } })"
+}

@@ -2108,3 +2108,130 @@ EOF
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
   assert_match "$(dfx identity get-principal)"
 }
+
+@test "ic_env cookie is set for html files" {
+  install_asset assetscanister
+  dfx_start
+
+  touch src/e2e_project_frontend/assets/index.html
+  echo "<html><body>Test</body></html>" > src/e2e_project_frontend/assets/index.html
+
+  dfx deploy
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  IC_ENV_COOKIE_REGEX="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+; SameSite=Lax"
+
+  # Request HTML file and verify ic_env cookie is set
+  assert_command curl -v "http://$ID.localhost:$PORT/index.html"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX"
+}
+
+@test "ic_env cookie contains PUBLIC_ environment variables" {
+  install_asset assetscanister
+  dfx_start
+
+  touch src/e2e_project_frontend/assets/index.html
+  echo "<html><body>Test</body></html>" > src/e2e_project_frontend/assets/index.html
+
+  dfx canister create --all
+  dfx build --all
+  dfx canister install e2e_project_frontend
+
+  ID=$(dfx canister id e2e_project_frontend)
+
+  set_canister_environment_variables $ID PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
+
+  dfx deploy
+
+  PORT=$(get_webserver_port)
+
+  IC_ENV_COOKIE_REGEX="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1%26PUBLIC%5FTEST2%3Dvalue2; SameSite=Lax"
+
+  # Request HTML file and verify cookie contains PUBLIC_ variables
+  assert_command curl -v "http://$ID.localhost:$PORT/index.html"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX"
+}
+
+@test "ic_env cookie is not set for non-html files" {
+  install_asset assetscanister
+  dfx_start
+
+  touch src/e2e_project_frontend/assets/test.txt
+  echo "plain text file" > src/e2e_project_frontend/assets/test.txt
+  touch src/e2e_project_frontend/assets/script.js
+  echo "console.log('test');" > src/e2e_project_frontend/assets/script.js
+
+  dfx deploy
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  # Request text file and verify no ic_env cookie is set
+  assert_command curl -v "http://$ID.localhost:$PORT/test.txt"
+  assert_not_match "set-cookie: ic_env="
+
+  # Request JS file and verify no ic_env cookie is set
+  assert_command curl -v "http://$ID.localhost:$PORT/script.js"
+  assert_not_match "set-cookie: ic_env="
+}
+
+@test "ic_env cookie is set only for PUBLIC_ prefixed environment variables" {
+  install_asset assetscanister
+  dfx_start
+
+  touch src/e2e_project_frontend/assets/app.html
+  echo "<html><body>App</body></html>" > src/e2e_project_frontend/assets/app.html
+
+  dfx canister create --all
+  dfx build --all
+  dfx canister install e2e_project_frontend
+
+  ID=$(dfx canister id e2e_project_frontend)
+
+  set_canister_environment_variables $ID PUBLIC_TEST1=value1 TEST2=value2
+
+  dfx deploy
+
+  PORT=$(get_webserver_port)
+
+  IC_ENV_COOKIE_REGEX="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1; SameSite=Lax"
+
+  assert_command curl -v "http://$ID.localhost:$PORT/app.html"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX"
+}
+
+@test "ic_env cookie updates on redeploy with new environment variables" {
+  install_asset assetscanister
+  dfx_start
+
+  touch src/e2e_project_frontend/assets/app.html
+  echo "<html><body>App</body></html>" > src/e2e_project_frontend/assets/app.html
+  
+  dfx canister create --all
+  dfx build --all
+  dfx canister install e2e_project_frontend
+
+  ID=$(dfx canister id e2e_project_frontend)
+
+  set_canister_environment_variables $ID PUBLIC_TEST1=value1
+
+  dfx deploy
+
+  PORT=$(get_webserver_port)
+
+  IC_ENV_COOKIE_REGEX_1="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1; SameSite=Lax"
+
+  assert_command curl -v "http://$ID.localhost:$PORT/app.html"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1"
+
+  # Redeploy with additional PUBLIC_ variable
+  set_canister_environment_variables $ID PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
+  dfx deploy
+
+  IC_ENV_COOKIE_REGEX_2="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1%26PUBLIC%5FTEST2%3Dvalue2; SameSite=Lax"
+
+  assert_command curl -v "http://$ID.localhost:$PORT/app.html"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2"
+}
