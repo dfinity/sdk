@@ -2141,7 +2141,7 @@ EOF
 
   ID=$(dfx canister id e2e_project_frontend)
 
-  set_canister_environment_variables $ID PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
+  set_canister_environment_variables "$ID" PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
 
   dfx deploy
 
@@ -2190,7 +2190,7 @@ EOF
 
   ID=$(dfx canister id e2e_project_frontend)
 
-  set_canister_environment_variables $ID PUBLIC_TEST1=value1 TEST2=value2
+  set_canister_environment_variables "$ID" PUBLIC_TEST1=value1 TEST2=value2
 
   dfx deploy
 
@@ -2202,7 +2202,7 @@ EOF
   assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1"
 
   # Redeploy with no PUBLIC_ prefixed (case sensitive!) environment variables
-  set_canister_environment_variables $ID public_TEST1=value1 TEST2=value2
+  set_canister_environment_variables "$ID" public_TEST1=value1 TEST2=value2
   dfx deploy
 
   IC_ENV_COOKIE_REGEX_2="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+; SameSite=Lax"
@@ -2224,7 +2224,7 @@ EOF
 
   ID=$(dfx canister id e2e_project_frontend)
 
-  set_canister_environment_variables $ID PUBLIC_TEST1=value1
+  set_canister_environment_variables "$ID" PUBLIC_TEST1=value1
 
   dfx deploy
 
@@ -2236,7 +2236,7 @@ EOF
   assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1"
 
   # Redeploy with additional PUBLIC_ variable
-  set_canister_environment_variables $ID PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
+  set_canister_environment_variables "$ID" PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
   dfx deploy
 
   IC_ENV_COOKIE_REGEX_2="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1%26PUBLIC%5FTEST2%3Dvalue2; SameSite=Lax"
