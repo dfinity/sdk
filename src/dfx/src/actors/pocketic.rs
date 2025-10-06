@@ -495,6 +495,6 @@ async fn shutdown_pocketic(port: u16, server_instance: usize, logger: Logger) ->
 }
 
 #[cfg(not(unix))]
-fn shutdown_pocketic(_: u16, _: usize, _: usize, _: Logger) -> DfxResult {
+fn shutdown_pocketic(_: u16, _: usize, _: Logger) -> DfxResult {
     bail!("PocketIC not supported on this platform")
 }
