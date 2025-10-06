@@ -94,12 +94,15 @@ pub struct StartOpts {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 async fn fg_ping_and_wait(
+    pocketic_port_path: &Path,
     webserver_port_path: &Path,
     frontend_url: &str,
     logger: &Logger,
     local_server_descriptor: &LocalServerDescriptor,
 ) -> DfxResult {
     let port = wait_for_port(webserver_port_path).await?;
+    _ = wait_for_port(pocketic_port_path).await?; // used as a signal that initialization is complete
+    // not needed for network functionality, but ensures the child is done sending to stderr
 
     let mut frontend_url_mod = frontend_url.to_string();
     let port_offset = frontend_url_mod
@@ -240,6 +243,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
             .expect("Unable to create a runtime")
             .block_on(async {
                 fg_ping_and_wait(
+                    &pocketic_port_path,
                     &webserver_port_path,
                     &frontend_url,
                     env.get_logger(),

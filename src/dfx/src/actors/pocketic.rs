@@ -237,6 +237,9 @@ fn pocketic_start_thread(
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         loop {
+            let _ = std::fs::write(&config.port_file, b"");
+            let tmpdir = tempfile::tempdir().expect("Failed to create temporary directory");
+            let tmp_port_file = tmpdir.path().join("pocketic-tmp-port");
             // Start the process, then wait for the file.
             let pocketic_path = config.pocketic_path.as_os_str();
 
@@ -244,13 +247,11 @@ fn pocketic_start_thread(
             let mut cmd = std::process::Command::new(pocketic_path);
             if let Some(port) = config.port {
                 cmd.args(["--port", &port.to_string()]);
+            } else {
+                cmd.arg("--port-file")
+                    .arg(&tmp_port_file)
+                    .args(["--ttl", "2592000"]);
             };
-            cmd.args([
-                "--port-file",
-                &config.port_file.to_string_lossy(),
-                "--ttl",
-                "2592000",
-            ]);
             cmd.args(["--log-levels", "error"]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
@@ -259,7 +260,6 @@ fn pocketic_start_thread(
                 use std::os::unix::process::CommandExt;
                 cmd.process_group(0);
             }
-            let _ = std::fs::remove_file(&config.port_file);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting PocketIC...");
             let mut child = cmd.spawn().expect("Could not start PocketIC.");
@@ -270,8 +270,7 @@ fn pocketic_start_thread(
                     config.pid_file.display()
                 );
             }
-
-            let port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
+            let port = match PocketIc::wait_for_ready(&tmp_port_file, receiver.clone()) {
                 Ok(p) => p,
                 Err(e) => {
                     let _ = child.kill();
@@ -309,6 +308,7 @@ fn pocketic_start_thread(
                 }
                 Ok(i) => i,
             };
+            std::fs::copy(&tmp_port_file, &config.port_file).expect("Failed to write to port file"); // exit early on purpose
 
             addr.do_send(signals::PocketIcRestarted);
             // This waits for the child to stop, or the receiver to receive a message.
