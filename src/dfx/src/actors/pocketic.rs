@@ -31,7 +31,6 @@ use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-use url::Url;
 
 pub mod signals {
     use actix::prelude::*;
@@ -286,38 +285,19 @@ fn pocketic_start_thread(
                     }
                 }
             };
-            let server_instance = match initialize_pocketic(
+            let instance = match initialize_pocketic(
                 port,
                 &config.effective_config_path,
                 &config.bitcoind_addr,
                 &config.bitcoin_integration_config,
                 &config.replica_config,
-                logger.clone(),
-            ) {
-                Err(e) => {
-                    error!(logger, "Failed to initialize PocketIC: {e:#}");
-
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    if receiver.try_recv().is_ok() {
-                        debug!(logger, "Got signal to stop.");
-                        break;
-                    } else {
-                        continue;
-                    }
-                }
-                Ok(i) => i,
-            };
-
-            let gateway_instance = match initialize_gateway(
-                format!("http://localhost:{port}").parse().unwrap(),
-                server_instance,
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
                 logger.clone(),
             ) {
                 Err(e) => {
-                    error!(logger, "Failed to initialize HTTP gateway: {e:#}");
+                    error!(logger, "Failed to initialize PocketIC: {e:#}");
+
                     let _ = child.kill();
                     let _ = child.wait();
                     if receiver.try_recv().is_ok() {
@@ -336,9 +316,7 @@ fn pocketic_start_thread(
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing PocketIC process...");
-                    if let Err(e) =
-                        shutdown_pocketic(port, server_instance, gateway_instance, logger.clone())
-                    {
+                    if let Err(e) = shutdown_pocketic(port, instance, logger.clone()) {
                         error!(logger, "Error shutting down PocketIC gracefully: {e}");
                     }
                     let _ = child.kill();
@@ -375,15 +353,17 @@ async fn initialize_pocketic(
     bitcoind_addr: &Option<Vec<SocketAddr>>,
     bitcoin_integration_config: &Option<BitcoinIntegrationConfig>,
     replica_config: &ReplicaConfig,
+    domains: Option<Vec<String>>,
+    addr: SocketAddr,
     logger: Logger,
 ) -> DfxResult<usize> {
     use dfx_core::config::model::dfinity::ReplicaSubnetType;
     use pocket_ic::common::rest::{
         AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, IcpConfig,
-        IcpConfigFlag, IcpFeatures, IcpFeaturesConfig, InstanceConfig, RawTime, SubnetSpec,
+        IcpConfigFlag, IcpFeatures, IcpFeaturesConfig, InitialTime, InstanceConfig,
+        InstanceHttpGatewayConfig, SubnetSpec,
     };
     use reqwest::Client;
-    use time::OffsetDateTime;
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
     let mut subnet_config_set = ExtendedSubnetConfigSet {
@@ -415,9 +395,7 @@ async fn initialize_pocketic(
             nns_governance: Some(IcpFeaturesConfig::default()),
             sns: Some(IcpFeaturesConfig::default()),
             ii: Some(IcpFeaturesConfig::default()),
-            // FIXME(SDK-2346): if the `nns_ui` feature is enabled, the pocket-ic instance creation will fail with errors like:
-            // `Failed to initialize PocketIC: HTTP status client error (400 Bad Request) for url (http://localhost:56833/instances)`
-            nns_ui: None,
+            nns_ui: Some(IcpFeaturesConfig::default()),
         })
     } else {
         None
@@ -435,6 +413,15 @@ async fn initialize_pocketic(
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
             icp_features,
+            http_gateway_config: Some(InstanceHttpGatewayConfig {
+                ip_addr: Some(addr.ip().to_string()),
+                port: Some(addr.port()),
+                domains,
+                https_config: None,
+            }),
+            initial_time: Some(InitialTime::AutoProgress(AutoProgressConfig {
+                artificial_delay_ms: Some(replica_config.artificial_delay as u64),
+            })),
             ..Default::default()
         })
         .send()
@@ -442,7 +429,7 @@ async fn initialize_pocketic(
         .error_for_status()?
         .json::<CreateInstanceResponse>()
         .await?;
-    let instance = match resp {
+    let server_instance = match resp {
         CreateInstanceResponse::Error { message } => {
             bail!("PocketIC init error: {message}");
         }
@@ -462,31 +449,8 @@ async fn initialize_pocketic(
             instance_id
         }
     };
-    init_client
-        .post(format!(
-            "http://localhost:{port}/instances/{instance}/update/set_time"
-        ))
-        .json(&RawTime {
-            nanos_since_epoch: OffsetDateTime::now_utc()
-                .unix_timestamp_nanos()
-                .try_into()
-                .unwrap(),
-        })
-        .send()
-        .await?
-        .error_for_status()?;
-    init_client
-        .post(format!(
-            "http://localhost:{port}/instances/{instance}/auto_progress"
-        ))
-        .json(&AutoProgressConfig {
-            artificial_delay_ms: Some(replica_config.artificial_delay as u64),
-        })
-        .send()
-        .await?
-        .error_for_status()?;
 
-    let agent_url = format!("http://localhost:{port}/instances/{instance}/");
+    let agent_url = format!("http://localhost:{port}/instances/{server_instance}/");
 
     debug!(logger, "Waiting for replica to report healthy status");
     crate::lib::replica::status::ping_and_wait(&agent_url).await?;
@@ -496,8 +460,8 @@ async fn initialize_pocketic(
         initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config.clone()).await?;
     }
 
-    debug!(logger, "Initialized PocketIC.");
-    Ok(instance)
+    debug!(logger, "Initialized PocketIC with gateway.");
+    Ok(server_instance)
 }
 
 #[cfg(not(unix))]
@@ -514,74 +478,10 @@ fn initialize_pocketic(
 
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
-async fn initialize_gateway(
-    server_url: Url,
-    server_instance: usize,
-    domains: Option<Vec<String>>,
-    addr: SocketAddr,
-    logger: Logger,
-) -> DfxResult<usize> {
-    use pocket_ic::common::rest::{
-        CreateHttpGatewayResponse, HttpGatewayBackend, HttpGatewayConfig,
-    };
-    use reqwest::Client;
-    let init_client = Client::new();
-    debug!(logger, "Configuring PocketIC gateway");
-    let resp = init_client
-        .post(server_url.join("http_gateway").unwrap())
-        .json(&HttpGatewayConfig {
-            forward_to: HttpGatewayBackend::Replica(
-                server_url
-                    .join(&format!("instances/{server_instance}/"))
-                    .unwrap()
-                    .to_string(),
-            ),
-            ip_addr: Some(addr.ip().to_string()),
-            port: Some(addr.port()),
-            domains,
-            https_config: None,
-        })
-        .send()
-        .await?
-        .error_for_status()?;
-    let resp = resp.json::<CreateHttpGatewayResponse>().await?;
-    let instance = match resp {
-        CreateHttpGatewayResponse::Created(info) => info.instance_id,
-        CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
-    };
-    debug!(logger, "Initialized HTTP gateway.");
-    Ok(instance)
-}
-
-#[cfg(not(unix))]
-fn initialize_gateway(
-    _: Url,
-    _: usize,
-    _: Option<Vec<String>>,
-    _: SocketAddr,
-    _: Logger,
-) -> DfxResult<usize> {
-    bail!("PocketIC gateway not supported on this platform")
-}
-
-#[cfg(unix)]
-#[tokio::main(flavor = "current_thread")]
-async fn shutdown_pocketic(
-    port: u16,
-    server_instance: usize,
-    gateway_instance: usize,
-    logger: Logger,
-) -> DfxResult {
+async fn shutdown_pocketic(port: u16, server_instance: usize, logger: Logger) -> DfxResult {
     use reqwest::Client;
     let shutdown_client = Client::new();
     debug!(logger, "Sending shutdown request to PocketIC server");
-    shutdown_client
-        .post(format!(
-            "http://localhost:{port}/http_gateway/{gateway_instance}/stop"
-        ))
-        .send()
-        .await?
-        .error_for_status()?;
     shutdown_client
         .delete(format!(
             "http://localhost:{port}/instances/{server_instance}"
