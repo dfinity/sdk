@@ -247,11 +247,10 @@ fn pocketic_start_thread(
             let mut cmd = std::process::Command::new(pocketic_path);
             if let Some(port) = config.port {
                 cmd.args(["--port", &port.to_string()]);
-            } else {
-                cmd.arg("--port-file")
-                    .arg(&tmp_port_file)
-                    .args(["--ttl", "2592000"]);
-            };
+            }
+            cmd.arg("--port-file")
+                .arg(&tmp_port_file)
+                .args(["--ttl", "2592000"]);
             cmd.args(["--log-levels", "error"]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
