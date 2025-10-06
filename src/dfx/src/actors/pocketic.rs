@@ -471,6 +471,8 @@ fn initialize_pocketic(
     _: &Option<Vec<SocketAddr>>,
     _: &Option<BitcoinIntegrationConfig>,
     _: &ReplicaConfig,
+    _: Option<Vec<String>>,
+    _: SocketAddr,
     _: Logger,
 ) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
