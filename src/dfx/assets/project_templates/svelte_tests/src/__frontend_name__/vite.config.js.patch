@@ -1,11 +1,24 @@
 --- a/src/__frontend_name__/vite.config.js
 +++ b/src/__frontend_name__/vite.config.js
-@@ -1,1 +1,2 @@
-+/// <reference types="vitest" />
+@@ -1,5 +1,6 @@
  import { fileURLToPath, URL } from 'url';
-@@ -33,1 +33,5 @@
+ import { sveltekit } from '@sveltejs/kit/vite';
++import { svelteTesting } from '@testing-library/svelte/vite';
+ import { defineConfig } from 'vite';
+ import environment from 'vite-plugin-environment';
+ import dotenv from 'dotenv';
+@@ -25,10 +26,14 @@ export default defineConfig({
+       },
+     },
+   },
 +  test: {
 +    environment: 'jsdom',
-+    setupFiles: 'src/setupTests.js',
 +  },
+   plugins: [
+     sveltekit(),
+     environment("all", { prefix: "CANISTER_" }),
+     environment("all", { prefix: "DFX_" }),
++    svelteTesting(),
+   ],
    resolve: {
+     alias: [
