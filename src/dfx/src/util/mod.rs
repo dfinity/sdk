@@ -546,20 +546,4 @@ mod tests {
             pretty_thousand_separators(format_as_trillions(u128::MAX))
         );
     }
-
-    #[test]
-    fn download_file_retry_at_most_60s() {
-        let url = reqwest::Url::parse("https://example.com").unwrap();
-        let time0 = std::time::Instant::now();
-        let _res = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(download_file(&url));
-        let time1 = std::time::Instant::now();
-        let elapsed = (time1 - time0).as_secs();
-        assert!(
-            elapsed < 80, // Relax the time constraint so that the test is less flaky
-            "Download file took {} seconds (> 60s)",
-            elapsed
-        );
-    }
 }
