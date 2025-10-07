@@ -1,8 +1,8 @@
 [
     {
         "op": "add",
-        "path": "/devDependencies/@testing-library~1jest-dom",
-        "value": "^5.16.5"
+        "path": "/devDependencies/@testing-library~1svelte",
+        "value": "^5.2.8"
     },
     {
         "op": "add",
