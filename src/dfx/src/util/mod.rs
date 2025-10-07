@@ -480,7 +480,7 @@ pub fn with_suspend_all_spinners<R>(env: &dyn Environment, f: impl FnOnce() -> R
 
 #[cfg(test)]
 mod tests {
-    use super::{download_file, format_as_trillions, pretty_thousand_separators};
+    use super::{format_as_trillions, pretty_thousand_separators};
 
     #[test]
     fn prettify_balance_amount() {
