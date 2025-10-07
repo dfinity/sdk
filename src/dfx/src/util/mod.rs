@@ -549,7 +549,7 @@ mod tests {
 
     #[test]
     fn download_file_retry_at_most_60s() {
-        let url = reqwest::Url::parse("http://httpbin.org/status/500").unwrap();
+        let url = reqwest::Url::parse("https://example.com").unwrap();
         let time0 = std::time::Instant::now();
         let _res = tokio::runtime::Runtime::new()
             .unwrap()
