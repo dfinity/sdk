@@ -16,6 +16,8 @@ dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$YOUR_ACCOUNT_I
 dfx cycles convert --amount 100
 ```
 
+### fix: bump svelte dependencies in project templates
+
 ### Frontend canister
 
 Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic ordering.
