@@ -91,9 +91,7 @@ pub fn get_ui_canister_url(env: &dyn Environment) -> DfxResult<Option<Url>> {
     let network_descriptor = env.get_network_descriptor();
 
     if network_descriptor.is_ic {
-        let url = format!(
-            "https://{MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL}.raw.icp0.io"
-        );
+        let url = format!("https://{MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL}.raw.icp0.io");
         let url =
             Url::parse(&url).with_context(|| format!("Failed to parse Candid UI url {}.", &url))?;
         Ok(Some(url))

@@ -546,9 +546,7 @@ mod rule_utils {
             }
             if let Some(ref headers) = self.headers {
                 for (key, value) in headers {
-                    s.push_str(&format!(
-                        "  - HTTP Response header: {key}: {value}\n"
-                    ));
+                    s.push_str(&format!("  - HTTP Response header: {key}: {value}\n"));
                 }
             }
             if let Some(encodings) = self.encodings.as_ref() {

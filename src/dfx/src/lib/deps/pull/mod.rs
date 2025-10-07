@@ -318,9 +318,7 @@ fn get_metadata_as_string(
     let metadata_bytes = get_metadata(module, section)
         .with_context(|| format!("Failed to get {section} metadata from {wasm_path:?}"))?;
     let metadata = String::from_utf8(metadata_bytes.to_vec()).with_context(|| {
-        format!(
-            "Failed to read {section} metadata from {wasm_path:?} as UTF-8 text"
-        )
+        format!("Failed to read {section} metadata from {wasm_path:?} as UTF-8 text")
     })?;
     Ok(metadata)
 }

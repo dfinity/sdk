@@ -103,9 +103,9 @@ pub fn verify_response(
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
     match verify_response(state, &request, &response) {
-        Err(err) => panic!(
-            "Response verification failed with error {err:?}. Response: {response:#?}"
-        ),
+        Err(err) => {
+            panic!("Response verification failed with error {err:?}. Response: {response:#?}")
+        }
         Ok(success) => {
             if !success {
                 panic!("Response verification failed. Response: {response:?}")
@@ -737,10 +737,7 @@ fn can_propose_commit_batch_exactly_once() {
     assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
     match state.propose_commit_batch(args) {
         Err(err)
-            if err
-                == format!(
-                    "batch {batch_1} already has proposed CommitBatchArguments",
-                ) => {}
+            if err == format!("batch {batch_1} already has proposed CommitBatchArguments",) => {}
         other => panic!("expected batch already proposed error, got: {other:?}"),
     };
 }

@@ -71,9 +71,7 @@ fn overwrite_field_from_command(
                     let bytes = command_output(env, command, &[], project_root)
                         .with_context(|| format!("Failed to run the value_command: {triple}."))?;
                     let calculated_value = String::from_utf8(bytes).with_context(|| {
-                        format!(
-                            "The value_command didn't return a valid UTF-8 string: {triple}."
-                        )
+                        format!("The value_command didn't return a valid UTF-8 string: {triple}.")
                     })?;
                     *value = calculated_value.trim().to_string();
                 }
