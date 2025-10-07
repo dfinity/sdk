@@ -28,6 +28,12 @@ Please note that this version of the frontend canister is only compatible with P
 - https://github.com/dfinity/sdk/pull/4387
 - https://github.com/dfinity/sdk/pull/4389
 
+## Dependencies
+
+### Candid
+
+Updated candid_parser to 0.2.2.
+
 # 0.29.2
 
 ### Frontend canister

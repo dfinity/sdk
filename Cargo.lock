@@ -844,9 +844,9 @@ dependencies = [
 
 [[package]]
 name = "candid_parser"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b88c9197c70f2d98205a2f8993aa4125e1f96c927532309556c45548bd4da6"
+checksum = "00868a9aa53a18bf15b356ef1fd013ec71797e75bc17b46573510585ae6daa28"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1636,7 +1636,7 @@ dependencies = [
  "byte-unit",
  "bytes",
  "candid",
- "candid_parser 0.2.1",
+ "candid_parser 0.2.2",
  "cargo_metadata",
  "chrono",
  "ci_info",
@@ -3112,7 +3112,7 @@ dependencies = [
  "anyhow",
  "base64 0.13.1",
  "candid",
- "candid_parser 0.2.1",
+ "candid_parser 0.2.2",
  "hex",
  "ic-cdk",
  "ic-certification 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
