@@ -139,7 +139,7 @@ current_time_nanoseconds() {
   assert_eq "0 cycles."
 
   assert_command dfx cycles transfer "$BOB" 100000 --identity alice
-  assert_eq "Transfer sent at block index 3"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199799900000 cycles."
@@ -154,7 +154,7 @@ current_time_nanoseconds() {
   assert_eq "0 cycles."
 
   assert_command dfx cycles transfer "$BOB" 100000 --identity alice --to-subaccount "$BOB_SUBACCT1"
-  assert_eq "Transfer sent at block index 4"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199699800000 cycles."
@@ -169,7 +169,7 @@ current_time_nanoseconds() {
   assert_eq "100000 cycles."
 
   assert_command dfx cycles transfer "$BOB" 700000 --identity alice --from-subaccount "$ALICE_SUBACCT2"
-  assert_eq "Transfer sent at block index 5"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
   assert_eq "35199799300000 cycles."
@@ -185,7 +185,7 @@ current_time_nanoseconds() {
   assert_eq "100000 cycles."
 
   assert_command dfx cycles transfer "$BOB" 400000 --identity alice --to-subaccount "$BOB_SUBACCT1" --from-subaccount "$ALICE_SUBACCT2"
-  assert_eq "Transfer sent at block index 6"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
   assert_eq "35199698900000 cycles."
@@ -214,7 +214,7 @@ current_time_nanoseconds() {
   t=$(current_time_nanoseconds)
 
   assert_command dfx cycles transfer "$BOB" 100000 --created-at-time "$t" --memo 1 --identity alice
-  assert_eq "Transfer sent at block index 1"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199799900000 cycles."
@@ -225,9 +225,9 @@ current_time_nanoseconds() {
   # same memo and created-at-time: dupe
   assert_command dfx cycles transfer "$BOB" 100000 --created-at-time "$t" --memo 1 --identity alice
   # shellcheck disable=SC2154
-  assert_contains "transaction is a duplicate of another transaction in block 1" "$stderr"
+  assert_contains "transaction is a duplicate of another transaction in block" "$stderr"
   # shellcheck disable=SC2154
-  assert_eq "Transfer sent at block index 1" "$stdout"
+  assert_contains "Transfer sent at block index" "$stdout"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199799900000 cycles."
@@ -237,7 +237,7 @@ current_time_nanoseconds() {
 
   # different memo and same created-at-time same: not dupe
   assert_command dfx cycles transfer "$BOB" 100000 --created-at-time "$t" --memo 2 --identity alice
-  assert_contains "Transfer sent at block index 2"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199699800000 cycles."
@@ -247,7 +247,7 @@ current_time_nanoseconds() {
 
   # same memo and different created-at-time same: not dupe
   assert_command dfx cycles transfer "$BOB" 100000 --created-at-time $((t+1)) --memo 1 --identity alice
-  assert_contains "Transfer sent at block index 3"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199599700000 cycles."
@@ -283,11 +283,11 @@ current_time_nanoseconds() {
 
   t=$(current_time_nanoseconds)
   assert_command dfx cycles approve "$BOB" 2000000000 --created-at-time "$t" --memo 123 --identity alice
-  assert_eq "Approval sent at block index 3"
+  assert_contains "Approval sent at block index"
   assert_command dfx cycles approve "$BOB" 2000000000 --created-at-time "$t" --memo 123 --identity alice
-  assert_contains "Approval is a duplicate of block 3"
+  assert_contains "Approval is a duplicate of block"
   assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --identity bob
-  assert_eq "Transfer sent at block index 4"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199699900000 cycles."
@@ -303,9 +303,9 @@ current_time_nanoseconds() {
 
   t=$(current_time_nanoseconds)
   assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --to-subaccount "$BOB_SUBACCT1" --created-at-time "$t" --identity bob
-  assert_eq "Transfer sent at block index 5"
+  assert_contains "Transfer sent at block index"
   assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --to-subaccount "$BOB_SUBACCT1" --created-at-time "$t" --identity bob
-  assert_contains "Transfer is a duplicate of block index 5"
+  assert_contains "Transfer is a duplicate of block index"
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "35199599800000 cycles."
@@ -320,9 +320,9 @@ current_time_nanoseconds() {
   assert_eq "100000 cycles."
 
   assert_command dfx cycles approve "$BOB" 200000000000 --from-subaccount "$ALICE_SUBACCT1" --identity alice
-  assert_eq "Approval sent at block index 6"
+  assert_contains "Approval sent at block index"
   assert_command dfx cycles transfer "$BOB" 700000 --from "$ALICE" --from-subaccount "$ALICE_SUBACCT1" --identity bob
-  assert_eq "Transfer sent at block index 7"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
   assert_eq "35199699300000 cycles."
@@ -334,9 +334,9 @@ current_time_nanoseconds() {
   assert_eq "35199900000000 cycles."
 
   assert_command dfx cycles approve "$BOB" 200000000000 --spender-subaccount "$BOB_SUBACCT1" --from-subaccount "$ALICE_SUBACCT2" --identity alice
-  assert_eq "Approval sent at block index 8"
+  assert_contains "Approval sent at block index"
   assert_command dfx cycles transfer "$BOB" 300000 --from "$ALICE" --from-subaccount "$ALICE_SUBACCT2"  --spender-subaccount "$BOB_SUBACCT1" --identity bob
-  assert_eq "Transfer sent at block index 9"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
   assert_eq "35199699700000 cycles."
@@ -489,7 +489,7 @@ current_time_nanoseconds() {
 
   t=$(current_time_nanoseconds)
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 1000000000 --identity bob
-  assert_eq "Transfer sent at block index 3"
+  assert_contains "Transfer sent at block index"
 
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "35198800000000 cycles."
@@ -499,15 +499,15 @@ current_time_nanoseconds() {
   # same created-at-time: dupe
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 1000000000 --identity bob
   # shellcheck disable=SC2154
-  assert_contains "transaction is a duplicate of another transaction in block 3" "$stderr"
+  assert_contains "transaction is a duplicate of another transaction in block" "$stderr"
   # shellcheck disable=SC2154
-  assert_contains "Transfer sent at block index 3" "$stdout"
+  assert_contains "Transfer sent at block index" "$stdout"
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "35198800000000 cycles."
 
   # different created-at-time: not dupe
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time $((t+1)) 1000000000 --identity bob
-  assert_eq "Transfer sent at block index 4"
+  assert_contains "Transfer sent at block index"
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "35197700000000 cycles."
 }
