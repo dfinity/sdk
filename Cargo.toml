@@ -24,7 +24,7 @@ future_not_send = "warn"
 
 [workspace.dependencies]
 candid = "0.10.18"
-candid_parser = "0.2.1"
+candid_parser = "0.2.2"
 dfx-core = { path = "src/dfx-core", version = "0.2.0" }
 ic-agent = "0.44.0"
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.25.0" }
@@ -64,7 +64,9 @@ mime_guess = "2.0.4"
 num-traits = "0.2.14"
 pem = "1.0.2"
 proptest = "1.0.0"
-reqwest = { version = "0.12.4", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.12.4", default-features = false, features = [
+    "rustls-tls",
+] }
 ring = { version = "0.17.14", features = ["std"] }
 schemars = "0.8"
 sec1 = "0.3.0"
