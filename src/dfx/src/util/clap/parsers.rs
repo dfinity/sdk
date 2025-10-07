@@ -25,7 +25,7 @@ fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
         "m" => Ok(1_000_000),
         "b" => Ok(1_000_000_000),
         "t" => Ok(1_000_000_000_000),
-        other => Err(format!("Unknown amount specifier: '{}'", other)),
+        other => Err(format!("Unknown amount specifier: '{other}'")),
     }?;
     let number = Decimal::from_str(number).map_err(|err| err.to_string())?;
     Decimal::from(multiplier)
@@ -250,8 +250,7 @@ pub fn duration_parser(duration: &str) -> Result<u64, String> {
         "d" => number * 86400,
         _ => {
             return Err(format!(
-                "Unknown duration unit: '{}'. Valid units are s, m, h, d",
-                unit
+                "Unknown duration unit: '{unit}'. Valid units are s, m, h, d"
             ));
         }
     };
@@ -270,13 +269,12 @@ pub fn timestamp_parser(timestamp: &str) -> Result<u64, String> {
         let nanos = time.unix_timestamp_nanos();
         let nanos = nanos
             .try_into()
-            .map_err(|_| format!("Timestamp {} out of range for u64", nanos))?;
+            .map_err(|_| format!("Timestamp {nanos} out of range for u64"))?;
         return Ok(nanos);
     }
 
     Err(format!(
-        "Invalid timestamp format: {}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')",
-        timestamp
+        "Invalid timestamp format: {timestamp}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')"
     ))
 }
 

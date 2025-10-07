@@ -65,7 +65,7 @@ fn get_imports(
         let command = command.arg("--print-deps").arg(file);
         let output = command
             .output()
-            .with_context(|| format!("Error executing {:#?}", command))?;
+            .with_context(|| format!("Error executing {command:#?}"))?;
         let output = String::from_utf8_lossy(&output.stdout);
 
         for line in output.lines() {
@@ -308,8 +308,7 @@ impl TryFrom<&str> for MotokoImport {
             Some(index) => {
                 if index >= line.len() - 1 {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
-                        "Unknown import {}",
-                        line
+                        "Unknown import {line}"
                     ))));
                 }
                 let (url, fullpath) = line.split_at(index + 1);
@@ -321,8 +320,7 @@ impl TryFrom<&str> for MotokoImport {
             Some(index) => {
                 if index >= line.len() - 1 {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
-                        "Unknown import {}",
-                        url
+                        "Unknown import {url}"
                     ))));
                 }
                 let (prefix, name) = url.split_at(index + 1);
@@ -332,8 +330,7 @@ impl TryFrom<&str> for MotokoImport {
                     "mo:" => MotokoImport::Lib(name.to_owned()),
                     _ => {
                         return Err(DfxError::new(BuildError::DependencyError(format!(
-                            "Unknown import {}",
-                            url
+                            "Unknown import {url}"
                         ))));
                     }
                 }
@@ -351,8 +348,7 @@ impl TryFrom<&str> for MotokoImport {
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
-                        "Cannot resolve relative import {}",
-                        url
+                        "Cannot resolve relative import {url}"
                     ))));
                 }
             },
@@ -372,7 +368,7 @@ fn run_command(
     let output = cmd.output().context("Error while executing command.")?;
     if !output.status.success() {
         Err(DfxError::new(BuildError::CommandError(
-            format!("{:?}", cmd),
+            format!("{cmd:?}"),
             output.status,
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),

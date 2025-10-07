@@ -512,7 +512,7 @@ mod rule_utils {
                 s.push(')');
             }
 
-            write!(f, "{}", s)
+            write!(f, "{s}")
         }
     }
 
@@ -522,7 +522,7 @@ mod rule_utils {
 
             if let Some(ref cache) = self.cache {
                 if let Some(ref max_age) = cache.max_age {
-                    s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
+                    s.push_str(&format!("  - HTTP cache max-age: {max_age}\n"));
                 }
             }
             if let Some(allow_raw_access) = self.allow_raw_access {
@@ -546,11 +546,7 @@ mod rule_utils {
             }
             if let Some(ref headers) = self.headers {
                 for (key, value) in headers {
-                    s.push_str(&format!(
-                        "  - HTTP Response header: {key}: {value}\n",
-                        key = key,
-                        value = value
-                    ));
+                    s.push_str(&format!("  - HTTP Response header: {key}: {value}\n"));
                 }
             }
             if let Some(encodings) = self.encodings.as_ref() {
@@ -564,7 +560,7 @@ mod rule_utils {
                     "  - disable standard security policy warning: {disable_warning}"
                 ));
             }
-            write!(f, "{}", s)
+            write!(f, "{s}")
         }
     }
 }
@@ -628,7 +624,7 @@ mod with_tempdir {
                 .join(dir)
                 .join(ASSETS_CONFIG_FILENAME_JSON);
             let mut file = File::create(path).unwrap();
-            write!(file, "{}", content).unwrap();
+            write!(file, "{content}").unwrap();
         });
 
         assets_dir

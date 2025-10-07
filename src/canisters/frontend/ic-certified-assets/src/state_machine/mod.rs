@@ -575,12 +575,10 @@ impl State {
         {
             let message = match batch.evidence_computation {
                 Some(Computed(_)) => format!(
-                    "Batch {} is already proposed.  Delete or execute it to propose another.",
-                    batch_id
+                    "Batch {batch_id} is already proposed.  Delete or execute it to propose another."
                 ),
                 _ => format!(
-                    "Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.",
-                    batch_id
+                    "Batch {batch_id} has not completed evidence computation.  Wait for it to expire or delete it to propose another."
                 ),
             };
             return Err(message);
@@ -642,7 +640,7 @@ impl State {
             .get_mut(&batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
         if batch.commit_batch_arguments.is_some() {
-            return Err(format!("batch {} has been proposed", batch_id));
+            return Err(format!("batch {batch_id} has been proposed"));
         }
 
         batch.expires_at = Int::from(system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS);
@@ -1039,8 +1037,7 @@ impl State {
                 status_code: 400,
                 headers: vec![],
                 body: RcBytes::from(ByteBuf::from(format!(
-                    "failed to decode path '{}': {}",
-                    path, err
+                    "failed to decode path '{path}': {err}"
                 ))),
                 upgrade: None,
                 streaming_strategy: None,
@@ -1254,7 +1251,7 @@ fn build_headers(
 ) -> HashMap<String, String> {
     let mut headers = HashMap::from([("content-type".to_string(), content_type.into())]);
     if let Some(max_age) = max_age {
-        headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
+        headers.insert("cache-control".to_string(), format!("max-age={max_age}"));
     }
     let encoding_name = encoding_name.into();
     if encoding_name != "identity" {

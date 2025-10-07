@@ -47,15 +47,15 @@ fn display_extension_list(
     header_msg: &str,
 ) -> DfxResult<()> {
     if extensions.is_empty() {
-        eprintln!("{}", empty_msg);
+        eprintln!("{empty_msg}");
         return Ok(());
     }
 
-    eprintln!("{}", header_msg);
+    eprintln!("{header_msg}");
     for extension in extensions {
         eprint!("  ");
         std::io::stderr().flush()?;
-        println!("{}", extension);
+        println!("{extension}");
         std::io::stdout().flush()?;
     }
 

@@ -357,7 +357,7 @@ async fn download(
 
         for chunk_hash in metadata.wasm_chunk_store {
             let hash_str = hex::encode(&chunk_hash.hash);
-            let chunk_file = wasm_chunk_store_dir.join(format!("{}.bin", hash_str));
+            let chunk_file = wasm_chunk_store_dir.join(format!("{hash_str}.bin"));
 
             let chunk = retry(retry_policy.clone(), || async {
                 let data_args = ReadCanisterSnapshotDataArgs {
@@ -486,7 +486,7 @@ async fn upload(
         let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
         for chunk_hash in metadata.wasm_chunk_store {
             let hash_str = hex::encode(&chunk_hash.hash);
-            let chunk_file = wasm_chunk_store_dir.join(format!("{}.bin", hash_str));
+            let chunk_file = wasm_chunk_store_dir.join(format!("{hash_str}.bin"));
             let chunk_data = std::fs::read(&chunk_file).with_context(|| {
                 format!("Failed to read Wasm chunk from '{}'", chunk_file.display())
             })?;

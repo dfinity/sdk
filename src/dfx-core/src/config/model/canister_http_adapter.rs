@@ -38,7 +38,7 @@ impl FromStr for HttpAdapterLogLevel {
             "info" => Ok(HttpAdapterLogLevel::Info),
             "debug" => Ok(HttpAdapterLogLevel::Debug),
             "trace" => Ok(HttpAdapterLogLevel::Trace),
-            other => Err(format!("Unknown log level: {}", other)),
+            other => Err(format!("Unknown log level: {other}")),
         }
     }
 }

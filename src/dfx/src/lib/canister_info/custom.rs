@@ -64,9 +64,7 @@ impl CanisterInfoFactory for CustomCanisterInfo {
             let filename = filename.next_back().ok_or_else(|| {
                 anyhow!("Unable to determine filename for url {}", &input_wasm_url)
             })?;
-            let output_wasm_path = info
-                .get_output_root()
-                .join(format!("download-{}", filename));
+            let output_wasm_path = info.get_output_root().join(format!("download-{filename}"));
             (Some(input_wasm_url), output_wasm_path)
         } else {
             let output_wasm_path = workspace_root.join(wasm);

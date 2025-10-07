@@ -233,7 +233,7 @@ impl Telemetry {
                 .open(Self::get_log_path()?)?,
         );
         let mut lock = file.write()?;
-        writeln!(*lock, "{}", record)?;
+        writeln!(*lock, "{record}")?;
         Ok(())
     }
 
@@ -363,7 +363,7 @@ impl Telemetry {
         let send_time = fs::read_to_string(path)?;
         let send_time = send_time.trim();
         let send_time = NaiveDateTime::parse_from_str(send_time, "%Y-%m-%d %H:%M:%S")
-            .with_context(|| format!("failed to parse send time: {:?}", send_time))?;
+            .with_context(|| format!("failed to parse send time: {send_time:?}"))?;
         Ok(send_time)
     }
 
@@ -385,7 +385,7 @@ impl Telemetry {
         let future_time = Local::now().naive_local() + future_duration;
         let future_time_str = future_time.format("%Y-%m-%d %H:%M:%S").to_string();
 
-        writeln!(*guard, "{}", future_time_str)?;
+        writeln!(*guard, "{future_time_str}")?;
         Ok(())
     }
 
@@ -428,7 +428,7 @@ impl Telemetry {
         fs::create_dir_all(&send_dir)?;
 
         let batch_id = Uuid::new_v4();
-        eprintln!("Assigning telemetry.log contents to batch {:?}", batch_id);
+        eprintln!("Assigning telemetry.log contents to batch {batch_id:?}");
         let batch_path = send_dir.join(batch_id.to_string());
 
         let mut file = FdRwLock::new(
@@ -448,7 +448,7 @@ impl Telemetry {
 
         eprintln!("Batches to send:");
         for batch in &batches {
-            eprintln!("  {:?}", batch);
+            eprintln!("  {batch:?}");
         }
 
         batches
@@ -459,7 +459,7 @@ impl Telemetry {
     }
 
     fn transmit_batch(batch: &Uuid, url: &Url) -> DfxResult {
-        eprintln!("Transmitting batch: {:?}", batch);
+        eprintln!("Transmitting batch: {batch:?}");
         let batch_path = Self::get_send_dir()?.join(batch.to_string());
 
         let original_content = fs::read_to_string(&batch_path)?;
@@ -481,7 +481,7 @@ impl Telemetry {
                 .map(|_| ())
         };
         let notify = |err, dur| {
-            println!("Error happened at {:?}: {}", dur, err);
+            println!("Error happened at {dur:?}: {err}");
         };
 
         let policy = backoff::ExponentialBackoffBuilder::default()

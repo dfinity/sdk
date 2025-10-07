@@ -14,13 +14,13 @@ pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {
     for identity in identities {
         if current_identity == &identity {
             // same identity, suffix with '*'.
-            print!("{}", identity);
+            print!("{identity}");
             std::io::stdout().flush()?;
             eprint!(" *");
             std::io::stderr().flush()?;
             println!();
         } else {
-            println!("{}", identity);
+            println!("{identity}");
         }
     }
     Ok(())

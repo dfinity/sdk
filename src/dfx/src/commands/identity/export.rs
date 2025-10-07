@@ -13,7 +13,7 @@ pub fn exec(env: &dyn Environment, opts: ExportOpts) -> DfxResult {
     let name = opts.exported_identity.as_str();
 
     let pem = env.new_identity_manager()?.export(env.get_logger(), name)?;
-    print!("{}", pem);
+    print!("{pem}");
 
     Ok(())
 }

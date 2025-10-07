@@ -262,7 +262,7 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
                     return Ok(Self::Unlimited);
                 }
                 if s.contains("..=") {
-                    let msg = format!("Inclusive ranges are not supported: {}", s);
+                    let msg = format!("Inclusive ranges are not supported: {s}");
                     return Err(serde::de::Error::custom(msg));
                 }
                 if s.contains("..") {
@@ -274,8 +274,7 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
                     }
                 }
                 Err(serde::de::Error::custom(format!(
-                    "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
-                    s
+                    "Invalid format for values: '{s}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')"
                 )))
             }
         }

@@ -106,7 +106,7 @@ pub fn install_version(
             .take(12)
             .map(|byte| byte as char)
             .collect();
-        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+        let temp_p = get_bin_cache(&format!("_{v}_{rand_string}"))?;
         dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =

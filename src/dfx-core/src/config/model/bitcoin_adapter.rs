@@ -49,7 +49,7 @@ impl FromStr for BitcoinAdapterLogLevel {
             "info" => Ok(BitcoinAdapterLogLevel::Info),
             "debug" => Ok(BitcoinAdapterLogLevel::Debug),
             "trace" => Ok(BitcoinAdapterLogLevel::Trace),
-            other => Err(format!("Unknown log level: {}", other)),
+            other => Err(format!("Unknown log level: {other}")),
         }
     }
 }

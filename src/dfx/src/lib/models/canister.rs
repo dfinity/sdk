@@ -628,8 +628,7 @@ impl CanisterPool {
                 None => "<Unknown>".to_string(),
             };
             Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                message
+                "Found circular dependency: {message}"
             ))))
         } else {
             Ok(graph)
@@ -772,7 +771,7 @@ impl CanisterPool {
                 },
                 None => "<Unknown>".to_string(),
             };
-            BuildError::DependencyError(format!("Found circular dependency: {}", message))
+            BuildError::DependencyError(format!("Found circular dependency: {message}"))
         })?;
         let order: Vec<CanisterId> = nodes
             .iter()
@@ -941,8 +940,7 @@ impl CanisterPool {
 fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
     path.to_str().ok_or_else(|| {
         DfxError::new(BuildError::JsBindGenError(format!(
-            "Unable to convert output canister js path to a string: {:#?}",
-            path
+            "Unable to convert output canister js path to a string: {path:#?}"
         )))
     })
 }

@@ -167,7 +167,7 @@ pub async fn exec(
                     opts.from_subaccount,
                 )
                 .await
-                .with_context(|| format!("Failed to deposit cycles into {}.", canister))?;
+                .with_context(|| format!("Failed to deposit cycles into {canister}."))?;
             }
         }
         Ok(())

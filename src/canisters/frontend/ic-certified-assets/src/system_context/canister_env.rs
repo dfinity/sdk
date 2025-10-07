@@ -35,7 +35,7 @@ impl CanisterEnv {
         let icp_public_env_vars = self
             .icp_public_env_vars
             .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
+            .map(|(k, v)| format!("{k}={v}"))
             .collect::<Vec<String>>();
         values.extend(icp_public_env_vars);
 

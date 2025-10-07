@@ -37,7 +37,7 @@ pub async fn exec(env: &dyn Environment, opts: CyclesBalanceOpts) -> DfxResult {
     let balance = cycles_ledger::balance(agent, owner, opts.subaccount).await?;
 
     if opts.precise {
-        println!("{} cycles.", balance);
+        println!("{balance} cycles.");
     } else {
         println!(
             "{} TC (trillion cycles).",

@@ -365,12 +365,12 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
 ) -> CertificateExpression {
     let mut headers = headers
         .iter()
-        .map(|(h, _)| format!(", \"{}\"", h))
+        .map(|(h, _)| format!(", \"{h}\""))
         .collect::<Vec<_>>()
         .join("");
     if let Some(encoding) = encoding_name {
         if encoding != "identity" {
-            headers = format!(", \"content-encoding\"{}", headers);
+            headers = format!(", \"content-encoding\"{headers}");
         }
     }
 
@@ -387,7 +387,7 @@ pub fn build_ic_certificate_expression_from_headers<T>(
 ) -> CertificateExpression {
     let headers = headers
         .iter()
-        .map(|(h, _)| format!(", \"{}\"", h))
+        .map(|(h, _)| format!(", \"{h}\""))
         .collect::<Vec<_>>()
         .join("");
 

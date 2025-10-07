@@ -380,7 +380,7 @@ impl<'a> AgentEnvironment<'a> {
                     Some(port) => {
                         let mut socket_addr = local_server_descriptor.bind_address;
                         socket_addr.set_port(port);
-                        let url = format!("http://{}", socket_addr);
+                        let url = format!("http://{socket_addr}");
                         let url = Url::parse(&url)
                             .map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
                         Some(create_pocketic(&url))
