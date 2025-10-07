@@ -36,6 +36,29 @@ Please note that this version of the frontend canister is only compatible with P
 
 Updated candid_parser to 0.2.2.
 
+### Replica
+
+Updated replica to elected commit 45657852c1eca6728ff313808db29b47c862ad13.
+This incorporates the following executed proposals:
+
+- [138814](https://dashboard.internetcomputer.org/proposal/138814)
+- [138708](https://dashboard.internetcomputer.org/proposal/138708)
+- [138597](https://dashboard.internetcomputer.org/proposal/138597)
+- [138478](https://dashboard.internetcomputer.org/proposal/138478)
+- [138476](https://dashboard.internetcomputer.org/proposal/138476)
+- [138477](https://dashboard.internetcomputer.org/proposal/138477)
+- [138363](https://dashboard.internetcomputer.org/proposal/138363)
+- [138362](https://dashboard.internetcomputer.org/proposal/138362)
+- [138361](https://dashboard.internetcomputer.org/proposal/138361)
+- [138268](https://dashboard.internetcomputer.org/proposal/138268)
+- [138266](https://dashboard.internetcomputer.org/proposal/138266)
+- [138128](https://dashboard.internetcomputer.org/proposal/138128)
+- [138129](https://dashboard.internetcomputer.org/proposal/138129)
+- [137921](https://dashboard.internetcomputer.org/proposal/137921)
+- [137795](https://dashboard.internetcomputer.org/proposal/137795)
+- [137678](https://dashboard.internetcomputer.org/proposal/137678)
+
+
 # 0.29.2
 
 ### Frontend canister
