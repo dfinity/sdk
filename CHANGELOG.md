@@ -16,6 +16,8 @@ dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$YOUR_ACCOUNT_I
 dfx cycles convert --amount 100
 ```
 
+### fix: bump svelte dependencies in project templates
+
 ### Frontend canister
 
 Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic ordering.
@@ -23,10 +25,16 @@ Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic order
 Sets the `ic_env` cookie for html files, which contains the root key and the canister environment variables that are prefixed with `PUBLIC_`.
 Please note that this version of the frontend canister is only compatible with PocketIC **v10** and above.
 
-- Module hash: 5871b95ccb8278f3b817dcec42eb040f7a48949dc7f9bb1ed70108a952960aac
+- Module hash: dad567d271e21c9834d2e2dc7508a8428697a3b5e3c8162ccd99eae68cd0eecc
 - https://github.com/dfinity/sdk/pull/4392
 - https://github.com/dfinity/sdk/pull/4387
 - https://github.com/dfinity/sdk/pull/4389
+
+## Dependencies
+
+### Candid
+
+Updated candid_parser to 0.2.2.
 
 # 0.29.2
 
