@@ -420,7 +420,7 @@ async fn compute_evidence(
 
     let evidence =
         ic_asset::compute_evidence(&canister, &source_paths, env.get_logger(), None).await?;
-    println!("{}", evidence);
+    println!("{evidence}");
 
     Ok(())
 }

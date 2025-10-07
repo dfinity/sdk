@@ -373,7 +373,7 @@ impl IdentityManager {
 
         // Use a temporary directory to prepare all identity parts in so that we don't end up with broken parts if the
         // creation process fails half-way through.
-        let temp_identity_name = format!("{}{}", TEMP_IDENTITY_PREFIX, name);
+        let temp_identity_name = format!("{TEMP_IDENTITY_PREFIX}{name}");
         let temp_identity_dir = self.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
@@ -427,7 +427,7 @@ impl IdentityManager {
                 identity_config = create_identity_config(log, mode, name, None)
                     .map_err(CreateNewIdentityError::CreateIdentityConfigFailed)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)
-                    .map_err(|e| CreateMnemonicFromPhraseFailed(format!("{}", e)))?;
+                    .map_err(|e| CreateMnemonicFromPhraseFailed(format!("{e}")))?;
                 let key = mnemonic_to_key(&mnemonic)
                     .map_err(CreateNewIdentityError::ConvertMnemonicToKeyFailed)?;
                 let pem = key

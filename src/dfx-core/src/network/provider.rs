@@ -122,7 +122,7 @@ fn config_network_to_network_descriptor(
                 &data_directory,
                 default_local_bind,
             )?;
-            let provider_url = format!("http://{}", bind_address);
+            let provider_url = format!("http://{bind_address}");
             let providers = vec![parse_provider_url(&provider_url)?];
             let local_server_descriptor = LocalServerDescriptor::new(
                 data_directory,
@@ -458,7 +458,7 @@ fn get_running_webserver_bind_address(
                 None => local_bind.clone(),
                 Some(index) => local_bind[0..index].to_string(),
             };
-            Ok(format!("{}:{}", host, port))
+            Ok(format!("{host}:{port}"))
         }
     } else {
         Ok(local_bind)
@@ -469,7 +469,7 @@ pub fn command_line_provider_to_url(s: &str) -> Result<String, NetworkConfigErro
     match parse_provider_url(s) {
         Ok(url) => Ok(url),
         Err(original_error) => {
-            let prefixed_with_http = format!("http://{}", s);
+            let prefixed_with_http = format!("http://{s}");
             parse_provider_url(&prefixed_with_http).or(Err(original_error))
         }
     }

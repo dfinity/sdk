@@ -38,7 +38,7 @@ pub async fn exec(env: &dyn Environment, opts: ShowSubnetTypesOpts) -> DfxResult
 
     let available_subnet_types: Vec<String> = result.data.into_iter().map(|(x, _)| x).collect();
 
-    println!("{:?}", available_subnet_types);
+    println!("{available_subnet_types:?}");
 
     Ok(())
 }

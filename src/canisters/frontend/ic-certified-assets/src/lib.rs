@@ -320,14 +320,14 @@ pub fn configure(arg: ConfigureArguments) {
 }
 
 pub fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
-    Ok(format!("configure: {:?}", arg))
+    Ok(format!("configure: {arg:?}"))
 }
 
 pub fn can(permission: Permission) -> Result<(), String> {
     with_state(|s| {
         s.can(&msg_caller(), &permission)
             .then_some(())
-            .ok_or_else(|| format!("Caller does not have {} permission", permission))
+            .ok_or_else(|| format!("Caller does not have {permission} permission"))
     })
 }
 
@@ -347,8 +347,7 @@ pub fn has_permission_or_is_controller(permission: &Permission) -> Result<(), St
         Ok(())
     } else {
         Err(format!(
-            "Caller does not have {} permission and is not a controller.",
-            permission
+            "Caller does not have {permission} permission and is not a controller."
         ))
     }
 }
@@ -704,7 +703,7 @@ fn candid_interface_compatibility() {
     let old_interface =
         PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("assets.did");
 
-    println!("Exported interface: {}", new_interface);
+    println!("Exported interface: {new_interface}");
 
     service_compatible(
         CandidSource::Text(&new_interface),

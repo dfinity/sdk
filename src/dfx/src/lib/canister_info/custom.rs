@@ -66,7 +66,7 @@ impl CanisterInfoFactory for CustomCanisterInfo {
             })?;
             let output_wasm_path = info
                 .get_output_root()
-                .join(format!("download-{}", filename));
+                .join(format!("download-{filename}"));
             (Some(input_wasm_url), output_wasm_path)
         } else {
             let output_wasm_path = workspace_root.join(wasm);

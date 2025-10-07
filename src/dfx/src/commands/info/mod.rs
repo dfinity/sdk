@@ -78,6 +78,6 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         InfoType::ConfigJsonPath => ToolConfig::new()?.config_path().display().to_string(),
         InfoType::TelemetryLogPath => Telemetry::get_log_path()?.display().to_string(),
     };
-    println!("{}", value);
+    println!("{value}");
     Ok(())
 }

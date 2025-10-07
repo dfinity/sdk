@@ -60,7 +60,7 @@ pub fn load(
 
     if !output.status.success() {
         return Err(DfxError::new(BuildError::CommandError(
-            format!("{:?}", cmd),
+            format!("{cmd:?}"),
             output.status,
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),

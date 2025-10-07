@@ -9,6 +9,6 @@ pub struct WhoAmIOpts {}
 pub fn exec(env: &dyn Environment, _opts: WhoAmIOpts) -> DfxResult {
     let mgr = env.new_identity_manager()?;
     let identity = mgr.get_selected_identity_name();
-    println!("{}", identity);
+    println!("{identity}");
     Ok(())
 }

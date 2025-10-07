@@ -70,7 +70,7 @@ pub async fn create_canister(
     let non_default_network = if network_name == "local" {
         String::new()
     } else {
-        format!("on network {} ", network_name)
+        format!("on network {network_name} ")
     };
 
     if let Some(canister_id) = canister_id_store.find(canister_name) {

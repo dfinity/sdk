@@ -225,7 +225,7 @@ impl LocalServerDescriptor {
         .unwrap();
 
         let diffs = if self.bind_address != default_bind {
-            format!(" (default: {:?})", default_bind)
+            format!(" (default: {default_bind:?})")
         } else {
             "".to_string()
         };
@@ -239,7 +239,7 @@ impl LocalServerDescriptor {
                 default_nodes.clone()
             };
             let diffs: String = if nodes != default_nodes {
-                format!(" (default: {:?})", default_nodes)
+                format!(" (default: {default_nodes:?})")
             } else {
                 "".to_string()
             };

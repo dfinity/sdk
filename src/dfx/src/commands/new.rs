@@ -410,7 +410,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
     let output = Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
-        .arg(format!("dist-tags.{}", dist_tag))
+        .arg(format!("dist-tags.{dist_tag}"))
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .output()
@@ -443,7 +443,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     }
 
     let current_version = env.get_version();
-    let version_str = format!("{}", current_version);
+    let version_str = format!("{current_version}");
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.

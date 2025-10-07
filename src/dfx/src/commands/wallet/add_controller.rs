@@ -20,6 +20,6 @@ pub async fn exec(env: &dyn Environment, opts: AddControllerOpts) -> DfxResult {
         )
     })?;
     wallet_update::<_, ()>(env, "add_controller", controller).await?;
-    println!("Added {} as a controller.", controller);
+    println!("Added {controller} as a controller.");
     Ok(())
 }

@@ -338,7 +338,7 @@ async fn make_encoding(
                 EncodeContentFailed(asset_descriptor.key.clone(), encoder.to_owned(), e)
             })?;
             if force_encoding || encoded.data.len() < content.data.len() {
-                let content_encoding = format!("{}", encoder);
+                let content_encoding = format!("{encoder}");
                 let project_asset_encoding = make_project_asset_encoding(
                     chunk_upload_target,
                     asset_descriptor,
@@ -547,7 +547,7 @@ fn content_encoding_descriptive_suffix(content_encoding: &str) -> String {
     if content_encoding == CONTENT_ENCODING_IDENTITY {
         "".to_string()
     } else {
-        format!(" ({})", content_encoding)
+        format!(" ({content_encoding})")
     }
 }
 

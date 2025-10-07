@@ -62,7 +62,7 @@ pub async fn exec(
         let (response, _cert) = agent
             .request_status_signed(&request_id, canister_id, envelope)
             .await
-            .with_context(|| format!("Failed to read canister state of {}.", canister_id))?;
+            .with_context(|| format!("Failed to read canister state of {canister_id}."))?;
         eprint!("Response: ");
         match response {
             RequestStatusResponse::Received => eprintln!("Received, not yet processing"),
@@ -119,10 +119,10 @@ pub async fn exec(
             let response = agent
                 .query_signed(canister_id, content)
                 .await
-                .with_context(|| format!("Query call to {} failed.", canister_id))?;
+                .with_context(|| format!("Query call to {canister_id} failed."))?;
             eprint!("Response: ");
             if let Ok(idl) = IDLArgs::from_bytes(&response) {
-                println!("{}", idl)
+                println!("{idl}")
             } else {
                 println!("{}", hex::encode(&response));
             }
@@ -131,7 +131,7 @@ pub async fn exec(
             let call_response = agent
                 .update_signed(canister_id, content)
                 .await
-                .with_context(|| format!("Update call to {} failed.", canister_id))?;
+                .with_context(|| format!("Update call to {canister_id} failed."))?;
             match call_response {
                 CallResponse::Poll(request_id) => {
                     eprintln!(
@@ -144,7 +144,7 @@ pub async fn exec(
                     eprint!("Request ID: ");
                     println!("0x{}", String::from(request_id));
                     eprint!("Canister ID: ");
-                    println!("{}", canister_id);
+                    println!("{canister_id}");
                 }
                 CallResponse::Response(response) => {
                     eprint!("Response: ");

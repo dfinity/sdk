@@ -107,7 +107,7 @@ pub fn create_new_dfx_identity(
         env.new_identity_manager()?
             .create_new_identity(log, name, creation_parameters, force);
     if let Err(SwitchBackToIdentityFailed(underlying)) = result {
-        Err(underlying).with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
+        Err(underlying).with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {name}' to do it manually."))?;
     } else {
         result?;
     }

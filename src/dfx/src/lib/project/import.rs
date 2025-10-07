@@ -51,7 +51,7 @@ pub async fn import_canister_definitions(
         })?;
 
     let what = if let Some(ref name) = import_only_canister_name {
-        format!("canister '{}'", name)
+        format!("canister '{name}'")
     } else {
         "all canisters".to_string()
     };
@@ -119,7 +119,7 @@ async fn import_candid_definition(
     our_canister_name: &str,
     our_canister: &mut Map<String, Value>,
 ) -> Result<(), ProjectError> {
-    let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
+    let our_relative_candid_path = format!("candid/{our_canister_name}.did");
     let their_candid_url = their_dfx_json_url
         .join(their_relative_candid)
         .map_err(|e| {

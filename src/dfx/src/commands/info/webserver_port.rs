@@ -13,5 +13,5 @@ pub(crate) fn get_webserver_port(env: &dyn Environment) -> DfxResult<String> {
     .local_server_descriptor()?
     .bind_address
     .port();
-    Ok(format!("{}", port))
+    Ok(format!("{port}"))
 }

@@ -10,7 +10,7 @@ pub struct NameOpts {}
 pub async fn exec(env: &dyn Environment, _opts: NameOpts) -> DfxResult {
     let (maybe_name,): (Option<String>,) = wallet_query(env, "name", ()).await?;
     match maybe_name {
-        Some(name) => println!("{}", name),
+        Some(name) => println!("{name}"),
         None => println!(
             "Name hasn't been set. Call `dfx wallet set-name` to give this cycles wallet a name."
         ),

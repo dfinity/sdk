@@ -11,7 +11,7 @@ pub struct CustodiansOpts {}
 pub async fn exec(env: &dyn Environment, _opts: CustodiansOpts) -> DfxResult {
     let (custodians,): (Vec<Principal>,) = wallet_query(env, "get_custodians", ()).await?;
     for custodian in custodians.iter() {
-        println!("{}", custodian);
+        println!("{custodian}");
     }
     Ok(())
 }

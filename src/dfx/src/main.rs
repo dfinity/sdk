@@ -111,7 +111,7 @@ fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis
             .reset()
             .expect("Failed to reset stderr output color.");
 
-        writeln!(stderr, "{}", explanation).expect("Failed to write to stderr.");
+        writeln!(stderr, "{explanation}").expect("Failed to write to stderr.");
     }
     if let Some(action_suggestion) = error_diagnosis.action_suggestion {
         stderr
@@ -122,7 +122,7 @@ fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis
             .reset()
             .expect("Failed to reset stderr output color.");
 
-        writeln!(stderr, "{}", action_suggestion).expect("Failed to write to stderr.");
+        writeln!(stderr, "{action_suggestion}").expect("Failed to write to stderr.");
     }
 }
 
