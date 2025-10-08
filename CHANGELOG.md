@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.30.0
+
 ### feat: `dfx start --system-canisters` for bootstrapping system canisters
 
 This new flag utilizes the built-in system canisters bootstrapping capability provided by PocketIC v10.
