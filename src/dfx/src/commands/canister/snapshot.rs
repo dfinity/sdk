@@ -23,6 +23,7 @@ use indicatif::HumanBytes;
 use itertools::Itertools;
 use slog::{debug, error, info};
 use time::{OffsetDateTime, macros::format_description};
+use tokio::io::AsyncWriteExt;
 
 use crate::lib::{
     environment::Environment,
@@ -584,23 +585,22 @@ async fn store_data(
         BlobKind::StableMemory => "stable memory",
     };
 
-    let blob = read_blob(
+    write_blob(
         env,
         canister,
         canister_id,
         snapshot_id,
         blob_kind,
         length,
+        &file_path,
         retry_policy.clone(),
         call_sender,
     )
     .await
     .with_context(|| {
-        format!("Failed to read {message} from snapshot {snapshot_id} in canister {canister}")
+        format!("Failed to download {message} from snapshot {snapshot_id} in canister {canister}")
     })?;
 
-    std::fs::write(&file_path, &blob)
-        .with_context(|| format!("Failed to write {message} to '{}'", file_path.display()))?;
     debug!(
         env.get_logger(),
         "The {message} has been saved to '{}'",
@@ -610,17 +610,19 @@ async fn store_data(
     Ok(())
 }
 
-async fn read_blob(
+async fn write_blob(
     env: &dyn Environment,
     canister: &str,
     canister_id: Principal,
     snapshot: &SnapshotId,
     blob_kind: BlobKind,
     length: usize,
+    file_path: &PathBuf,
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
-) -> DfxResult<Vec<u8>> {
-    let mut blob: Vec<u8> = vec![0; length];
+) -> DfxResult {
+    let mut file = tokio::fs::File::create(file_path).await?;
+
     let mut offset = 0;
     while offset < length {
         let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
@@ -659,11 +661,14 @@ async fn read_blob(
         })
         .await?
         .chunk;
-        blob[offset..offset + chunk_size].copy_from_slice(&chunk);
+        file.write_all(&chunk).await?;
+
         offset += chunk_size;
     }
 
-    Ok(blob)
+    file.flush().await?;
+
+    Ok(())
 }
 
 async fn upload_data(
