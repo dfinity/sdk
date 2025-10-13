@@ -19,7 +19,7 @@ use ic_management_canister_types::{
     SnapshotDataOffset, UploadCanisterSnapshotDataArgs, UploadCanisterSnapshotMetadataArgs,
     UploadCanisterSnapshotMetadataResult,
 };
-use indicatif::HumanBytes;
+use indicatif::{HumanBytes, ProgressStyle};
 use itertools::Itertools;
 use slog::{debug, error, info};
 use time::{OffsetDateTime, macros::format_description};
@@ -585,6 +585,8 @@ async fn store_data(
         BlobKind::StableMemory => "stable memory",
     };
 
+    info!(env.get_logger(), "Downloading {message}");
+
     write_blob(
         env,
         canister,
@@ -601,9 +603,9 @@ async fn store_data(
         format!("Failed to download {message} from snapshot {snapshot_id} in canister {canister}")
     })?;
 
-    debug!(
+    info!(
         env.get_logger(),
-        "The {message} has been saved to '{}'",
+        "\nThe {message} has been saved to '{}'",
         file_path.display()
     );
 
@@ -621,8 +623,10 @@ async fn write_blob(
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let mut file = tokio::fs::File::create(file_path).await?;
+    let pb = get_progress_bar();
+    pb.set_length(length as u64);
 
+    let mut file = tokio::fs::File::create(file_path).await?;
     let mut offset = 0;
     while offset < length {
         let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
@@ -664,9 +668,11 @@ async fn write_blob(
         file.write_all(&chunk).await?;
 
         offset += chunk_size;
+        pb.set_position(offset as u64);
     }
-
     file.flush().await?;
+
+    pb.finish();
 
     Ok(())
 }
@@ -768,4 +774,13 @@ fn is_retryable(error: &Error) -> bool {
     }
 
     false
+}
+
+fn get_progress_bar() -> indicatif::ProgressBar {
+    let pb = indicatif::ProgressBar::new(0);
+    pb.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+        .expect("Failed to set template string")
+        .progress_chars("#>-"));
+    pb
 }
