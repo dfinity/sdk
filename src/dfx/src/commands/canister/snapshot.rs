@@ -23,7 +23,7 @@ use indicatif::{HumanBytes, ProgressStyle};
 use itertools::Itertools;
 use slog::{debug, error, info};
 use time::{OffsetDateTime, macros::format_description};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::lib::{
     environment::Environment,
@@ -644,12 +644,13 @@ async fn write_blob(
                 size: chunk_size as u64,
             },
         };
+
+        let data_args = ReadCanisterSnapshotDataArgs {
+            canister_id,
+            snapshot_id: snapshot.0.clone(),
+            kind,
+        };
         let chunk = retry(retry_policy.clone(), || async {
-            let data_args = ReadCanisterSnapshotDataArgs {
-                canister_id,
-                snapshot_id: snapshot.0.clone(),
-                kind: kind.clone(),
-            };
             match read_canister_snapshot_data(env, canister_id, &data_args, call_sender).await {
                 Ok(chunk) => Ok(chunk),
                 Err(error) if is_retryable(&error) => {
@@ -692,15 +693,14 @@ async fn upload_data(
         BlobKind::MainMemory => "Wasm memory",
         BlobKind::StableMemory => "stable memory",
     };
-    let blob = std::fs::read(&file_path)
-        .with_context(|| format!("Failed to read {message} from '{}'", file_path.display()))?;
+
     upload_blob(
         env,
         canister,
         canister_id,
         snapshot_id,
         blob_kind,
-        blob,
+        &file_path,
         retry_policy.clone(),
         call_sender,
     )
@@ -722,11 +722,17 @@ async fn upload_blob(
     canister_id: Principal,
     snapshot: &SnapshotId,
     blob_kind: BlobKind,
-    data: Vec<u8>,
+    file_path: &PathBuf,
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let length = data.len();
+    let length = std::fs::metadata(file_path)
+        .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
+        .len() as usize;
+
+    let mut file = tokio::fs::File::open(file_path)
+        .await
+        .with_context(|| format!("Failed to open file '{}' for reading", file_path.display()))?;
     let mut offset = 0;
     while offset < length {
         let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
@@ -741,13 +747,17 @@ async fn upload_blob(
                 offset: offset as u64,
             },
         };
+
+        let mut chunk = vec![0u8; chunk_size];
+        file.read_exact(&mut chunk).await?;
+
+        let data_args = UploadCanisterSnapshotDataArgs {
+            canister_id,
+            snapshot_id: snapshot.0.clone(),
+            kind,
+            chunk,
+        };
         retry(retry_policy.clone(), || async {
-            let data_args = UploadCanisterSnapshotDataArgs {
-                canister_id,
-                snapshot_id: snapshot.0.clone(),
-                kind: kind.clone(),
-                chunk: data[offset..offset + chunk_size].to_vec(),
-            };
             match upload_canister_snapshot_data(env, canister_id, &data_args, call_sender).await {
                 Ok(_) => Ok(()),
                 Err(error) if is_retryable(&error) => {
