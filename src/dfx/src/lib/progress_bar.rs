@@ -1,5 +1,5 @@
 #![allow(clippy::disallowed_types)]
-use indicatif::{MultiProgress, ProgressBar as IndicatifProgressBar};
+use indicatif::{MultiProgress, ProgressBar as IndicatifProgressBar, ProgressStyle};
 use std::{borrow::Cow, time::Duration};
 
 pub struct ProgressBar {
@@ -36,8 +36,20 @@ impl ProgressBar {
         }
     }
 
+    pub fn new_progress(total_size: u64, set: &MultiProgress) -> Self {
+        let progress_bar = IndicatifProgressBar::new(total_size);
+        set.add(progress_bar.clone());
+
+        ProgressBar {
+            bar: Some(progress_bar),
+        }
+    }
+
+    forward_fn_impl!(finish);
     forward_fn_impl!(finish_and_clear);
     forward_fn_impl!(set_message, message: Cow<'static, str>);
+    forward_fn_impl!(set_position, position: u64);
+    forward_fn_impl!(set_style, style: ProgressStyle);
 
     pub fn discard() -> Self {
         ProgressBar { bar: None }

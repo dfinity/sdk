@@ -33,6 +33,7 @@ use crate::lib::{
         load_canister_snapshot, read_canister_snapshot_data, read_canister_snapshot_metadata,
         take_canister_snapshot, upload_canister_snapshot_data, upload_canister_snapshot_metadata,
     },
+    progress_bar::ProgressBar,
     retryable::retryable,
     root_key::fetch_root_key_if_needed,
 };
@@ -623,8 +624,7 @@ async fn write_blob(
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let pb = get_progress_bar();
-    pb.set_length(length as u64);
+    let pb = get_progress_bar(env, length as u64);
 
     let mut file = tokio::fs::File::create(file_path).await?;
     let mut offset = 0;
@@ -733,8 +733,7 @@ async fn upload_blob(
         .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
         .len() as usize;
 
-    let pb = get_progress_bar();
-    pb.set_length(length as u64);
+    let pb = get_progress_bar(env, length as u64);
 
     let mut file = tokio::fs::File::open(file_path)
         .await
@@ -795,8 +794,8 @@ fn is_retryable(error: &Error) -> bool {
     false
 }
 
-fn get_progress_bar() -> indicatif::ProgressBar {
-    let pb = indicatif::ProgressBar::new(0);
+fn get_progress_bar(env: &dyn Environment, total_size: u64) -> ProgressBar {
+    let pb = env.new_progress(total_size);
     pb.set_style(ProgressStyle::default_bar()
         .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
         .expect("Failed to set template string")
