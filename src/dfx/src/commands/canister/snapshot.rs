@@ -694,6 +694,8 @@ async fn upload_data(
         BlobKind::StableMemory => "stable memory",
     };
 
+    info!(env.get_logger(), "Uploading {message}");
+
     upload_blob(
         env,
         canister,
@@ -708,9 +710,10 @@ async fn upload_data(
     .with_context(|| {
         format!("Failed to upload {message} to snapshot {snapshot_id} in canister {canister}")
     })?;
-    debug!(
+    info!(
         env.get_logger(),
-        "Snapshot {message} uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
+        "The {message} has been uploaded from '{}'",
+        file_path.display()
     );
 
     Ok(())
@@ -729,6 +732,9 @@ async fn upload_blob(
     let length = std::fs::metadata(file_path)
         .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
         .len() as usize;
+
+    let pb = get_progress_bar();
+    pb.set_length(length as u64);
 
     let mut file = tokio::fs::File::open(file_path)
         .await
@@ -773,7 +779,10 @@ async fn upload_blob(
         })
         .await?;
         offset += chunk_size;
+        pb.set_position(offset as u64);
     }
+
+    pb.finish();
 
     Ok(())
 }
