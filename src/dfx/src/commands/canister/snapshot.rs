@@ -84,6 +84,9 @@ enum SnapshotSubcommand {
         /// The directory to download the snapshot to.
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
+        /// Whether to resume the download if the snapshot already exists.
+        #[arg(short, long, default_value = "false")]
+        resume: bool,
     },
     /// Uploads a downloaded snapshot from a given directory to a canister.
     Upload {
@@ -141,7 +144,8 @@ pub async fn exec(
             canister,
             snapshot,
             dir,
-        } => download(env, canister, snapshot, dir, call_sender).await?,
+            resume,
+        } => download(env, canister, snapshot, dir, resume, call_sender).await?,
         SnapshotSubcommand::Upload {
             canister,
             replace,
@@ -275,31 +279,42 @@ async fn download(
     canister: String,
     snapshot: SnapshotId,
     dir: PathBuf,
+    resume: bool,
     call_sender: &CallSender,
 ) -> DfxResult {
-    check_dir(&dir)?;
+    if !resume {
+        check_dir(&dir)?;
+    }
 
     let canister_id = canister
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
     // Store metadata.
-    let metadata_args = ReadCanisterSnapshotMetadataArgs {
-        canister_id,
-        snapshot_id: snapshot.0.clone(),
-    };
-    let metadata = read_canister_snapshot_metadata(env, canister_id, &metadata_args, call_sender)
-        .await
-        .with_context(|| {
-            format!("Failed to read metadata from snapshot {snapshot} in canister {canister}")
-        })?;
     let metadata_file = dir.join("metadata.json");
-    save_json_file(&metadata_file, &metadata)?;
-    debug!(
-        env.get_logger(),
-        "Snapshot metadata saved to '{}'",
-        metadata_file.display()
-    );
+    let metadata = if !metadata_file.exists() {
+        let metadata_args = ReadCanisterSnapshotMetadataArgs {
+            canister_id,
+            snapshot_id: snapshot.0.clone(),
+        };
+        let metadata =
+            read_canister_snapshot_metadata(env, canister_id, &metadata_args, call_sender)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Failed to read metadata from snapshot {snapshot} in canister {canister}"
+                    )
+                })?;
+        save_json_file(&metadata_file, &metadata)?;
+        debug!(
+            env.get_logger(),
+            "Snapshot metadata saved to '{}'",
+            metadata_file.display()
+        );
+        metadata
+    } else {
+        load_json_file(&metadata_file)?
+    };
 
     let retry_policy = ExponentialBackoff::default();
 
@@ -313,6 +328,7 @@ async fn download(
         metadata.wasm_module_size as usize,
         dir.join("wasm_module.bin"),
         retry_policy.clone(),
+        resume,
         call_sender,
     )
     .await?;
@@ -327,6 +343,7 @@ async fn download(
         metadata.wasm_memory_size as usize,
         dir.join("wasm_memory.bin"),
         retry_policy.clone(),
+        resume,
         call_sender,
     )
     .await?;
@@ -342,6 +359,7 @@ async fn download(
             metadata.stable_memory_size as usize,
             dir.join("stable_memory.bin"),
             retry_policy.clone(),
+            resume,
             call_sender,
         )
         .await?;
@@ -350,16 +368,21 @@ async fn download(
     // Store Wasm chunks.
     if !metadata.wasm_chunk_store.is_empty() {
         let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
-        std::fs::create_dir(&wasm_chunk_store_dir).with_context(|| {
-            format!(
-                "Failed to create directory '{}'",
-                wasm_chunk_store_dir.display()
-            )
-        })?;
+        if !wasm_chunk_store_dir.exists() {
+            std::fs::create_dir(&wasm_chunk_store_dir).with_context(|| {
+                format!(
+                    "Failed to create directory '{}'",
+                    wasm_chunk_store_dir.display()
+                )
+            })?;
+        }
 
         for chunk_hash in metadata.wasm_chunk_store {
             let hash_str = hex::encode(&chunk_hash.hash);
             let chunk_file = wasm_chunk_store_dir.join(format!("{hash_str}.bin"));
+            if chunk_file.exists() {
+                continue;
+            }
 
             let chunk = retry(retry_policy.clone(), || async {
                 let data_args = ReadCanisterSnapshotDataArgs {
@@ -578,6 +601,7 @@ async fn store_data(
     length: usize,
     file_path: PathBuf,
     retry_policy: ExponentialBackoff,
+    resume: bool,
     call_sender: &CallSender,
 ) -> DfxResult {
     let message = match blob_kind {
@@ -597,6 +621,7 @@ async fn store_data(
         length,
         &file_path,
         retry_policy.clone(),
+        resume,
         call_sender,
     )
     .await
@@ -622,12 +647,37 @@ async fn write_blob(
     length: usize,
     file_path: &PathBuf,
     retry_policy: ExponentialBackoff,
+    resume: bool,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let pb = get_progress_bar(env, length as u64);
-
-    let mut file = tokio::fs::File::create(file_path).await?;
     let mut offset = 0;
+    if resume && file_path.exists() {
+        let file_length = std::fs::metadata(file_path)
+            .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
+            .len() as usize;
+        if file_length >= length {
+            return Ok(());
+        }
+        offset = file_length;
+
+        debug!(
+            env.get_logger(),
+            "Resuming download '{}' from offset {}",
+            file_path.display(),
+            offset
+        );
+    }
+
+    let pb = get_progress_bar(env, length as u64);
+    pb.set_position(offset as u64);
+
+    // Create file if it doesn't exist, otherwise open it in append mode.
+    let mut file = tokio::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(file_path)
+        .await?;
+
     while offset < length {
         let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
         let kind = match blob_kind {
