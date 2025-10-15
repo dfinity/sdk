@@ -586,7 +586,7 @@ async fn store_data(
         BlobKind::StableMemory => "stable memory",
     };
 
-    info!(env.get_logger(), "Downloading {message}");
+    debug!(env.get_logger(), "Downloading {message}");
 
     write_blob(
         env,
@@ -604,9 +604,9 @@ async fn store_data(
         format!("Failed to download {message} from snapshot {snapshot_id} in canister {canister}")
     })?;
 
-    info!(
+    debug!(
         env.get_logger(),
-        "\nThe {message} has been saved to '{}'",
+        "The {message} has been saved to '{}'",
         file_path.display()
     );
 
@@ -694,7 +694,7 @@ async fn upload_data(
         BlobKind::StableMemory => "stable memory",
     };
 
-    info!(env.get_logger(), "Uploading {message}");
+    debug!(env.get_logger(), "Uploading {message}");
 
     upload_blob(
         env,
@@ -710,7 +710,7 @@ async fn upload_data(
     .with_context(|| {
         format!("Failed to upload {message} to snapshot {snapshot_id} in canister {canister}")
     })?;
-    info!(
+    debug!(
         env.get_logger(),
         "The {message} has been uploaded from '{}'",
         file_path.display()
