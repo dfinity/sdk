@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     fmt::{self, Display, Formatter},
     path::PathBuf,
     str::FromStr,
@@ -13,6 +14,7 @@ use dfx_core::{
     identity::CallSender,
     json::{load_json_file, save_json_file},
 };
+use futures::{FutureExt, StreamExt, stream::FuturesUnordered};
 use ic_management_canister_types::{
     CanisterStatusType, LoadCanisterSnapshotArgs, ReadCanisterSnapshotDataArgs,
     ReadCanisterSnapshotMetadataArgs, ReadCanisterSnapshotMetadataResult, SnapshotDataKind,
@@ -87,6 +89,9 @@ enum SnapshotSubcommand {
         /// Whether to resume the download if the snapshot already exists.
         #[arg(short, long, default_value = "false")]
         resume: bool,
+        /// The number of concurrent downloads to perform.
+        #[arg(long, default_value = "3")]
+        concurrency: usize,
     },
     /// Uploads a downloaded snapshot from a given directory to a canister.
     Upload {
@@ -145,7 +150,19 @@ pub async fn exec(
             snapshot,
             dir,
             resume,
-        } => download(env, canister, snapshot, dir, resume, call_sender).await?,
+            concurrency,
+        } => {
+            download(
+                env,
+                canister,
+                snapshot,
+                dir,
+                resume,
+                concurrency,
+                call_sender,
+            )
+            .await?
+        }
         SnapshotSubcommand::Upload {
             canister,
             replace,
@@ -280,6 +297,7 @@ async fn download(
     snapshot: SnapshotId,
     dir: PathBuf,
     resume: bool,
+    concurrency: usize,
     call_sender: &CallSender,
 ) -> DfxResult {
     if !resume {
@@ -329,6 +347,7 @@ async fn download(
         dir.join("wasm_module.bin"),
         retry_policy.clone(),
         resume,
+        concurrency,
         call_sender,
     )
     .await?;
@@ -344,6 +363,7 @@ async fn download(
         dir.join("wasm_memory.bin"),
         retry_policy.clone(),
         resume,
+        concurrency,
         call_sender,
     )
     .await?;
@@ -360,6 +380,7 @@ async fn download(
             dir.join("stable_memory.bin"),
             retry_policy.clone(),
             resume,
+            concurrency,
             call_sender,
         )
         .await?;
@@ -583,7 +604,7 @@ fn check_dir(dir: &PathBuf) -> DfxResult {
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum BlobKind {
     WasmModule,
     MainMemory,
@@ -602,6 +623,7 @@ async fn store_data(
     file_path: PathBuf,
     retry_policy: ExponentialBackoff,
     resume: bool,
+    concurrency: usize,
     call_sender: &CallSender,
 ) -> DfxResult {
     let message = match blob_kind {
@@ -622,6 +644,7 @@ async fn store_data(
         &file_path,
         retry_policy.clone(),
         resume,
+        concurrency,
         call_sender,
     )
     .await
@@ -648,6 +671,7 @@ async fn write_blob(
     file_path: &PathBuf,
     retry_policy: ExponentialBackoff,
     resume: bool,
+    concurrency: usize,
     call_sender: &CallSender,
 ) -> DfxResult {
     let mut offset = 0;
@@ -678,48 +702,80 @@ async fn write_blob(
         .open(file_path)
         .await?;
 
-    while offset < length {
-        let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
-        let kind = match blob_kind {
-            BlobKind::WasmModule => SnapshotDataKind::WasmModule {
-                offset: offset as u64,
-                size: chunk_size as u64,
-            },
-            BlobKind::MainMemory => SnapshotDataKind::WasmMemory {
-                offset: offset as u64,
-                size: chunk_size as u64,
-            },
-            BlobKind::StableMemory => SnapshotDataKind::StableMemory {
-                offset: offset as u64,
-                size: chunk_size as u64,
-            },
-        };
+    let mut next_offset = offset;
+    let mut next_request_offset = offset;
+    let mut in_progress: FuturesUnordered<_> = FuturesUnordered::new();
+    let mut ready_chunks: BTreeMap<usize, Vec<u8>> = BTreeMap::new();
 
-        let data_args = ReadCanisterSnapshotDataArgs {
-            canister_id,
-            snapshot_id: snapshot.0.clone(),
-            kind,
-        };
-        let chunk = retry(retry_policy.clone(), || async {
-            match read_canister_snapshot_data(env, canister_id, &data_args, call_sender).await {
-                Ok(chunk) => Ok(chunk),
-                Err(error) if is_retryable(&error) => {
-                    error!(
-                        env.get_logger(),
-                        "Failed to read {:?} from snapshot {snapshot} in canister {canister}.",
-                        blob_kind,
-                    );
-                    Err(backoff::Error::transient(anyhow!(error)))
-                }
-                Err(error) => Err(backoff::Error::permanent(anyhow!(error))),
-            }
-        })
-        .await?
-        .chunk;
-        file.write_all(&chunk).await?;
+    while next_offset < length {
+        // Schedule next chunk to download.
+        // Also check the length of ready_chunks to determine if we should schedule next chunk.
+        // For example, if the first trunk is blocked, continue to schedule trunks will increase the memory usage.
+        while next_request_offset < length
+            && in_progress.len() < concurrency
+            && ready_chunks.len() < concurrency * 2
+        {
+            let chunk_size = std::cmp::min(length - next_request_offset, MAX_CHUNK_SIZE);
+            let kind = match blob_kind {
+                BlobKind::WasmModule => SnapshotDataKind::WasmModule {
+                    offset: next_request_offset as u64,
+                    size: chunk_size as u64,
+                },
+                BlobKind::MainMemory => SnapshotDataKind::WasmMemory {
+                    offset: next_request_offset as u64,
+                    size: chunk_size as u64,
+                },
+                BlobKind::StableMemory => SnapshotDataKind::StableMemory {
+                    offset: next_request_offset as u64,
+                    size: chunk_size as u64,
+                },
+            };
+            let data_args = ReadCanisterSnapshotDataArgs {
+                canister_id,
+                snapshot_id: snapshot.0.clone(),
+                kind,
+            };
+            let retry_policy = retry_policy.clone();
 
-        offset += chunk_size;
-        pb.set_position(offset as u64);
+            // Download chunk.
+            in_progress.push(async move {
+                let chunk = retry(retry_policy, || async {
+                    match read_canister_snapshot_data(env, canister_id, &data_args, call_sender)
+                        .await
+                    {
+                        Ok(chunk) => Ok(chunk),
+                        Err(error) if is_retryable(&error) => {
+                            error!(
+                                env.get_logger(),
+                                "Failed to read {:?} from snapshot {snapshot} in canister {canister}.",
+                                blob_kind,
+                            );
+                            Err(backoff::Error::transient(anyhow!(error)))
+                        }
+                        Err(error) => Err(backoff::Error::permanent(anyhow!(error))),
+                    }
+                })
+                .await?
+                .chunk;
+
+                Ok::<(usize, Vec<u8>), anyhow::Error>((next_request_offset, chunk))
+            });
+
+            next_request_offset += chunk_size;
+        }
+
+        // Process completed chunks.
+        while let Some(Some(res)) = in_progress.next().now_or_never() {
+            let (chunk_offset, chunk) = res?;
+            ready_chunks.insert(chunk_offset, chunk);
+        }
+
+        // Write completed chunks in order.
+        while let Some(chunk) = ready_chunks.remove(&next_offset) {
+            file.write_all(&chunk).await?;
+            next_offset += chunk.len();
+            pb.set_position(next_offset as u64);
+        }
     }
     file.flush().await?;
 
