@@ -1,7 +1,8 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fmt::{self, Display, Formatter},
-    path::PathBuf,
+    io::SeekFrom,
+    path::{Path, PathBuf},
     str::FromStr,
 };
 
@@ -23,9 +24,10 @@ use ic_management_canister_types::{
 };
 use indicatif::{HumanBytes, ProgressStyle};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use slog::{debug, error, info};
 use time::{OffsetDateTime, macros::format_description};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::lib::{
     environment::Environment,
@@ -103,10 +105,13 @@ enum SnapshotSubcommand {
         /// The directory to upload the snapshot from.
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
+        /// The snapshot ID to resume the upload to.
+        #[arg(short, long)]
+        resume: Option<SnapshotId>,
     },
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct SnapshotId(Vec<u8>);
 
 impl Display for SnapshotId {
@@ -167,7 +172,8 @@ pub async fn exec(
             canister,
             replace,
             dir,
-        } => upload(env, canister, replace, dir, call_sender).await?,
+            resume,
+        } => upload(env, canister, replace, dir, resume, call_sender).await?,
     }
     Ok(())
 }
@@ -455,76 +461,117 @@ async fn upload(
     canister: String,
     replace: Option<SnapshotId>,
     dir: PathBuf,
+    resume: Option<SnapshotId>,
     call_sender: &CallSender,
 ) -> DfxResult {
     let canister_id = canister
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
-    // Upload snapshot metadata.
+    // Load the upload progress if provided.
+    let mut upload_progress = SnapshotUploadProgress::new();
+    if let Some(resume_snapshot_id) = &resume {
+        let progress_path = dir.join(format!("{resume_snapshot_id}.json"));
+        if progress_path.exists() {
+            upload_progress = load_json_file(&progress_path)?;
+        } else {
+            bail!(
+                "Cannot resume uploading to snapshot {} because the progress file was not found in directory '{}'",
+                resume_snapshot_id,
+                dir.display()
+            );
+        }
+    }
+
     let metadata: ReadCanisterSnapshotMetadataResult = load_json_file(&dir.join("metadata.json"))?;
-    let metadata_args = UploadCanisterSnapshotMetadataArgs {
-        canister_id,
-        replace_snapshot: replace.as_ref().map(|x| x.0.clone()),
-        wasm_module_size: metadata.wasm_module_size,
-        globals: metadata.globals,
-        wasm_memory_size: metadata.wasm_memory_size,
-        stable_memory_size: metadata.stable_memory_size,
-        certified_data: metadata.certified_data,
-        global_timer: metadata.global_timer,
-        on_low_wasm_memory_hook_status: metadata.on_low_wasm_memory_hook_status,
+    let snapshot_id = if !upload_progress.metadata_uploaded {
+        // Upload snapshot metadata.
+        let metadata_args = UploadCanisterSnapshotMetadataArgs {
+            canister_id,
+            replace_snapshot: replace.as_ref().map(|x| x.0.clone()),
+            wasm_module_size: metadata.wasm_module_size,
+            globals: metadata.globals,
+            wasm_memory_size: metadata.wasm_memory_size,
+            stable_memory_size: metadata.stable_memory_size,
+            certified_data: metadata.certified_data,
+            global_timer: metadata.global_timer,
+            on_low_wasm_memory_hook_status: metadata.on_low_wasm_memory_hook_status,
+        };
+        let snapshot_id: SnapshotId =
+            upload_canister_snapshot_metadata(env, canister_id, &metadata_args, call_sender)
+                .await
+                .with_context(|| {
+                    format!("Failed to upload snapshot metadata to canister {canister}")
+                })?
+                .into();
+        upload_progress.snapshot_id = snapshot_id.to_string();
+        upload_progress.metadata_uploaded = true;
+
+        debug!(
+            env.get_logger(),
+            "Snapshot metadata uploaded to canister {canister} with Snapshot ID: {snapshot_id}",
+        );
+        snapshot_id
+    } else {
+        SnapshotId::from_str(&upload_progress.snapshot_id)?
     };
-    let snapshot_id =
-        upload_canister_snapshot_metadata(env, canister_id, &metadata_args, call_sender)
-            .await
-            .with_context(|| format!("Failed to upload snapshot metadata to canister {canister}"))?
-            .into();
-    debug!(
-        env.get_logger(),
-        "Snapshot metadata uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
-    );
 
     let retry_policy = ExponentialBackoff::default();
 
     // Upload Wasm module.
-    upload_data(
-        env,
-        &canister,
-        canister_id,
-        &snapshot_id,
-        BlobKind::WasmModule,
-        dir.join("wasm_module.bin"),
-        retry_policy.clone(),
-        call_sender,
-    )
-    .await?;
-
-    // Upload Wasm memory.
-    upload_data(
-        env,
-        &canister,
-        canister_id,
-        &snapshot_id,
-        BlobKind::MainMemory,
-        dir.join("wasm_memory.bin"),
-        retry_policy.clone(),
-        call_sender,
-    )
-    .await?;
-
-    // Upload stable memory.
-    if metadata.stable_memory_size > 0 {
+    write_upload_progress_file_on_error(
         upload_data(
             env,
             &canister,
             canister_id,
             &snapshot_id,
-            BlobKind::StableMemory,
-            dir.join("stable_memory.bin"),
+            BlobKind::WasmModule,
+            dir.join("wasm_module.bin"),
+            &mut upload_progress,
             retry_policy.clone(),
             call_sender,
         )
-        .await?;
+        .await,
+        &upload_progress,
+        &dir,
+    )?;
+
+    // Upload Wasm memory.
+    write_upload_progress_file_on_error(
+        upload_data(
+            env,
+            &canister,
+            canister_id,
+            &snapshot_id,
+            BlobKind::MainMemory,
+            dir.join("wasm_memory.bin"),
+            &mut upload_progress,
+            retry_policy.clone(),
+            call_sender,
+        )
+        .await,
+        &upload_progress,
+        &dir,
+    )?;
+
+    // Upload stable memory.
+    if metadata.stable_memory_size > 0 {
+        write_upload_progress_file_on_error(
+            upload_data(
+                env,
+                &canister,
+                canister_id,
+                &snapshot_id,
+                BlobKind::StableMemory,
+                dir.join("stable_memory.bin"),
+                &mut upload_progress,
+                retry_policy.clone(),
+                call_sender,
+            )
+            .await,
+            &upload_progress,
+            &dir,
+        )?;
     }
 
     // Upload Wasm chunks.
@@ -532,33 +579,49 @@ async fn upload(
         let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
         for chunk_hash in metadata.wasm_chunk_store {
             let hash_str = hex::encode(&chunk_hash.hash);
+            if *upload_progress
+                .wasm_chunks_uploaded
+                .get(&hash_str)
+                .unwrap_or(&false)
+            {
+                // Skip the chunk if it has already been uploaded.
+                continue;
+            }
+
             let chunk_file = wasm_chunk_store_dir.join(format!("{hash_str}.bin"));
             let chunk_data = std::fs::read(&chunk_file).with_context(|| {
                 format!("Failed to read Wasm chunk from '{}'", chunk_file.display())
             })?;
 
-            retry(retry_policy.clone(), || async {
-                let data_args = UploadCanisterSnapshotDataArgs {
-                    canister_id,
-                    snapshot_id: snapshot_id.0.clone(),
-                    kind: SnapshotDataOffset::WasmChunk,
-                    chunk: chunk_data.clone(),
-                };
-                match upload_canister_snapshot_data(
-                    env,
-                    canister_id,
-                    &data_args,
-                    call_sender,
-                )
-                .await
-                {
-                    Ok(_) => Ok(()),
-                    Err(_error) => Err(backoff::Error::transient(anyhow!(
-                        "Failed to upload Wasm chunk {hash_str} to snapshot {snapshot_id} in canister {canister}"
-                    ))),
-                }
-            })
-            .await?;
+            write_upload_progress_file_on_error(
+                retry(retry_policy.clone(), || async {
+                    let data_args = UploadCanisterSnapshotDataArgs {
+                        canister_id,
+                        snapshot_id: snapshot_id.0.clone(),
+                        kind: SnapshotDataOffset::WasmChunk,
+                        chunk: chunk_data.clone(),
+                    };
+                    match upload_canister_snapshot_data(
+                        env,
+                        canister_id,
+                        &data_args,
+                        call_sender,
+                    )
+                    .await
+                    {
+                        Ok(_) => Ok(()),
+                        Err(_error) => Err(backoff::Error::transient(anyhow!(
+                            "Failed to upload Wasm chunk {hash_str} to snapshot {snapshot_id} in canister {canister}"
+                        ))),
+                    }
+                })
+                .await,
+                &upload_progress,
+                &dir,
+            )?;
+
+            upload_progress.wasm_chunks_uploaded.insert(hash_str, true);
+
             debug!(
                 env.get_logger(),
                 "Snapshot Wasm chunk {} uploaded to canister {} with Snapshot ID: {}",
@@ -574,7 +637,27 @@ async fn upload(
         "Uploaded a snapshot of canister {canister}. Snapshot ID: {}", snapshot_id
     );
 
+    // Save the upload progress.
+    save_json_file(
+        &dir.join(format!("{}.json", upload_progress.snapshot_id)),
+        &upload_progress,
+    )?;
+
     Ok(())
+}
+
+fn write_upload_progress_file_on_error(
+    result: DfxResult,
+    upload_progress: &SnapshotUploadProgress,
+    dir: &Path,
+) -> DfxResult {
+    if result.is_err() {
+        save_json_file(
+            &dir.join(format!("{}.json", upload_progress.snapshot_id)),
+            &upload_progress,
+        )?;
+    }
+    result
 }
 
 fn check_dir(dir: &PathBuf) -> DfxResult {
@@ -609,6 +692,29 @@ enum BlobKind {
     WasmModule,
     MainMemory,
     StableMemory,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SnapshotUploadProgress {
+    snapshot_id: String,
+    metadata_uploaded: bool,
+    wasm_module_progress: usize,
+    wasm_memory_progress: usize,
+    stable_memory_progress: usize,
+    wasm_chunks_uploaded: HashMap<String, bool>,
+}
+
+impl SnapshotUploadProgress {
+    fn new() -> Self {
+        Self {
+            snapshot_id: String::new(),
+            metadata_uploaded: false,
+            wasm_module_progress: 0,
+            wasm_memory_progress: 0,
+            stable_memory_progress: 0,
+            wasm_chunks_uploaded: HashMap::new(),
+        }
+    }
 }
 
 const MAX_CHUNK_SIZE: usize = 2_000_000;
@@ -686,7 +792,7 @@ async fn write_blob(
 
         debug!(
             env.get_logger(),
-            "Resuming download '{}' from offset {}",
+            "Resuming downloading '{}' from offset {}",
             file_path.display(),
             offset
         );
@@ -791,13 +897,14 @@ async fn upload_data(
     snapshot_id: &SnapshotId,
     blob_kind: BlobKind,
     file_path: PathBuf,
+    upload_progress: &mut SnapshotUploadProgress,
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let message = match blob_kind {
-        BlobKind::WasmModule => "Wasm module",
-        BlobKind::MainMemory => "Wasm memory",
-        BlobKind::StableMemory => "stable memory",
+    let (message, progress) = match blob_kind {
+        BlobKind::WasmModule => ("Wasm module", &mut upload_progress.wasm_module_progress),
+        BlobKind::MainMemory => ("Wasm memory", &mut upload_progress.wasm_memory_progress),
+        BlobKind::StableMemory => ("stable memory", &mut upload_progress.stable_memory_progress),
     };
 
     debug!(env.get_logger(), "Uploading {message}");
@@ -809,6 +916,7 @@ async fn upload_data(
         snapshot_id,
         blob_kind,
         &file_path,
+        progress,
         retry_policy.clone(),
         call_sender,
     )
@@ -832,6 +940,7 @@ async fn upload_blob(
     snapshot: &SnapshotId,
     blob_kind: BlobKind,
     file_path: &PathBuf,
+    upload_progress: &mut usize,
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -839,12 +948,24 @@ async fn upload_blob(
         .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
         .len() as usize;
 
+    let mut offset = *upload_progress;
+    if offset > 0 && offset < length {
+        debug!(
+            env.get_logger(),
+            "Resuming uploading '{}' from offset {}",
+            file_path.display(),
+            offset
+        );
+    }
+
     let pb = get_progress_bar(env, length as u64);
+    pb.set_position(offset as u64);
 
     let mut file = tokio::fs::File::open(file_path)
         .await
         .with_context(|| format!("Failed to open file '{}' for reading", file_path.display()))?;
-    let mut offset = 0;
+    file.seek(SeekFrom::Start(offset as u64)).await?;
+
     while offset < length {
         let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
         let kind = match blob_kind {
@@ -885,6 +1006,8 @@ async fn upload_blob(
         .await?;
         offset += chunk_size;
         pb.set_position(offset as u64);
+
+        *upload_progress = offset;
     }
 
     pb.finish();
