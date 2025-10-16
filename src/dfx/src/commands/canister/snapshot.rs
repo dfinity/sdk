@@ -88,7 +88,7 @@ enum SnapshotSubcommand {
         /// The directory to download the snapshot to.
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
-        /// Whether to resume the download if the snapshot already exists.
+        /// Whether to resume the download if the previous snapshot download failed.
         #[arg(short, long, default_value = "false")]
         resume: bool,
         /// The number of concurrent downloads to perform.
@@ -105,7 +105,7 @@ enum SnapshotSubcommand {
         /// The directory to upload the snapshot from.
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
-        /// The snapshot ID to resume the upload to.
+        /// The snapshot ID to resume uploading to.
         #[arg(short, long)]
         resume: Option<SnapshotId>,
         /// The number of concurrent uploads to perform.
