@@ -736,7 +736,7 @@ impl SnapshotUploadProgress {
     }
 }
 
-const MAX_CHUNK_SIZE: usize = 200_000;
+const MAX_CHUNK_SIZE: usize = 2_000_000;
 
 async fn store_data(
     env: &dyn Environment,
