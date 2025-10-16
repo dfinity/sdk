@@ -108,6 +108,9 @@ enum SnapshotSubcommand {
         /// The snapshot ID to resume the upload to.
         #[arg(short, long)]
         resume: Option<SnapshotId>,
+        /// The number of concurrent uploads to perform.
+        #[arg(long, default_value = "3")]
+        concurrency: usize,
     },
 }
 
@@ -173,7 +176,19 @@ pub async fn exec(
             replace,
             dir,
             resume,
-        } => upload(env, canister, replace, dir, resume, call_sender).await?,
+            concurrency,
+        } => {
+            upload(
+                env,
+                canister,
+                replace,
+                dir,
+                resume,
+                concurrency,
+                call_sender,
+            )
+            .await?
+        }
     }
     Ok(())
 }
@@ -351,9 +366,9 @@ async fn download(
         BlobKind::WasmModule,
         metadata.wasm_module_size as usize,
         dir.join("wasm_module.bin"),
-        retry_policy.clone(),
         resume,
         concurrency,
+        retry_policy.clone(),
         call_sender,
     )
     .await?;
@@ -367,9 +382,9 @@ async fn download(
         BlobKind::MainMemory,
         metadata.wasm_memory_size as usize,
         dir.join("wasm_memory.bin"),
-        retry_policy.clone(),
         resume,
         concurrency,
+        retry_policy.clone(),
         call_sender,
     )
     .await?;
@@ -384,9 +399,9 @@ async fn download(
             BlobKind::StableMemory,
             metadata.stable_memory_size as usize,
             dir.join("stable_memory.bin"),
-            retry_policy.clone(),
             resume,
             concurrency,
+            retry_policy.clone(),
             call_sender,
         )
         .await?;
@@ -462,6 +477,7 @@ async fn upload(
     replace: Option<SnapshotId>,
     dir: PathBuf,
     resume: Option<SnapshotId>,
+    concurrency: usize,
     call_sender: &CallSender,
 ) -> DfxResult {
     let canister_id = canister
@@ -528,6 +544,7 @@ async fn upload(
             BlobKind::WasmModule,
             dir.join("wasm_module.bin"),
             &mut upload_progress,
+            concurrency,
             retry_policy.clone(),
             call_sender,
         )
@@ -546,6 +563,7 @@ async fn upload(
             BlobKind::MainMemory,
             dir.join("wasm_memory.bin"),
             &mut upload_progress,
+            concurrency,
             retry_policy.clone(),
             call_sender,
         )
@@ -565,6 +583,7 @@ async fn upload(
                 BlobKind::StableMemory,
                 dir.join("stable_memory.bin"),
                 &mut upload_progress,
+                concurrency,
                 retry_policy.clone(),
                 call_sender,
             )
@@ -717,7 +736,7 @@ impl SnapshotUploadProgress {
     }
 }
 
-const MAX_CHUNK_SIZE: usize = 2_000_000;
+const MAX_CHUNK_SIZE: usize = 200_000;
 
 async fn store_data(
     env: &dyn Environment,
@@ -727,9 +746,9 @@ async fn store_data(
     blob_kind: BlobKind,
     length: usize,
     file_path: PathBuf,
-    retry_policy: ExponentialBackoff,
     resume: bool,
     concurrency: usize,
+    retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
     let message = match blob_kind {
@@ -815,8 +834,6 @@ async fn write_blob(
 
     while next_offset < length {
         // Schedule next chunk to download.
-        // Also check the length of ready_chunks to determine if we should schedule next chunk.
-        // For example, if the first trunk is blocked, continue to schedule trunks will increase the memory usage.
         while next_request_offset < length
             && in_progress.len() < concurrency
             && ready_chunks.len() < concurrency * 2
@@ -898,6 +915,7 @@ async fn upload_data(
     blob_kind: BlobKind,
     file_path: PathBuf,
     upload_progress: &mut SnapshotUploadProgress,
+    concurrency: usize,
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -917,6 +935,7 @@ async fn upload_data(
         blob_kind,
         &file_path,
         progress,
+        concurrency,
         retry_policy.clone(),
         call_sender,
     )
@@ -941,6 +960,7 @@ async fn upload_blob(
     blob_kind: BlobKind,
     file_path: &PathBuf,
     upload_progress: &mut usize,
+    concurrency: usize,
     retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -948,66 +968,103 @@ async fn upload_blob(
         .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
         .len() as usize;
 
-    let mut offset = *upload_progress;
-    if offset > 0 && offset < length {
+    let offest = *upload_progress;
+    if offest >= length {
+        return Ok(());
+    }
+    if offest > 0 {
         debug!(
             env.get_logger(),
             "Resuming uploading '{}' from offset {}",
             file_path.display(),
-            offset
+            offest
         );
     }
 
     let pb = get_progress_bar(env, length as u64);
-    pb.set_position(offset as u64);
+    pb.set_position(offest as u64);
 
+    // Open the file once and read the needed chunks sequentially while overlapping network uploads.
     let mut file = tokio::fs::File::open(file_path)
         .await
         .with_context(|| format!("Failed to open file '{}' for reading", file_path.display()))?;
-    file.seek(SeekFrom::Start(offset as u64)).await?;
 
-    while offset < length {
-        let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
-        let kind = match blob_kind {
-            BlobKind::WasmModule => SnapshotDataOffset::WasmModule {
-                offset: offset as u64,
-            },
-            BlobKind::MainMemory => SnapshotDataOffset::WasmMemory {
-                offset: offset as u64,
-            },
-            BlobKind::StableMemory => SnapshotDataOffset::StableMemory {
-                offset: offset as u64,
-            },
-        };
+    let mut next_offset = offest;
+    let mut next_request_offset = offest;
+    let mut in_progress: FuturesUnordered<_> = FuturesUnordered::new();
+    let mut completed: BTreeMap<usize, usize> = BTreeMap::new();
 
-        let mut chunk = vec![0u8; chunk_size];
-        file.read_exact(&mut chunk).await?;
+    while next_offset < length {
+        // Schedule next chunk to upload.
+        while next_request_offset < length
+            && in_progress.len() < concurrency
+            && completed.len() < concurrency * 2
+        {
+            let chunk_size = std::cmp::min(length - next_request_offset, MAX_CHUNK_SIZE);
+            let kind = match blob_kind {
+                BlobKind::WasmModule => SnapshotDataOffset::WasmModule {
+                    offset: next_request_offset as u64,
+                },
+                BlobKind::MainMemory => SnapshotDataOffset::WasmMemory {
+                    offset: next_request_offset as u64,
+                },
+                BlobKind::StableMemory => SnapshotDataOffset::StableMemory {
+                    offset: next_request_offset as u64,
+                },
+            };
 
-        let data_args = UploadCanisterSnapshotDataArgs {
-            canister_id,
-            snapshot_id: snapshot.0.clone(),
-            kind,
-            chunk,
-        };
-        retry(retry_policy.clone(), || async {
-            match upload_canister_snapshot_data(env, canister_id, &data_args, call_sender).await {
-                Ok(_) => Ok(()),
-                Err(error) if is_retryable(&error) => {
-                    error!(
-                        env.get_logger(),
-                        "Failed to upload {:?} to snapshot {snapshot} in canister {canister}.",
-                        blob_kind,
-                    );
-                    Err(backoff::Error::transient(anyhow!(error)))
-                }
-                Err(error) => Err(backoff::Error::permanent(anyhow!(error))),
-            }
-        })
-        .await?;
-        offset += chunk_size;
-        pb.set_position(offset as u64);
+            // Read the bytes for this chunk.
+            let mut chunk = vec![0u8; chunk_size];
+            file.seek(SeekFrom::Start(next_request_offset as u64))
+                .await?;
+            file.read_exact(&mut chunk).await?;
 
-        *upload_progress = offset;
+            let data_args = UploadCanisterSnapshotDataArgs {
+                canister_id,
+                snapshot_id: snapshot.0.clone(),
+                kind,
+                chunk,
+            };
+            let retry_policy = retry_policy.clone();
+
+            // Start upload for this chunk.
+            in_progress.push(async move {
+                retry(retry_policy, || async {
+                    match upload_canister_snapshot_data(env, canister_id, &data_args, call_sender)
+                        .await
+                    {
+                        Ok(()) => Ok(()),
+                        Err(error) if is_retryable(&error) => {
+                            error!(
+                                env.get_logger(),
+                                "Failed to upload {:?} to snapshot {snapshot} in canister {canister}.",
+                                blob_kind,
+                            );
+                            Err(backoff::Error::transient(anyhow!(error)))
+                        }
+                        Err(error) => Err(backoff::Error::permanent(anyhow!(error))),
+                    }
+                })
+                .await?;
+
+                Ok::<(usize, usize), anyhow::Error>((next_request_offset, chunk_size))
+            });
+
+            next_request_offset += chunk_size;
+        }
+
+        // Collect finished uploads without awaiting when none are ready.
+        while let Some(Some(res)) = in_progress.next().now_or_never() {
+            let (uploaded_offset, uploaded_size) = res?;
+            completed.insert(uploaded_offset, uploaded_size);
+        }
+
+        // Advance contiguous progress and update the progress bar.
+        while let Some(size) = completed.remove(&next_offset) {
+            next_offset += size;
+            pb.set_position(next_offset as u64);
+            *upload_progress = next_offset;
+        }
     }
 
     pb.finish();
