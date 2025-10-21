@@ -680,7 +680,7 @@ fn write_upload_progress_file_on_error(
 }
 
 fn check_dir(dir: &PathBuf) -> DfxResult {
-    // Check if the directory is empty.
+    // Check if the directory is empty if not resuming.
     let mut entries = std::fs::read_dir(dir)
         .with_context(|| format!("Failed to read directory '{}'", dir.display()))?;
     if entries.next().is_some() {
@@ -759,7 +759,7 @@ async fn store_data(
 
     debug!(env.get_logger(), "Downloading {message}");
 
-    write_blob(
+    download_blob_to_file(
         env,
         canister,
         canister_id,
@@ -786,7 +786,7 @@ async fn store_data(
     Ok(())
 }
 
-async fn write_blob(
+async fn download_blob_to_file(
     env: &dyn Environment,
     canister: &str,
     canister_id: Principal,
@@ -887,7 +887,7 @@ async fn write_blob(
             next_request_offset += chunk_size;
         }
 
-        // Process completed chunks.
+        // Process completed chunks if any are ready.
         while let Some(Some(res)) = in_progress.next().now_or_never() {
             let (chunk_offset, chunk) = res?;
             ready_chunks.insert(chunk_offset, chunk);
@@ -900,6 +900,19 @@ async fn write_blob(
             pb.set_position(next_offset as u64);
         }
     }
+
+    // Wait for any remaining downloads to complete.
+    while let Some(res) = in_progress.next().await {
+        let (chunk_offset, chunk) = res?;
+        ready_chunks.insert(chunk_offset, chunk);
+
+        while let Some(chunk) = ready_chunks.remove(&next_offset) {
+            file.write_all(&chunk).await?;
+            next_offset += chunk.len();
+            pb.set_position(next_offset as u64);
+        }
+    }
+
     file.flush().await?;
 
     pb.finish();
@@ -968,29 +981,30 @@ async fn upload_blob(
         .with_context(|| format!("Failed to get length of file '{}'", file_path.display()))?
         .len() as usize;
 
-    let offest = *upload_progress;
-    if offest >= length {
+    let offset = *upload_progress;
+    if offset >= length {
         return Ok(());
     }
-    if offest > 0 {
+    if offset > 0 {
         debug!(
             env.get_logger(),
             "Resuming uploading '{}' from offset {}",
             file_path.display(),
-            offest
+            offset
         );
     }
 
     let pb = get_progress_bar(env, length as u64);
-    pb.set_position(offest as u64);
+    pb.set_position(offset as u64);
 
-    // Open the file once and read the needed chunks sequentially while overlapping network uploads.
+    // Open the file once and seek to the offset.
     let mut file = tokio::fs::File::open(file_path)
         .await
         .with_context(|| format!("Failed to open file '{}' for reading", file_path.display()))?;
+    file.seek(SeekFrom::Start(offset as u64)).await?;
 
-    let mut next_offset = offest;
-    let mut next_request_offset = offest;
+    let mut next_offset = offset;
+    let mut next_request_offset = offset;
     let mut in_progress: FuturesUnordered<_> = FuturesUnordered::new();
     let mut completed: BTreeMap<usize, usize> = BTreeMap::new();
 
@@ -1015,8 +1029,6 @@ async fn upload_blob(
 
             // Read the bytes for this chunk.
             let mut chunk = vec![0u8; chunk_size];
-            file.seek(SeekFrom::Start(next_request_offset as u64))
-                .await?;
             file.read_exact(&mut chunk).await?;
 
             let data_args = UploadCanisterSnapshotDataArgs {
@@ -1053,13 +1065,25 @@ async fn upload_blob(
             next_request_offset += chunk_size;
         }
 
-        // Collect finished uploads without awaiting when none are ready.
+        // Process completed uploads if any are ready.
         while let Some(Some(res)) = in_progress.next().now_or_never() {
             let (uploaded_offset, uploaded_size) = res?;
             completed.insert(uploaded_offset, uploaded_size);
         }
 
-        // Advance contiguous progress and update the progress bar.
+        // Advance and update the progress bar.
+        while let Some(size) = completed.remove(&next_offset) {
+            next_offset += size;
+            pb.set_position(next_offset as u64);
+            *upload_progress = next_offset;
+        }
+    }
+
+    // Wait for any remaining uploads to complete.
+    while let Some(res) = in_progress.next().await {
+        let (uploaded_offset, uploaded_size) = res?;
+        completed.insert(uploaded_offset, uploaded_size);
+
         while let Some(size) = completed.remove(&next_offset) {
             next_offset += size;
             pb.set_position(next_offset as u64);
