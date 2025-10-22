@@ -6,10 +6,6 @@ set -euo pipefail
 : "${TOXIPROXY_HOST:=127.0.0.1}"
 : "${TOXIPROXY_PORT:=8474}"
 
-_toxiproxy_cli() {
-  toxiproxy-cli -h "$TOXIPROXY_HOST" -p "$TOXIPROXY_PORT" "$@"
-}
-
 # Check if toxiproxy server is running
 toxiproxy_is_running() {
   curl --silent --fail "http://${TOXIPROXY_HOST}:${TOXIPROXY_PORT}/version" >/dev/null 2>&1
@@ -51,34 +47,40 @@ toxiproxy_stop() {
 # Create or replace a proxy
 toxiproxy_create_proxy() {
   local name=$1 listen=$2 upstream=$3
-  _toxiproxy_cli delete "$name" >/dev/null 2>&1 || true
-  _toxiproxy_cli create "$name" -l "$listen" -u "$upstream" >/dev/null
+
+  # Ensure toxiproxy-cli is available
+  if ! command -v toxiproxy-cli >/dev/null 2>&1; then
+    echo "toxiproxy-cli not found in PATH" >&2
+    return 1
+  fi
+
+  toxiproxy-cli create "$name" --listen "$listen" --upstream "$upstream" >/dev/null 2>&1
 }
 
 # Delete a proxy
 toxiproxy_delete_proxy() {
   local name=$1
-  _toxiproxy_cli delete "$name" >/dev/null 2>&1 || true
+  toxiproxy-cli delete "$name" >/dev/null 2>&1 || true
 }
 
 # Set a proxy to enabled or disabled
 toxiproxy_set_enabled() {
   local name=$1 enabled=$2
   if [ "$enabled" = "true" ]; then
-    _toxiproxy_cli enable "$name" >/dev/null
+    toxiproxy-cli enable "$name" >/dev/null
   else
-    _toxiproxy_cli disable "$name" >/dev/null
+    toxiproxy-cli disable "$name" >/dev/null
   fi
 }
 
 # Add latency toxic (downstream)
 toxiproxy_add_latency() {
   local name=$1 latency=$2 jitter=${3:-0}
-  _toxiproxy_cli toxic add "$name" -t latency -a latency="$latency" -a jitter="$jitter" -d downstream  >/dev/null
+  toxiproxy-cli toxic add "$name" -t latency -a latency="$latency" -a jitter="$jitter" -d >/dev/null
 }
 
 # Add timeout toxic (downstream)
 toxiproxy_add_timeout() {
   local name=$1 timeout_ms=$2
-  _toxiproxy_cli toxic add "$name" -t timeout -a timeout="$timeout_ms" -d downstream >/dev/null
+  toxiproxy-cli toxic add "$name" -t timeout -a timeout="$timeout_ms" -d >/dev/null
 }

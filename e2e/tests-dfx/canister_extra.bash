@@ -107,7 +107,7 @@ teardown() {
 }
 
 @test "canister snapshots download and upload via toxiproxy with high latency" {
-    skip "Still failed when running in the e2e tests, also need to update CI to install toxiproxy."
+    skip "Need to update CI to install toxiproxy."
 
     # Start the dfx server on a random port.
     dfx_port=$(get_ephemeral_port)
@@ -128,7 +128,6 @@ teardown() {
     assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:4843"
     assert_match 'Snapshot ID: ([0-9a-f]+)'
     snapshot=${BASH_REMATCH[1]}
-    echo "snapshot: $snapshot"
 
     # Add latency to the proxy.
     toxiproxy_add_latency dfx_proxy 1500 300
