@@ -54,6 +54,7 @@ toxiproxy_create_proxy() {
     return 1
   fi
 
+  toxiproxy-cli delete "$name" >/dev/null 2>&1
   toxiproxy-cli create "$name" --listen "$listen" --upstream "$upstream" >/dev/null 2>&1
 }
 
@@ -64,13 +65,9 @@ toxiproxy_delete_proxy() {
 }
 
 # Set a proxy to enabled or disabled
-toxiproxy_set_enabled() {
-  local name=$1 enabled=$2
-  if [ "$enabled" = "true" ]; then
-    toxiproxy-cli enable "$name" >/dev/null
-  else
-    toxiproxy-cli disable "$name" >/dev/null
-  fi
+toxiproxy_toggle_proxy() {
+  local name=$1
+  toxiproxy-cli toggle "$name" >/dev/null 2>&1
 }
 
 # Add latency toxic (downstream)

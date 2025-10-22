@@ -113,17 +113,18 @@ teardown() {
 
     # Start toxiproxy and create a proxy.
     toxiproxy_start
-    toxiproxy_create_proxy dfx_proxy "127.0.0.1:4843" "127.0.0.1:$dfx_port"
+    proxy_port=$(get_ephemeral_port)
+    toxiproxy_create_proxy dfx_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port"
 
     install_asset counter
-    dfx deploy --no-wallet --network "http://127.0.0.1:4843"
+    dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
 
-    assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:4843"
+    assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
     assert_contains '(1 : nat)'
 
     # Create a snapshot to download.
-    dfx canister stop hello_backend --network "http://127.0.0.1:4843"
-    assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:4843"
+    dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_match 'Snapshot ID: ([0-9a-f]+)'
     snapshot=${BASH_REMATCH[1]}
 
@@ -133,11 +134,116 @@ teardown() {
     # Download through the proxy with latency.
     OUTPUT_DIR="output"
     mkdir -p "$OUTPUT_DIR"
-    assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network http://127.0.0.1:4843
+    assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
     assert_contains "saved to '$OUTPUT_DIR'"
 
-    assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:4843"
+    # Start the canister again.
+    dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
+    assert_contains '(2 : nat)'
+
+    # Upload the snapshot to create a new snapshot.
+    assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
     assert_match 'Snapshot ID: ([0-9a-f]+)'
+    snapshot_1=${BASH_REMATCH[1]}
+
+    # Stop the canister and load the new snapshot.
+    dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister snapshot load hello_backend "$snapshot_1" --network "http://127.0.0.1:$proxy_port"
+
+    # Start the canister again and verify the loaded snapshot.
+    dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister call hello_backend read --network "http://127.0.0.1:$proxy_port"
+    assert_contains '(1 : nat)'
+
+    toxiproxy_stop || true
+}
+
+@test "canister snapshots download and upload via toxiproxy with network drop" {
+    # Start the dfx server on a random port.
+    dfx_port=$(get_ephemeral_port)
+    dfx_start --host "127.0.0.1:$dfx_port"
+
+    # Start toxiproxy and create a proxy.
+    toxiproxy_start
+    proxy_port=$(get_ephemeral_port)
+    toxiproxy_create_proxy dfx_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port"
+
+    install_asset counter
+    dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
+
+    assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
+    assert_contains '(1 : nat)'
+
+    # Create a snapshot to download.
+    dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    snapshot=${BASH_REMATCH[1]}
+
+    (
+        # Toxiproxy doesn't support disabling the proxy with certain amount of data being transferred.
+        # So we roughly wait for 0.5 seconds to disable the proxy and fail the snapshot download.
+        sleep 0.5
+        toxiproxy_toggle_proxy dfx_proxy || true
+    ) &
+
+    # Download through the proxy.
+    OUTPUT_DIR="output"
+    mkdir -p "$OUTPUT_DIR"
+    assert_command_fail timeout 10s dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
+
+    # For debugging.
+    echo "OUTPUT_DIR contents:" >&2
+    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
+
+    # Enable the proxy again.
+    toxiproxy_toggle_proxy dfx_proxy || true
+
+    # Resume the download through the proxy.
+    assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
+    assert_contains "saved to '$OUTPUT_DIR'"
+
+    # For debugging.
+    echo "OUTPUT_DIR contents:" >&2
+    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
+
+    # Start the canister again.
+    dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
+    assert_contains '(2 : nat)'
+
+    (
+        # Toxiproxy doesn't support disabling the proxy with certain amount of data being transferred.
+        # So we roughly wait for 0.5 seconds to disable the proxy and fail the snapshot upload.
+        sleep 0.5
+        toxiproxy_toggle_proxy dfx_proxy || true
+    ) &
+
+    # Upload the snapshot to create a new snapshot.
+    assert_command_fail timeout 10s dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
+    assert_match 'snapshot ([0-9a-f]+)'
+    snapshot_1=${BASH_REMATCH[1]}
+
+    # For debugging.
+    echo "OUTPUT_DIR contents:" >&2
+    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
+
+    # Enable the proxy again.
+    toxiproxy_toggle_proxy dfx_proxy || true
+
+    # Resume the upload through the proxy.
+    assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" -r "$snapshot_1" --network "http://127.0.0.1:$proxy_port"
+    assert_contains "$snapshot_1"
+
+    # Stop the canister and load the new snapshot.
+    dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister snapshot load hello_backend "$snapshot_1" --network "http://127.0.0.1:$proxy_port"
+
+    # Start the canister again and verify the loaded snapshot.
+    dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx canister call hello_backend read --network "http://127.0.0.1:$proxy_port"
+    assert_contains '(1 : nat)'
 
     toxiproxy_stop || true
 }

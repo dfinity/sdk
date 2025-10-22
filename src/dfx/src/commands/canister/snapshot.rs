@@ -522,6 +522,10 @@ async fn upload(
                 .into();
         upload_progress.snapshot_id = snapshot_id.to_string();
         upload_progress.metadata_uploaded = true;
+        save_json_file(
+            &dir.join(format!("{}.json", upload_progress.snapshot_id)),
+            &upload_progress,
+        )?;
 
         debug!(
             env.get_logger(),
