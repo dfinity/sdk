@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load ../utils/_
+load ../utils/toxiproxy
 
 setup() {
     standard_setup
@@ -103,6 +104,45 @@ teardown() {
     dfx canister start hello_backend
     assert_command dfx canister call hello_backend read
     assert_contains '(1 : nat)'
+}
+
+@test "canister snapshots download and upload via toxiproxy with high latency" {
+    skip "Still failed when running in the e2e tests, also need to update CI to install toxiproxy."
+
+    # Start the dfx server on a random port.
+    dfx_port=$(get_ephemeral_port)
+    dfx_start --host "127.0.0.1:$dfx_port"
+
+    # Start toxiproxy and create a proxy.
+    toxiproxy_start
+    toxiproxy_create_proxy dfx_proxy "127.0.0.1:4843" "127.0.0.1:$dfx_port"
+
+    install_asset counter
+    dfx deploy --no-wallet --network "http://127.0.0.1:4843"
+
+    assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:4843"
+    assert_contains '(1 : nat)'
+
+    # Create a snapshot to download.
+    dfx canister stop hello_backend --network "http://127.0.0.1:4843"
+    assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:4843"
+    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    snapshot=${BASH_REMATCH[1]}
+    echo "snapshot: $snapshot"
+
+    # Add latency to the proxy.
+    toxiproxy_add_latency dfx_proxy 1500 300
+
+    # Download through the proxy with latency.
+    OUTPUT_DIR="output"
+    mkdir -p "$OUTPUT_DIR"
+    assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network http://127.0.0.1:4843
+    assert_contains "saved to '$OUTPUT_DIR'"
+
+    assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:4843"
+    assert_match 'Snapshot ID: ([0-9a-f]+)'
+
+    toxiproxy_stop || true
 }
 
 @test "can query a website" {
