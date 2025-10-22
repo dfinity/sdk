@@ -114,7 +114,7 @@ teardown() {
     # Start toxiproxy and create a proxy.
     toxiproxy_start
     proxy_port=$(get_ephemeral_port)
-    toxiproxy_create_proxy dfx_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port"
+    toxiproxy-cli create dfx_proxy --listen "127.0.0.1:$proxy_port" --upstream "127.0.0.1:$dfx_port"
 
     install_asset counter
     dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
