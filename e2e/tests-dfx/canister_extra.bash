@@ -109,12 +109,14 @@ teardown() {
 @test "canister snapshots download and upload via toxiproxy with high latency" {
     # Start the dfx server on a random port.
     dfx_port=$(get_ephemeral_port)
+    echo "dfx_port: $dfx_port"
     dfx_start --host "127.0.0.1:$dfx_port"
 
     # Start toxiproxy and create a proxy.
     toxiproxy_start
     proxy_port=$(get_ephemeral_port)
-    toxiproxy-cli create dfx_proxy --listen "127.0.0.1:$proxy_port" --upstream "127.0.0.1:$dfx_port"
+    echo "proxy_port: $proxy_port"
+    toxiproxy-cli create --listen "127.0.0.1:$proxy_port" --upstream "127.0.0.1:$dfx_port" dfx_proxy
 
     install_asset counter
     dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
