@@ -107,8 +107,6 @@ teardown() {
 }
 
 @test "canister snapshots download and upload via toxiproxy with high latency" {
-    skip "Need to update CI to install toxiproxy."
-
     # Start the dfx server on a random port.
     dfx_port=$(get_ephemeral_port)
     dfx_start --host "127.0.0.1:$dfx_port"
