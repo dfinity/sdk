@@ -46,7 +46,7 @@ toxiproxy_stop() {
 
 # Create or replace a proxy
 toxiproxy_create_proxy() {
-  local name=$1 listen=$2 upstream=$3
+  local listen=$1 upstream=$2 name=$3
 
   # Ensure toxiproxy-cli is available
   if ! command -v toxiproxy-cli >/dev/null 2>&1; then
@@ -54,8 +54,8 @@ toxiproxy_create_proxy() {
     return 1
   fi
 
-  toxiproxy-cli delete "$name" >/dev/null 2>&1
-  toxiproxy-cli create "$name" --listen "$listen" --upstream "$upstream" >/dev/null 2>&1
+  toxiproxy-cli delete "$name" >/dev/null 2>&1 || true
+  toxiproxy-cli create --listen "$listen" --upstream "$upstream" "$name" >/dev/null 2>&1
 }
 
 # Delete a proxy
@@ -72,12 +72,6 @@ toxiproxy_toggle_proxy() {
 
 # Add latency toxic (downstream)
 toxiproxy_add_latency() {
-  local name=$1 latency=$2 jitter=${3:-0}
-  toxiproxy-cli toxic add "$name" -t latency -a latency="$latency" -a jitter="$jitter" -d >/dev/null
-}
-
-# Add timeout toxic (downstream)
-toxiproxy_add_timeout() {
-  local name=$1 timeout_ms=$2
-  toxiproxy-cli toxic add "$name" -t timeout -a timeout="$timeout_ms" -d >/dev/null
+  local latency=$1 jitter=$2 name=$3
+  toxiproxy-cli toxic add -t latency -a latency="$latency" -a jitter="$jitter" -d "$name" >/dev/null
 }

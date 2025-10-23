@@ -6,10 +6,12 @@ load ../utils/toxiproxy
 setup() {
     standard_setup
     dfx_new hello
+    toxiproxy_start
 }
 
 teardown() {
     dfx_stop
+    toxiproxy_stop || true
     standard_teardown
 }
 
@@ -113,10 +115,9 @@ teardown() {
     dfx_start --host "127.0.0.1:$dfx_port"
 
     # Start toxiproxy and create a proxy.
-    toxiproxy_start
     proxy_port=$(get_ephemeral_port)
     echo "proxy_port: $proxy_port"
-    toxiproxy-cli create --listen "127.0.0.1:$proxy_port" --upstream "127.0.0.1:$dfx_port" dfx_proxy
+    toxiproxy_create_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port" proxy_high_latency
 
     install_asset counter
     dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
@@ -131,7 +132,7 @@ teardown() {
     snapshot=${BASH_REMATCH[1]}
 
     # Add latency to the proxy.
-    toxiproxy_add_latency dfx_proxy 1500 300
+    toxiproxy_add_latency 1500 300 proxy_high_latency
 
     # Download through the proxy with latency.
     OUTPUT_DIR="output"
@@ -158,7 +159,7 @@ teardown() {
     assert_command dfx canister call hello_backend read --network "http://127.0.0.1:$proxy_port"
     assert_contains '(1 : nat)'
 
-    toxiproxy_stop || true
+    toxiproxy_delete_proxy proxy_high_latency
 }
 
 @test "canister snapshots download and upload via toxiproxy with network drop" {
@@ -167,9 +168,8 @@ teardown() {
     dfx_start --host "127.0.0.1:$dfx_port"
 
     # Start toxiproxy and create a proxy.
-    toxiproxy_start
     proxy_port=$(get_ephemeral_port)
-    toxiproxy_create_proxy dfx_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port"
+    toxiproxy_create_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port" proxy_network_drop
 
     install_asset counter
     dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
@@ -187,7 +187,7 @@ teardown() {
         # Toxiproxy doesn't support disabling the proxy with certain amount of data being transferred.
         # So we roughly wait for 0.5 seconds to disable the proxy and fail the snapshot download.
         sleep 0.5
-        toxiproxy_toggle_proxy dfx_proxy || true
+        toxiproxy_toggle_proxy proxy_network_drop
     ) &
 
     # Download through the proxy.
@@ -200,7 +200,7 @@ teardown() {
     find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
 
     # Enable the proxy again.
-    toxiproxy_toggle_proxy dfx_proxy || true
+    toxiproxy_toggle_proxy proxy_network_drop
 
     # Resume the download through the proxy.
     assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
@@ -219,7 +219,7 @@ teardown() {
         # Toxiproxy doesn't support disabling the proxy with certain amount of data being transferred.
         # So we roughly wait for 0.5 seconds to disable the proxy and fail the snapshot upload.
         sleep 0.5
-        toxiproxy_toggle_proxy dfx_proxy || true
+        toxiproxy_toggle_proxy proxy_network_drop
     ) &
 
     # Upload the snapshot to create a new snapshot.
@@ -232,7 +232,7 @@ teardown() {
     find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
 
     # Enable the proxy again.
-    toxiproxy_toggle_proxy dfx_proxy || true
+    toxiproxy_toggle_proxy proxy_network_drop
 
     # Resume the upload through the proxy.
     assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" -r "$snapshot_1" --network "http://127.0.0.1:$proxy_port"
@@ -247,7 +247,7 @@ teardown() {
     assert_command dfx canister call hello_backend read --network "http://127.0.0.1:$proxy_port"
     assert_contains '(1 : nat)'
 
-    toxiproxy_stop || true
+    toxiproxy_delete_proxy proxy_network_drop
 }
 
 @test "can query a website" {
