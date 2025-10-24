@@ -7,7 +7,7 @@ import os
 SELECTED_TESTS = ["dfx/bitcoin", "dfx/canister_http_adapter", "dfx/start"]
 
 # Run these tests in serial
-SERIAL_TESTS = ["dfx/start", "dfx/bitcoin", "dfx/cycles-ledger", "dfx/ledger", "dfx/serial_misc"]
+SERIAL_TESTS = ["dfx/start", "dfx/bitcoin", "dfx/cycles-ledger", "dfx/ledger", "dfx/serial_misc", "dfx/canister_extra"]
 
 def test_scripts(prefix):
     all_files = os.listdir(f"e2e/tests-{prefix}")

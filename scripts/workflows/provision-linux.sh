@@ -54,6 +54,22 @@ fi
 if [ "$E2E_TEST" = "tests-dfx/info.bash" ]; then
     sudo apt-get install --yes libarchive-zip-perl
 fi
+if [ "$E2E_TEST" = "tests-dfx/canister_extra.bash" ]; then
+    VERSION=v2.10.0
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64|amd64)  ARCH_DL="amd64" ;;
+        arm64|aarch64) ARCH_DL="arm64" ;;
+        *) echo "Unsupported ARCH: $ARCH" >&2; exit 1 ;;
+    esac
+
+    BASE_URL="https://github.com/Shopify/toxiproxy/releases/download/$VERSION"
+    curl -fsSL "$BASE_URL/toxiproxy-server-linux-${ARCH_DL}" -o toxiproxy-server
+    curl -fsSL "$BASE_URL/toxiproxy-cli-linux-${ARCH_DL}" -o toxiproxy-cli
+    chmod +x toxiproxy-server toxiproxy-cli
+    sudo mv toxiproxy-server /usr/local/bin/
+    sudo mv toxiproxy-cli /usr/local/bin/
+fi
 
 # Set environment variables.
 echo "$HOME/bin" >> "$GITHUB_PATH"
