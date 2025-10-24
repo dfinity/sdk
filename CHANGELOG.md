@@ -49,9 +49,12 @@ Updated candid_parser to 0.2.2.
 
 ### Replica
 
-Updated replica to elected commit 45657852c1eca6728ff313808db29b47c862ad13.
+Updated replica to elected commit 575bcd0954e9d00066fd465223b755bda645edd6.
 This incorporates the following executed proposals:
 
+- [139002](https://dashboard.internetcomputer.org/proposal/139002)
+- [138996](https://dashboard.internetcomputer.org/proposal/138996)
+- [138908](https://dashboard.internetcomputer.org/proposal/138908)
 - [138814](https://dashboard.internetcomputer.org/proposal/138814)
 - [138708](https://dashboard.internetcomputer.org/proposal/138708)
 - [138597](https://dashboard.internetcomputer.org/proposal/138597)

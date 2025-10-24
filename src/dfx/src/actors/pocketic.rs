@@ -395,6 +395,7 @@ async fn initialize_pocketic(
             sns: Some(IcpFeaturesConfig::default()),
             ii: Some(IcpFeaturesConfig::default()),
             nns_ui: Some(IcpFeaturesConfig::default()),
+            bitcoin: None,
         })
     } else {
         None
