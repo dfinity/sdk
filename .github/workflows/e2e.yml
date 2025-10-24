@@ -172,32 +172,6 @@ jobs:
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
           export
-      - name: Install toxiproxy if needed
-        run: |
-          if [ "$E2E_TEST" = "tests-dfx/canister_extra.bash" ]; then
-            VERSION=v2.10.0
-            OS=$(uname -s)
-            ARCH=$(uname -m)
-
-            case "$OS" in
-              Linux)   PLATFORM="linux" ;;
-              Darwin)  PLATFORM="darwin" ;;
-              *) echo "Unsupported OS: $OS" >&2; exit 1 ;;
-            esac
-
-            case "$ARCH" in
-              x86_64|amd64)  ARCH_DL="amd64" ;;
-              arm64|aarch64) ARCH_DL="arm64" ;;
-              *) echo "Unsupported ARCH: $ARCH" >&2; exit 1 ;;
-            esac
-
-            BASE_URL="https://github.com/Shopify/toxiproxy/releases/download/$VERSION"
-            curl -fsSL "$BASE_URL/toxiproxy-server-${PLATFORM}-${ARCH_DL}" -o toxiproxy-server
-            curl -fsSL "$BASE_URL/toxiproxy-cli-${PLATFORM}-${ARCH_DL}" -o toxiproxy-cli
-            chmod +x toxiproxy-server toxiproxy-cli
-            sudo mv toxiproxy-server /usr/local/bin/
-            sudo mv toxiproxy-cli /usr/local/bin/
-          fi
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
       - name: Cache mops files
