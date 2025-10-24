@@ -111,12 +111,10 @@ teardown() {
 @test "canister snapshots download and upload via toxiproxy with high latency" {
     # Start the dfx server on a random port.
     dfx_port=$(get_ephemeral_port)
-    echo "dfx_port: $dfx_port"
     dfx_start --host "127.0.0.1:$dfx_port"
 
     # Start toxiproxy and create a proxy.
     proxy_port=$(get_ephemeral_port)
-    echo "proxy_port: $proxy_port"
     toxiproxy_create_proxy "127.0.0.1:$proxy_port" "127.0.0.1:$dfx_port" proxy_high_latency
 
     install_asset counter
@@ -190,14 +188,10 @@ teardown() {
         toxiproxy_toggle_proxy proxy_network_drop
     ) &
 
-    # Download through the proxy.
+    # Download through the proxy should fail.
     OUTPUT_DIR="output"
     mkdir -p "$OUTPUT_DIR"
     assert_command_fail timeout 10s dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
-
-    # For debugging.
-    echo "OUTPUT_DIR contents:" >&2
-    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
 
     # Enable the proxy again.
     toxiproxy_toggle_proxy proxy_network_drop
@@ -205,10 +199,6 @@ teardown() {
     # Resume the download through the proxy.
     assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
     assert_contains "saved to '$OUTPUT_DIR'"
-
-    # For debugging.
-    echo "OUTPUT_DIR contents:" >&2
-    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
 
     # Start the canister again.
     dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
@@ -222,14 +212,22 @@ teardown() {
         toxiproxy_toggle_proxy proxy_network_drop
     ) &
 
-    # Upload the snapshot to create a new snapshot.
+    # Upload the snapshot should fail.
     assert_command_fail timeout 10s dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
-    assert_match 'snapshot ([0-9a-f]+)'
-    snapshot_1=${BASH_REMATCH[1]}
-
-    # For debugging.
-    echo "OUTPUT_DIR contents:" >&2
-    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
+    
+    # Loop to find a .json filename in OUTPUT_DIR that matches ^[0-9a-f]+\.json$.
+    snapshot_1=""
+    while IFS= read -r json_file; do
+        [ -z "$json_file" ] && continue
+        if [[ "$json_file" =~ ^[0-9a-f]+\.json$ ]]; then
+            snapshot_1="${json_file%.json}"
+            break
+        fi
+    done < <(find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.json' -printf '%f\n')
+    if [ -z "$snapshot_1" ]; then
+        echo "No matching .json filename ([0-9a-f]+.json) found in $OUTPUT_DIR" >&2
+        false
+    fi
 
     # Enable the proxy again.
     toxiproxy_toggle_proxy proxy_network_drop

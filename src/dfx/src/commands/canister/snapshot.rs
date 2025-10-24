@@ -539,7 +539,7 @@ async fn upload(
     let retry_policy = ExponentialBackoff::default();
 
     // Upload Wasm module.
-    write_upload_progress_file_on_error(
+    write_upload_progress_file(
         upload_data(
             env,
             &canister,
@@ -558,7 +558,7 @@ async fn upload(
     )?;
 
     // Upload Wasm memory.
-    write_upload_progress_file_on_error(
+    write_upload_progress_file(
         upload_data(
             env,
             &canister,
@@ -578,7 +578,7 @@ async fn upload(
 
     // Upload stable memory.
     if metadata.stable_memory_size > 0 {
-        write_upload_progress_file_on_error(
+        write_upload_progress_file(
             upload_data(
                 env,
                 &canister,
@@ -616,7 +616,7 @@ async fn upload(
                 format!("Failed to read Wasm chunk from '{}'", chunk_file.display())
             })?;
 
-            write_upload_progress_file_on_error(
+            write_upload_progress_file(
                 retry(retry_policy.clone(), || async {
                     let data_args = UploadCanisterSnapshotDataArgs {
                         canister_id,
@@ -660,26 +660,18 @@ async fn upload(
         "Uploaded a snapshot of canister {canister}. Snapshot ID: {}", snapshot_id
     );
 
-    // Save the upload progress.
-    save_json_file(
-        &dir.join(format!("{}.json", upload_progress.snapshot_id)),
-        &upload_progress,
-    )?;
-
     Ok(())
 }
 
-fn write_upload_progress_file_on_error(
+fn write_upload_progress_file(
     result: DfxResult,
     upload_progress: &SnapshotUploadProgress,
     dir: &Path,
 ) -> DfxResult {
-    if result.is_err() {
-        save_json_file(
-            &dir.join(format!("{}.json", upload_progress.snapshot_id)),
-            &upload_progress,
-        )?;
-    }
+    save_json_file(
+        &dir.join(format!("{}.json", upload_progress.snapshot_id)),
+        &upload_progress,
+    )?;
     result
 }
 
