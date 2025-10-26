@@ -181,20 +181,20 @@ teardown() {
     assert_match 'Snapshot ID: ([0-9a-f]+)'
     snapshot=${BASH_REMATCH[1]}
 
-    (
-        # Toxiproxy doesn't support disabling the proxy with certain amount of data being transferred.
-        # So we roughly wait for 0.5 seconds to disable the proxy and fail the snapshot download.
-        sleep 0.5
-        toxiproxy_toggle_proxy proxy_network_drop
-    ) &
+    # Add a 1MB limit_data toxic to force the snapshot download to fail.
+    toxiproxy_add_limit_data limit_download 1000000 proxy_network_drop
 
-    # Download through the proxy should fail.
+    # Download the snapshot should fail.
     OUTPUT_DIR="output"
     mkdir -p "$OUTPUT_DIR"
-    assert_command_fail timeout 10s dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
+    assert_command_fail timeout -s9 10s dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
 
-    # Enable the proxy again.
-    toxiproxy_toggle_proxy proxy_network_drop
+    # For debugging.
+    echo "OUTPUT_DIR contents:" >&2
+    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
+
+    # Remove the toxic.
+    toxiproxy_remove_toxic limit_download proxy_network_drop
 
     # Resume the download through the proxy.
     assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
@@ -205,17 +205,13 @@ teardown() {
     assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
     assert_contains '(2 : nat)'
 
-    (
-        # Toxiproxy doesn't support disabling the proxy with certain amount of data being transferred.
-        # So we roughly wait for 0.5 seconds to disable the proxy and fail the snapshot upload.
-        sleep 0.5
-        toxiproxy_toggle_proxy proxy_network_drop
-    ) &
+    # Add a 1MB limit_data toxic to force the snapshot upload to fail.
+    toxiproxy_add_limit_data limit_upload 1000000 proxy_network_drop
 
     # Upload the snapshot should fail.
-    assert_command_fail timeout 10s dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
+    assert_command_fail timeout -s9 10s dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
     
-    # Loop to find a .json filename in OUTPUT_DIR that matches ^[0-9a-f]+\.json$.
+    # Loop to get the snapshot id.
     snapshot_1=""
     while IFS= read -r json_file; do
         [ -z "$json_file" ] && continue
@@ -229,8 +225,8 @@ teardown() {
         false
     fi
 
-    # Enable the proxy again.
-    toxiproxy_toggle_proxy proxy_network_drop
+    # Remove the toxic.
+    toxiproxy_remove_toxic limit_upload proxy_network_drop
 
     # Resume the upload through the proxy.
     assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" -r "$snapshot_1" --network "http://127.0.0.1:$proxy_port"

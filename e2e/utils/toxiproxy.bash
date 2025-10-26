@@ -75,3 +75,15 @@ toxiproxy_add_latency() {
   local latency=$1 jitter=$2 name=$3
   toxiproxy-cli toxic add -t latency -a latency="$latency" -a jitter="$jitter" -d "$name" >/dev/null
 }
+
+# Add limit_data toxic (downstream)
+toxiproxy_add_limit_data() {
+  local toxic_name=$1 bytes=$2 proxy_name=$3
+  toxiproxy-cli toxic add -n "$toxic_name" -t limit_data -a bytes="$bytes" -d "$proxy_name"  >/dev/null
+}
+
+# Remove a toxic
+toxiproxy_remove_toxic() {
+  local toxic_name=$1 proxy_name=$2
+  toxiproxy-cli toxic remove -n "$toxic_name" -d "$proxy_name" >/dev/null 2>&1 || true
+}
