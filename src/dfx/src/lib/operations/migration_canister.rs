@@ -8,7 +8,7 @@ use std::fmt;
 pub const NNS_MIGRATION_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x01, 0x01]);
 const MIGRATE_CANISTER_METHOD: &str = "migrate_canister";
-const MIGRATE_STATUS_METHOD: &str = "migrate_status";
+const MIGRATION_STATUS_METHOD: &str = "migration_status";
 
 #[derive(CandidType)]
 pub struct MigrateCanisterArg {
@@ -136,7 +136,7 @@ pub async fn migrate_status(
     };
 
     let (result,): (Vec<MigrationStatus>,) = canister
-        .query(MIGRATE_STATUS_METHOD)
+        .query(MIGRATION_STATUS_METHOD)
         .with_arg(arg)
         .build()
         .await?;
