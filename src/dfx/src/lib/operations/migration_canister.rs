@@ -108,11 +108,14 @@ pub async fn migrate_canister(
         to_canister,
     };
 
-    let _: () = canister
+    canister
         .update(MIGRATE_CANISTER_METHOD)
         .with_arg(arg)
         .build()
-        .await?;
+        .map(|result: (Result<(), ValidationError>,)| (result.0,))
+        .await
+        .map(|(result,)| result)?
+        .map_err(|error| anyhow::anyhow!(error))?;
 
     Ok(())
 }
