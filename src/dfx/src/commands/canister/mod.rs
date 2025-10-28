@@ -15,6 +15,7 @@ mod info;
 mod install;
 mod logs;
 mod metadata;
+mod rename;
 mod request_status;
 mod send;
 mod set_id;
@@ -53,6 +54,7 @@ pub enum SubCommand {
     Info(info::InfoOpts),
     Install(install::CanisterInstallOpts),
     Metadata(metadata::CanisterMetadataOpts),
+    Rename(rename::CanisterRenameOpts),
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
     SetId(set_id::CanisterSetIdOpts),
@@ -88,6 +90,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Install(v) => install::exec(env, v, &call_sender()?).await,
             SubCommand::Info(v) => info::exec(env, v).await,
             SubCommand::Metadata(v) => metadata::exec(env, v).await,
+            SubCommand::Rename(v) => rename::exec(env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
             SubCommand::Send(v) => send::exec(env, v, &call_sender()?).await,
             SubCommand::SetId(v) => set_id::exec(env, v).await,
