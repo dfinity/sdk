@@ -4,7 +4,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister::{
     get_canister_status, list_canister_snapshots, update_settings,
 };
-use crate::lib::operations::migration_canister::{
+use crate::lib::operations::canister_migration::{
     MigrationStatus, NNS_MIGRATION_CANISTER_ID, migrate_canister, migration_status,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -82,14 +82,14 @@ pub async fn exec(
         .0
         .to_u128()
         .expect("Unable to parse cycles");
-    if cycles < 5_000_000_000_000 {
-        bail!("Canister '{source_canister}' has less than 5T cycles");
+    if cycles < 10_000_000_000_000 {
+        bail!("Canister '{source_canister}' has less than 10T cycles");
     }
-    if !opts.yes && cycles > 10_000_000_000_000 {
+    if !opts.yes && cycles > 15_000_000_000_000 {
         ask_for_consent(
             env,
             &format!(
-                "Canister '{source_canister}' has more than 10T cycles. The extra cycles will get burned during the migration. Continue?"
+                "Canister '{source_canister}' has more than 15T cycles. The extra cycles will get burned during the migration. Continue?"
             ),
         )?;
     }
