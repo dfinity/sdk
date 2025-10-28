@@ -2,6 +2,7 @@ pub mod canister;
 pub mod cmc;
 pub mod cycles_ledger;
 pub mod ledger;
+pub mod migration_canister;
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
