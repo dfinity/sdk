@@ -4,7 +4,9 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister::{
     get_canister_status, list_canister_snapshots, stop_canister, update_settings,
 };
-use crate::lib::operations::migration_canister::{NNS_MIGRATION_CANISTER_ID, migrate_canister};
+use crate::lib::operations::migration_canister::{
+    MigrationStatus, NNS_MIGRATION_CANISTER_ID, migrate_canister, migrate_status,
+};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::subnet::get_subnet_for_canister;
 use crate::util::ask_for_consent;
@@ -14,6 +16,8 @@ use clap::Parser;
 use dfx_core::identity::CallSender;
 use num_traits::ToPrimitive;
 use slog::info;
+use std::time::Duration;
+use time::{OffsetDateTime, macros::format_description};
 
 /// Renames a canister.
 #[derive(Parser)]
@@ -90,7 +94,7 @@ pub async fn exec(
         .to_u128()
         .expect("Unable to parse cycles");
     if cycles < 5_000_000_000_000 {
-        bail!("The from canister {} has less than 10T cycles", from_canister);
+        bail!("The from canister {from_canister} has less than 5T cycles");
     }
     if !opts.yes && cycles > 10_000_000_000_000 {
         ask_for_consent(
@@ -154,5 +158,38 @@ pub async fn exec(
     // Migrate the from canister to the rename_to canister.
     migrate_canister(agent, from_canister_id, to_canister_id).await?;
 
+    // Wait for migration to complete.
+    let spinner = env.new_spinner("Waiting for renaming to complete...".into());
+    loop {
+        let statuses = migrate_status(agent, from_canister_id, to_canister_id).await?;
+        match statuses.last() {
+            Some(MigrationStatus::InProgress { status }) => {
+                spinner.set_message(format!("Renaming in progress: {status}").into());
+            }
+            Some(MigrationStatus::Succeeded { time }) => {
+                spinner.finish_and_clear();
+                info!(log, "Renaming succeeded at {}", format_time(time));
+                break;
+            }
+            Some(MigrationStatus::Failed { reason, time }) => {
+                spinner.finish_and_clear();
+                info!(log, "Renaming failed at {}: {}", format_time(time), reason);
+            }
+            None => (),
+        }
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    // TODO: should we remove the NNS migration canister as a controller from TO canister and start the it?
+
     Ok(())
+}
+
+fn format_time(time: &u64) -> String {
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
+    OffsetDateTime::from_unix_timestamp_nanos(*time as i128)
+        .unwrap()
+        .format(&format)
+        .unwrap()
 }
