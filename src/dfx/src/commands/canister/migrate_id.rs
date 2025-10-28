@@ -20,16 +20,16 @@ use slog::{debug, error, info};
 use std::time::Duration;
 use time::{OffsetDateTime, macros::format_description};
 
-/// Renames a canister.
+/// Migrate a canister ID from one subnet to another.
 #[derive(Parser)]
-#[command(override_usage = "dfx canister rename [OPTIONS] <FROM_CANISTER> --rename-to <RENAME_TO>")]
-pub struct CanisterRenameOpts {
-    /// Specifies the name or id of the canister to rename.
+#[command(override_usage = "dfx canister migrate-id [OPTIONS] <FROM_CANISTER> --replace <REPLACE>")]
+pub struct CanisterMigrateIdOpts {
+    /// Specifies the name or id of the canister to migrate.
     from_canister: String,
 
-    /// Specifies the name or id of the canister to rename to.
+    /// Specifies the name or id of the canister to replace.
     #[arg(long)]
-    rename_to: String,
+    replace: String,
 
     /// Skips yes/no checks by answering 'yes'. Not recommended outside of CI.
     #[arg(long, short)]
@@ -38,7 +38,7 @@ pub struct CanisterRenameOpts {
 
 pub async fn exec(
     env: &dyn Environment,
-    opts: CanisterRenameOpts,
+    opts: CanisterMigrateIdOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
@@ -49,21 +49,21 @@ pub async fn exec(
 
     // Get the canister IDs.
     let from_canister = opts.from_canister.as_str();
-    let to_canister = opts.rename_to.as_str();
+    let target_canister = opts.replace.as_str();
     let from_canister_id =
         Principal::from_text(from_canister).or_else(|_| canister_id_store.get(from_canister))?;
-    let to_canister_id =
-        Principal::from_text(to_canister).or_else(|_| canister_id_store.get(to_canister))?;
+    let target_canister_id = Principal::from_text(target_canister)
+        .or_else(|_| canister_id_store.get(target_canister))?;
 
-    if from_canister_id == to_canister_id {
-        bail!("From and rename_to canister IDs are the same");
+    if from_canister_id == target_canister_id {
+        bail!("From and target canister IDs are the same");
     }
 
     if !opts.yes {
         ask_for_consent(
             env,
             &format!(
-                "The from canister '{from_canister}' will be removed from its own subnet. Continue anyway?",
+                "The target canister '{target_canister}' will be removed from its own subnet. Continue anyway?",
             ),
         )?;
     }
@@ -71,12 +71,12 @@ pub async fn exec(
     let from_status = get_canister_status(env, from_canister_id, call_sender)
         .await
         .with_context(|| format!("Could not retrieve status of canister {from_canister}"))?;
-    let to_status = get_canister_status(env, to_canister_id, call_sender)
+    let target_status = get_canister_status(env, target_canister_id, call_sender)
         .await
-        .with_context(|| format!("Could not retrieve status of canister {to_canister}"))?;
+        .with_context(|| format!("Could not retrieve status of canister {target_canister}"))?;
 
     ensure_canister_stopped(from_status.status, from_canister)?;
-    ensure_canister_stopped(to_status.status, to_canister)?;
+    ensure_canister_stopped(target_status.status, target_canister)?;
 
     // Check the cycles balance of from_canister.
     let cycles = from_status
@@ -94,17 +94,17 @@ pub async fn exec(
         )?;
     }
 
-    // Check that the from canister has no snapshots.
-    let from_snapshots = list_canister_snapshots(env, from_canister_id, call_sender).await?;
-    if !from_snapshots.is_empty() {
-        bail!("The from canister {} has snapshots", from_canister);
+    // Check that the target canister has no snapshots.
+    let snapshots = list_canister_snapshots(env, target_canister_id, call_sender).await?;
+    if !snapshots.is_empty() {
+        bail!("The target canister {} has snapshots", target_canister);
     }
 
     // Check that the two canisters are on different subnets.
     let from_subnet = get_subnet_for_canister(agent, from_canister_id).await?;
-    let to_subnet = get_subnet_for_canister(agent, to_canister_id).await?;
-    if from_subnet == to_subnet {
-        bail!("The from and rename_to canisters are on the same subnet");
+    let target_subnet = get_subnet_for_canister(agent, target_canister_id).await?;
+    if from_subnet == target_subnet {
+        bail!("The from and target canisters are on the same subnet");
     }
 
     // Add the NNS migration canister as a controller to the from canister.
@@ -127,7 +127,7 @@ pub async fn exec(
 
     // Add the NNS migration canister as a controller to the rename_to canister.
     let mut controller_added = false;
-    let mut controllers = to_status.settings.controllers.clone();
+    let mut controllers = target_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
         controllers.push(NNS_MIGRATION_CANISTER_ID);
         let settings = CanisterSettings {
@@ -141,30 +141,30 @@ pub async fn exec(
             log_visibility: None,
             environment_variables: None,
         };
-        update_settings(env, to_canister_id, settings, call_sender).await?;
+        update_settings(env, target_canister_id, settings, call_sender).await?;
         controller_added = true;
     }
 
     // Migrate the from canister to the rename_to canister.
-    debug!(log, "Renaming {from_canister} to {to_canister}");
-    migrate_canister(agent, from_canister_id, to_canister_id).await?;
+    debug!(log, "Migrate {from_canister} to {target_canister}");
+    migrate_canister(agent, from_canister_id, target_canister_id).await?;
 
     // Wait for migration to complete.
-    let spinner = env.new_spinner("Waiting for renaming to complete...".into());
+    let spinner = env.new_spinner("Waiting for migration to complete...".into());
     loop {
-        let statuses = migration_status(agent, from_canister_id, to_canister_id).await?;
+        let statuses = migration_status(agent, from_canister_id, target_canister_id).await?;
         match statuses.first() {
             Some(MigrationStatus::InProgress { status }) => {
-                spinner.set_message(format!("Renaming in progress: {status}").into());
+                spinner.set_message(format!("Migration in progress: {status}").into());
             }
             Some(MigrationStatus::Succeeded { time }) => {
                 spinner.finish_and_clear();
-                info!(log, "Renaming succeeded at {}", format_time(time));
+                info!(log, "Migration succeeded at {}", format_time(time));
                 break;
             }
             Some(MigrationStatus::Failed { reason, time }) => {
                 spinner.finish_and_clear();
-                error!(log, "Renaming failed at {}: {}", format_time(time), reason);
+                error!(log, "Migration failed at {}: {}", format_time(time), reason);
                 break;
             }
             None => (),
@@ -190,7 +190,7 @@ pub async fn exec(
         update_settings(env, from_canister_id, settings, call_sender).await?;
     }
 
-    canister_id_store.remove(log, to_canister)?;
+    canister_id_store.remove(log, target_canister)?;
 
     Ok(())
 }
