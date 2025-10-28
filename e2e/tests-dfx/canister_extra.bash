@@ -159,7 +159,7 @@ teardown() {
 
     toxiproxy_delete_proxy proxy_high_latency
 }
-# bats test_tags=bats:focus
+
 @test "canister snapshots download and upload via toxiproxy with network drop" {
     # Start the dfx server on a random port.
     dfx_port=$(get_ephemeral_port)
