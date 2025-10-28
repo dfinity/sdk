@@ -22,10 +22,10 @@ use time::{OffsetDateTime, macros::format_description};
 
 /// Migrate a canister ID from one subnet to another.
 #[derive(Parser)]
-#[command(override_usage = "dfx canister migrate-id [OPTIONS] <FROM_CANISTER> --replace <REPLACE>")]
+#[command(override_usage = "dfx canister migrate-id [OPTIONS] <CANISTER> --replace <REPLACE>")]
 pub struct CanisterMigrateIdOpts {
     /// Specifies the name or id of the canister to migrate.
-    from_canister: String,
+    canister: String,
 
     /// Specifies the name or id of the canister to replace.
     #[arg(long)]
@@ -48,67 +48,70 @@ pub async fn exec(
     let canister_id_store = env.get_canister_id_store()?;
 
     // Get the canister IDs.
-    let from_canister = opts.from_canister.as_str();
+    let source_canister = opts.canister.as_str();
     let target_canister = opts.replace.as_str();
-    let from_canister_id =
-        Principal::from_text(from_canister).or_else(|_| canister_id_store.get(from_canister))?;
+    let source_canister_id = Principal::from_text(source_canister)
+        .or_else(|_| canister_id_store.get(source_canister))?;
     let target_canister_id = Principal::from_text(target_canister)
         .or_else(|_| canister_id_store.get(target_canister))?;
 
-    if from_canister_id == target_canister_id {
-        bail!("From and target canister IDs are the same");
+    if source_canister_id == target_canister_id {
+        bail!("The canisters to migrate and replace are identical.");
     }
 
     if !opts.yes {
         ask_for_consent(
             env,
-            &format!(
-                "The target canister '{target_canister}' will be removed from its own subnet. Continue anyway?",
-            ),
+            &format!("Canister '{source_canister}' will be removed from its own subnet. Continue?"),
         )?;
     }
 
-    let from_status = get_canister_status(env, from_canister_id, call_sender)
+    let source_status = get_canister_status(env, source_canister_id, call_sender)
         .await
-        .with_context(|| format!("Could not retrieve status of canister {from_canister}"))?;
+        .with_context(|| format!("Could not retrieve status of canister {source_canister}"))?;
     let target_status = get_canister_status(env, target_canister_id, call_sender)
         .await
         .with_context(|| format!("Could not retrieve status of canister {target_canister}"))?;
 
-    ensure_canister_stopped(from_status.status, from_canister)?;
+    ensure_canister_stopped(source_status.status, source_canister)?;
     ensure_canister_stopped(target_status.status, target_canister)?;
 
-    // Check the cycles balance of from_canister.
-    let cycles = from_status
+    // Check the cycles balance of source_canister.
+    let cycles = source_status
         .cycles
         .0
         .to_u128()
         .expect("Unable to parse cycles");
     if cycles < 5_000_000_000_000 {
-        bail!("The from canister {from_canister} has less than 5T cycles");
+        bail!("Canister '{source_canister}' has less than 5T cycles");
     }
     if !opts.yes && cycles > 10_000_000_000_000 {
         ask_for_consent(
             env,
-            &format!("The from canister {from_canister} has more than 10T cycles. Continue?"),
+            &format!(
+                "Canister '{source_canister}' has more than 10T cycles. The extra cycles will get burned during the migration. Continue?"
+            ),
         )?;
     }
 
     // Check that the target canister has no snapshots.
     let snapshots = list_canister_snapshots(env, target_canister_id, call_sender).await?;
     if !snapshots.is_empty() {
-        bail!("The target canister {} has snapshots", target_canister);
+        bail!(
+            "The canister to be replaced '{}' has snapshots",
+            target_canister
+        );
     }
 
     // Check that the two canisters are on different subnets.
-    let from_subnet = get_subnet_for_canister(agent, from_canister_id).await?;
+    let source_subnet = get_subnet_for_canister(agent, source_canister_id).await?;
     let target_subnet = get_subnet_for_canister(agent, target_canister_id).await?;
-    if from_subnet == target_subnet {
+    if source_subnet == target_subnet {
         bail!("The from and target canisters are on the same subnet");
     }
 
-    // Add the NNS migration canister as a controller to the from canister.
-    let mut controllers = from_status.settings.controllers.clone();
+    // Add the NNS migration canister as a controller to the source canister.
+    let mut controllers = source_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
         controllers.push(NNS_MIGRATION_CANISTER_ID);
         let settings = CanisterSettings {
@@ -122,10 +125,10 @@ pub async fn exec(
             log_visibility: None,
             environment_variables: None,
         };
-        update_settings(env, from_canister_id, settings, call_sender).await?;
+        update_settings(env, source_canister_id, settings, call_sender).await?;
     }
 
-    // Add the NNS migration canister as a controller to the rename_to canister.
+    // Add the NNS migration canister as a controller to the target canister.
     let mut controller_added = false;
     let mut controllers = target_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
@@ -146,13 +149,13 @@ pub async fn exec(
     }
 
     // Migrate the from canister to the rename_to canister.
-    debug!(log, "Migrate {from_canister} to {target_canister}");
-    migrate_canister(agent, from_canister_id, target_canister_id).await?;
+    debug!(log, "Migrate '{source_canister}' to '{target_canister}'");
+    migrate_canister(agent, source_canister_id, target_canister_id).await?;
 
     // Wait for migration to complete.
     let spinner = env.new_spinner("Waiting for migration to complete...".into());
     loop {
-        let statuses = migration_status(agent, from_canister_id, target_canister_id).await?;
+        let statuses = migration_status(agent, source_canister_id, target_canister_id).await?;
         match statuses.first() {
             Some(MigrationStatus::InProgress { status }) => {
                 spinner.set_message(format!("Migration in progress: {status}").into());
@@ -175,7 +178,7 @@ pub async fn exec(
 
     // Remove the NNS migration canister from the controllers if added.
     if controller_added {
-        let controllers = from_status.settings.controllers.clone();
+        let controllers = source_status.settings.controllers.clone();
         let settings = CanisterSettings {
             controllers: Some(controllers),
             compute_allocation: None,
@@ -187,7 +190,7 @@ pub async fn exec(
             log_visibility: None,
             environment_variables: None,
         };
-        update_settings(env, from_canister_id, settings, call_sender).await?;
+        update_settings(env, source_canister_id, settings, call_sender).await?;
     }
 
     canister_id_store.remove(log, target_canister)?;
