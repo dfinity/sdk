@@ -129,7 +129,6 @@ pub async fn exec(
     }
 
     // Add the NNS migration canister as a controller to the target canister.
-    let mut controller_added = false;
     let mut controllers = target_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
         controllers.push(NNS_MIGRATION_CANISTER_ID);
@@ -145,7 +144,6 @@ pub async fn exec(
             environment_variables: None,
         };
         update_settings(env, target_canister_id, settings, call_sender).await?;
-        controller_added = true;
     }
 
     // Migrate the from canister to the rename_to canister.
@@ -174,23 +172,6 @@ pub async fn exec(
         }
 
         tokio::time::sleep(Duration::from_secs(1)).await;
-    }
-
-    // Remove the NNS migration canister from the controllers if added.
-    if controller_added {
-        let controllers = source_status.settings.controllers.clone();
-        let settings = CanisterSettings {
-            controllers: Some(controllers),
-            compute_allocation: None,
-            memory_allocation: None,
-            freezing_threshold: None,
-            reserved_cycles_limit: None,
-            wasm_memory_limit: None,
-            wasm_memory_threshold: None,
-            log_visibility: None,
-            environment_variables: None,
-        };
-        update_settings(env, source_canister_id, settings, call_sender).await?;
     }
 
     canister_id_store.remove(log, target_canister)?;
