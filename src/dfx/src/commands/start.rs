@@ -4,7 +4,6 @@ use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
-use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
 use crate::util::get_reusable_socket_addr;
@@ -97,8 +96,6 @@ async fn fg_ping_and_wait(
     pocketic_port_path: &Path,
     webserver_port_path: &Path,
     frontend_url: &str,
-    logger: &Logger,
-    local_server_descriptor: &LocalServerDescriptor,
 ) -> DfxResult {
     let port = wait_for_port(webserver_port_path).await?;
     _ = wait_for_port(pocketic_port_path).await?; // used as a signal that initialization is complete
@@ -110,9 +107,7 @@ async fn fg_ping_and_wait(
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    ping_and_wait(&frontend_url_mod).await?;
-
-    wait_for_integrations_initialized(&frontend_url_mod, logger, local_server_descriptor).await
+    ping_and_wait(&frontend_url_mod).await
 }
 
 async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
@@ -242,14 +237,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         return Runtime::new()
             .expect("Unable to create a runtime")
             .block_on(async {
-                fg_ping_and_wait(
-                    &pocketic_port_path,
-                    &webserver_port_path,
-                    &frontend_url,
-                    env.get_logger(),
-                    local_server_descriptor,
-                )
-                .await
+                fg_ping_and_wait(&pocketic_port_path, &webserver_port_path, &frontend_url).await
             });
     }
     local_server_descriptor.describe(env.get_logger());

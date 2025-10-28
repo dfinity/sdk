@@ -54,18 +54,13 @@ pub struct Config {
     pub effective_config_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub bitcoind_addr: Option<Vec<SocketAddr>>,
-    pub bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
+    pub enable_bitcoin: bool,
     pub port: Option<u16>,
     pub port_file: PathBuf,
     pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
     pub pocketic_proxy_config: PocketIcProxyConfig,
-}
-
-#[derive(Clone)]
-pub struct BitcoinIntegrationConfig {
-    pub canister_init_arg: String,
 }
 
 /// A PocketIC actor. Starts the server, can subscribe to a Ready signal and a
@@ -283,7 +278,7 @@ fn pocketic_start_thread(
                 port,
                 &config.effective_config_path,
                 &config.bitcoind_addr,
-                &config.bitcoin_integration_config,
+                config.enable_bitcoin,
                 &config.replica_config,
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
@@ -346,7 +341,7 @@ async fn initialize_pocketic(
     port: u16,
     effective_config_path: &Path,
     bitcoind_addr: &Option<Vec<SocketAddr>>,
-    bitcoin_integration_config: &Option<BitcoinIntegrationConfig>,
+    enable_bitcoin: bool,
     replica_config: &ReplicaConfig,
     domains: Option<Vec<String>>,
     addr: SocketAddr,
@@ -397,7 +392,7 @@ async fn initialize_pocketic(
     } else {
         icp_features
     };
-    let icp_features = if bitcoind_addr.is_some() || bitcoin_integration_config.is_some() {
+    let icp_features = if bitcoind_addr.is_some() || enable_bitcoin {
         IcpFeatures {
             bitcoin: Some(IcpFeaturesConfig::default()),
             ..icp_features
