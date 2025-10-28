@@ -680,7 +680,10 @@ fn check_dir(dir: &PathBuf) -> DfxResult {
     let mut entries = std::fs::read_dir(dir)
         .with_context(|| format!("Failed to read directory '{}'", dir.display()))?;
     if entries.next().is_some() {
-        bail!("Directory '{}' is not empty", dir.display());
+        bail!(
+            "Directory '{}' is not empty (to resume an aborted download, use `--resume`)",
+            dir.display()
+        );
     }
 
     // Check if the directory is writable.
