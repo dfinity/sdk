@@ -1,7 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::operations::canister::{get_canister_status, stop_canister, update_settings};
+use crate::lib::operations::canister::{
+    get_canister_status, list_canister_snapshots, stop_canister, update_settings,
+};
 use crate::lib::operations::migration_canister::{NNS_MIGRATION_CANISTER_ID, migrate_canister};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::subnet::get_subnet_for_canister;
@@ -15,7 +17,7 @@ use slog::info;
 
 /// Renames a canister.
 #[derive(Parser)]
-#[command(override_usage = "dfx canister rename <FROM_CANISTER> --rename-to <RENAME_TO>")]
+#[command(override_usage = "dfx canister rename [OPTIONS] <FROM_CANISTER> --rename-to <RENAME_TO>")]
 pub struct CanisterRenameOpts {
     /// Specifies the name or id of the canister to rename.
     from_canister: String,
@@ -23,6 +25,10 @@ pub struct CanisterRenameOpts {
     /// Specifies the name or id of the canister to rename to.
     #[arg(long)]
     rename_to: String,
+
+    /// Skips yes/no checks by answering 'yes'. Not recommended outside of CI.
+    #[arg(long, short)]
+    yes: bool,
 }
 
 pub async fn exec(
@@ -48,6 +54,15 @@ pub async fn exec(
         bail!("From and rename_to canister IDs are the same");
     }
 
+    if !opts.yes {
+        ask_for_consent(
+            env,
+            &format!(
+                "The from canister '{from_canister}' will be removed from its own subnet. Continue anyway?",
+            ),
+        )?;
+    }
+
     // Stop both canisters.
     info!(
         log,
@@ -67,7 +82,7 @@ pub async fn exec(
     // Check the cycles balance of from_canister.
     let from_status = get_canister_status(env, from_canister_id, call_sender)
         .await
-        .with_context(|| format!("Could not retrieve status of canister {}", from_canister))?;
+        .with_context(|| format!("Could not retrieve status of canister {from_canister}"))?;
 
     let cycles = from_status
         .cycles
@@ -75,23 +90,26 @@ pub async fn exec(
         .to_u128()
         .expect("Unable to parse cycles");
     if cycles < 5_000_000_000_000 {
-        bail!("Canister {} has less than 10T cycles", from_canister);
+        bail!("The from canister {} has less than 10T cycles", from_canister);
     }
-    if cycles > 10_000_000_000_000 {
+    if !opts.yes && cycles > 10_000_000_000_000 {
         ask_for_consent(
             env,
-            &format!(
-                "Canister {} has more than 10T cycles. Continue?",
-                from_canister
-            ),
+            &format!("The from canister {from_canister} has more than 10T cycles. Continue?"),
         )?;
     }
 
-    // Check if the two canisters are on different subnets.
+    // Check that the from canister has no snapshots.
+    let from_snapshots = list_canister_snapshots(env, from_canister_id, call_sender).await?;
+    if !from_snapshots.is_empty() {
+        bail!("The from canister {} has snapshots", from_canister);
+    }
+
+    // Check that the two canisters are on different subnets.
     let from_subnet = get_subnet_for_canister(agent, from_canister_id).await?;
     let to_subnet = get_subnet_for_canister(agent, to_canister_id).await?;
     if from_subnet == to_subnet {
-        bail!("From and rename_to canisters are on the same subnet");
+        bail!("The from and rename_to canisters are on the same subnet");
     }
 
     // Add the NNS migration canister as a controller to the from canister.
@@ -115,7 +133,7 @@ pub async fn exec(
     // Add the NNS migration canister as a controller to the rename_to canister.
     let to_status = get_canister_status(env, to_canister_id, call_sender)
         .await
-        .with_context(|| format!("Could not retrieve status of canister {}", to_canister))?;
+        .with_context(|| format!("Could not retrieve status of canister {to_canister}"))?;
     let mut controllers = to_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
         controllers.push(NNS_MIGRATION_CANISTER_ID);
