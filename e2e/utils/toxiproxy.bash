@@ -22,7 +22,7 @@ toxiproxy_start() {
     return 1
   fi
 
-  toxiproxy-server -host "$TOXIPROXY_HOST" -port "$TOXIPROXY_PORT" >/dev/null 2>&1 &
+  toxiproxy-server -host "$TOXIPROXY_HOST" -port "$TOXIPROXY_PORT" >/dev/null 2>&1 3>&- &
   export E2E_TOXIPROXY_PID=$!
 
   for _ in $(seq 1 50); do
@@ -78,12 +78,12 @@ toxiproxy_add_latency() {
 
 # Add limit_data toxic (downstream)
 toxiproxy_add_limit_data() {
-  local toxic_name=$1 bytes=$2 proxy_name=$3
-  toxiproxy-cli toxic add -n "$toxic_name" -t limit_data -a bytes="$bytes" -d "$proxy_name"  >/dev/null
+  local toxic_name=$1 bytes=$2 proxy_name=$3 direction=${4:-"-d"}
+  toxiproxy-cli toxic add -n "$toxic_name" -t limit_data -a bytes="$bytes" ${direction:+"$direction"} "$proxy_name"  >/dev/null
 }
 
 # Remove a toxic
 toxiproxy_remove_toxic() {
   local toxic_name=$1 proxy_name=$2
-  toxiproxy-cli toxic remove -n "$toxic_name" -d "$proxy_name" >/dev/null 2>&1 || true
+  toxiproxy-cli toxic remove -n "$toxic_name" "$proxy_name" >/dev/null 2>&1 || true
 }

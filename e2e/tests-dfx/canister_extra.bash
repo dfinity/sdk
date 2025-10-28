@@ -159,7 +159,7 @@ teardown() {
 
     toxiproxy_delete_proxy proxy_high_latency
 }
-
+# bats test_tags=bats:focus
 @test "canister snapshots download and upload via toxiproxy with network drop" {
     # Start the dfx server on a random port.
     dfx_port=$(get_ephemeral_port)
@@ -191,13 +191,13 @@ teardown() {
 
     # For debugging.
     echo "OUTPUT_DIR contents:" >&2
-    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -printf '%f\t%s\n' >&2
+    find "$OUTPUT_DIR" -maxdepth 1 -mindepth 1 -type f -exec du -h {} \+ >&2
 
     # Remove the toxic.
     toxiproxy_remove_toxic limit_download proxy_network_drop
 
     # Resume the download through the proxy.
-    assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
+    assert_command dfx -v canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
     assert_contains "saved to '$OUTPUT_DIR'"
 
     # Start the canister again.
@@ -206,11 +206,11 @@ teardown() {
     assert_contains '(2 : nat)'
 
     # Add a 1MB limit_data toxic to force the snapshot upload to fail.
-    toxiproxy_add_limit_data limit_upload 1000000 proxy_network_drop
+    toxiproxy_add_limit_data limit_upload 1000000 proxy_network_drop -u
 
     # Upload the snapshot should fail.
     assert_command_fail timeout -s9 10s dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
-    
+
     # Loop to get the snapshot id.
     snapshot_1=""
     while IFS= read -r json_file; do
@@ -219,7 +219,7 @@ teardown() {
             snapshot_1="${json_file%.json}"
             break
         fi
-    done < <(find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.json' -printf '%f\n')
+    done < <(find "$OUTPUT_DIR" -maxdepth 1 -type f -name '*.json' -exec basename {} \;)
     if [ -z "$snapshot_1" ]; then
         echo "No matching .json filename ([0-9a-f]+.json) found in $OUTPUT_DIR" >&2
         false
