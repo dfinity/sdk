@@ -15,7 +15,7 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use num_traits::ToPrimitive;
-use slog::info;
+use slog::{debug, error, info};
 use std::time::Duration;
 use time::{OffsetDateTime, macros::format_description};
 
@@ -68,14 +68,14 @@ pub async fn exec(
     }
 
     // Stop both canisters.
-    info!(
+    debug!(
         log,
         "Stopping canister {}, with canister_id {}",
         from_canister,
         from_canister_id.to_text(),
     );
     stop_canister(env, from_canister_id, call_sender).await?;
-    info!(
+    debug!(
         log,
         "Stopping canister {}, with canister_id {}",
         to_canister,
@@ -138,6 +138,8 @@ pub async fn exec(
     let to_status = get_canister_status(env, to_canister_id, call_sender)
         .await
         .with_context(|| format!("Could not retrieve status of canister {to_canister}"))?;
+
+    let mut controller_added = false;
     let mut controllers = to_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
         controllers.push(NNS_MIGRATION_CANISTER_ID);
@@ -153,9 +155,11 @@ pub async fn exec(
             environment_variables: None,
         };
         update_settings(env, to_canister_id, settings, call_sender).await?;
+        controller_added = true;
     }
 
     // Migrate the from canister to the rename_to canister.
+    debug!(log, "Renaming {from_canister} to {to_canister}");
     migrate_canister(agent, from_canister_id, to_canister_id).await?;
 
     // Wait for migration to complete.
@@ -173,7 +177,8 @@ pub async fn exec(
             }
             Some(MigrationStatus::Failed { reason, time }) => {
                 spinner.finish_and_clear();
-                info!(log, "Renaming failed at {}: {}", format_time(time), reason);
+                error!(log, "Renaming failed at {}: {}", format_time(time), reason);
+                break;
             }
             None => (),
         }
@@ -181,7 +186,24 @@ pub async fn exec(
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
-    // TODO: should we remove the NNS migration canister as a controller from TO canister and start the it?
+    // Remove the NNS migration canister from the controllers if added.
+    if controller_added {
+        let controllers = to_status.settings.controllers.clone();
+        let settings = CanisterSettings {
+            controllers: Some(controllers),
+            compute_allocation: None,
+            memory_allocation: None,
+            freezing_threshold: None,
+            reserved_cycles_limit: None,
+            wasm_memory_limit: None,
+            wasm_memory_threshold: None,
+            log_visibility: None,
+            environment_variables: None,
+        };
+        update_settings(env, to_canister_id, settings, call_sender).await?;
+    }
+
+    // TODO: should we start the TO canister?
 
     Ok(())
 }
