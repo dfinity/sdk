@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister::{
-    get_canister_status, list_canister_snapshots, stop_canister, update_settings,
+    get_canister_status, list_canister_snapshots, update_settings,
 };
 use crate::lib::operations::migration_canister::{
     MigrationStatus, NNS_MIGRATION_CANISTER_ID, migrate_canister, migrate_status,
@@ -14,6 +14,7 @@ use anyhow::{Context, bail};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
+use ic_management_canister_types::CanisterStatusType;
 use num_traits::ToPrimitive;
 use slog::{debug, error, info};
 use std::time::Duration;
@@ -67,27 +68,17 @@ pub async fn exec(
         )?;
     }
 
-    // Stop both canisters.
-    debug!(
-        log,
-        "Stopping canister {}, with canister_id {}",
-        from_canister,
-        from_canister_id.to_text(),
-    );
-    stop_canister(env, from_canister_id, call_sender).await?;
-    debug!(
-        log,
-        "Stopping canister {}, with canister_id {}",
-        to_canister,
-        to_canister_id.to_text(),
-    );
-    stop_canister(env, to_canister_id, call_sender).await?;
-
-    // Check the cycles balance of from_canister.
     let from_status = get_canister_status(env, from_canister_id, call_sender)
         .await
         .with_context(|| format!("Could not retrieve status of canister {from_canister}"))?;
+    let to_status = get_canister_status(env, to_canister_id, call_sender)
+        .await
+        .with_context(|| format!("Could not retrieve status of canister {to_canister}"))?;
 
+    ensure_canister_stopped(from_status.status, from_canister)?;
+    ensure_canister_stopped(to_status.status, to_canister)?;
+
+    // Check the cycles balance of from_canister.
     let cycles = from_status
         .cycles
         .0
@@ -135,10 +126,6 @@ pub async fn exec(
     }
 
     // Add the NNS migration canister as a controller to the rename_to canister.
-    let to_status = get_canister_status(env, to_canister_id, call_sender)
-        .await
-        .with_context(|| format!("Could not retrieve status of canister {to_canister}"))?;
-
     let mut controller_added = false;
     let mut controllers = to_status.settings.controllers.clone();
     if !controllers.contains(&NNS_MIGRATION_CANISTER_ID) {
@@ -166,7 +153,7 @@ pub async fn exec(
     let spinner = env.new_spinner("Waiting for renaming to complete...".into());
     loop {
         let statuses = migrate_status(agent, from_canister_id, to_canister_id).await?;
-        match statuses.last() {
+        match statuses.first() {
             Some(MigrationStatus::InProgress { status }) => {
                 spinner.set_message(format!("Renaming in progress: {status}").into());
             }
@@ -203,9 +190,19 @@ pub async fn exec(
         update_settings(env, to_canister_id, settings, call_sender).await?;
     }
 
-    // TODO: should we start the TO canister?
-
     Ok(())
+}
+
+fn ensure_canister_stopped(status: CanisterStatusType, canister: &str) -> DfxResult {
+    match status {
+        CanisterStatusType::Stopped => Ok(()),
+        CanisterStatusType::Running => {
+            bail!("Canister {canister} is running. Run 'dfx canister stop' first");
+        }
+        CanisterStatusType::Stopping => {
+            bail!("Canister {canister} is stopping. Wait a few seconds and try again");
+        }
+    }
 }
 
 fn format_time(time: &u64) -> String {
