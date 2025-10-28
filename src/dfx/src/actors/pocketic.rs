@@ -8,10 +8,6 @@ use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
-#[cfg(unix)]
-use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
-#[cfg(unix)]
-use crate::lib::integrations::create_integrations_agent;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -383,10 +379,11 @@ async fn initialize_pocketic(
         }
     }
 
+    let icp_features = IcpFeatures::default();
     let icp_features = if replica_config.system_canisters {
         // Explicitly enabling specific system canisters here
         // ensures we'll notice if pocket-ic adds support for additional ones
-        Some(IcpFeatures {
+        IcpFeatures {
             registry: Some(IcpFeaturesConfig::default()),
             cycles_minting: Some(IcpFeaturesConfig::default()),
             icp_token: Some(IcpFeaturesConfig::default()),
@@ -395,10 +392,18 @@ async fn initialize_pocketic(
             sns: Some(IcpFeaturesConfig::default()),
             ii: Some(IcpFeaturesConfig::default()),
             nns_ui: Some(IcpFeaturesConfig::default()),
-            bitcoin: None,
-        })
+            ..icp_features
+        }
     } else {
-        None
+        icp_features
+    };
+    let icp_features = if bitcoind_addr.is_some() || bitcoin_integration_config.is_some() {
+        IcpFeatures {
+            bitcoin: Some(IcpFeaturesConfig::default()),
+            ..icp_features
+        }
+    } else {
+        icp_features
     };
 
     let resp = init_client
@@ -412,7 +417,7 @@ async fn initialize_pocketic(
             }),
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
-            icp_features,
+            icp_features: Some(icp_features),
             http_gateway_config: Some(InstanceHttpGatewayConfig {
                 ip_addr: Some(addr.ip().to_string()),
                 port: Some(addr.port()),
@@ -454,11 +459,6 @@ async fn initialize_pocketic(
 
     debug!(logger, "Waiting for replica to report healthy status");
     crate::lib::replica::status::ping_and_wait(&agent_url).await?;
-
-    if let Some(bitcoin_integration_config) = bitcoin_integration_config {
-        let agent = create_integrations_agent(&agent_url, &logger).await?;
-        initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config.clone()).await?;
-    }
 
     debug!(logger, "Initialized PocketIC with gateway.");
     Ok(server_instance)
