@@ -10,10 +10,10 @@ pub const NNS_MIGRATION_CANISTER_ID: Principal =
 const MIGRATE_CANISTER_METHOD: &str = "migrate_canister";
 const MIGRATION_STATUS_METHOD: &str = "migration_status";
 
-#[derive(CandidType)]
-pub struct MigrateCanisterArg {
-    pub from_canister: Principal,
-    pub to_canister: Principal,
+#[derive(Clone, CandidType, Deserialize)]
+pub struct MigrateCanisterArgs {
+    pub source: Principal,
+    pub target: Principal,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -103,24 +103,21 @@ pub async fn migrate_canister(
         .with_canister_id(NNS_MIGRATION_CANISTER_ID)
         .build()?;
 
-    let arg = MigrateCanisterArg {
-        from_canister,
-        to_canister,
+    let arg = MigrateCanisterArgs {
+        source: from_canister,
+        target: to_canister,
     };
 
-    canister
+    let _: () = canister
         .update(MIGRATE_CANISTER_METHOD)
         .with_arg(arg)
         .build()
-        .map(|result: (Result<(), ValidationError>,)| (result.0,))
-        .await
-        .map(|(result,)| result)?
-        .map_err(|error| anyhow::anyhow!(error))?;
+        .await?;
 
     Ok(())
 }
 
-pub async fn migrate_status(
+pub async fn migration_status(
     agent: &Agent,
     from_canister: Principal,
     to_canister: Principal,
@@ -130,9 +127,9 @@ pub async fn migrate_status(
         .with_canister_id(NNS_MIGRATION_CANISTER_ID)
         .build()?;
 
-    let arg = MigrateCanisterArg {
-        from_canister,
-        to_canister,
+    let arg = MigrateCanisterArgs {
+        source: from_canister,
+        target: to_canister,
     };
 
     let (result,): (Vec<MigrationStatus>,) = canister

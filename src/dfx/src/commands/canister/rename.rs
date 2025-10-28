@@ -5,7 +5,7 @@ use crate::lib::operations::canister::{
     get_canister_status, list_canister_snapshots, update_settings,
 };
 use crate::lib::operations::migration_canister::{
-    MigrationStatus, NNS_MIGRATION_CANISTER_ID, migrate_canister, migrate_status,
+    MigrationStatus, NNS_MIGRATION_CANISTER_ID, migrate_canister, migration_status,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::subnet::get_subnet_for_canister;
@@ -152,7 +152,7 @@ pub async fn exec(
     // Wait for migration to complete.
     let spinner = env.new_spinner("Waiting for renaming to complete...".into());
     loop {
-        let statuses = migrate_status(agent, from_canister_id, to_canister_id).await?;
+        let statuses = migration_status(agent, from_canister_id, to_canister_id).await?;
         match statuses.first() {
             Some(MigrationStatus::InProgress { status }) => {
                 spinner.set_message(format!("Renaming in progress: {status}").into());
@@ -175,7 +175,7 @@ pub async fn exec(
 
     // Remove the NNS migration canister from the controllers if added.
     if controller_added {
-        let controllers = to_status.settings.controllers.clone();
+        let controllers = from_status.settings.controllers.clone();
         let settings = CanisterSettings {
             controllers: Some(controllers),
             compute_allocation: None,
@@ -187,8 +187,10 @@ pub async fn exec(
             log_visibility: None,
             environment_variables: None,
         };
-        update_settings(env, to_canister_id, settings, call_sender).await?;
+        update_settings(env, from_canister_id, settings, call_sender).await?;
     }
+
+    canister_id_store.remove(log, to_canister)?;
 
     Ok(())
 }
