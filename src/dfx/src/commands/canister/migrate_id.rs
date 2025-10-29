@@ -98,7 +98,7 @@ pub async fn exec(
     let snapshots = list_canister_snapshots(env, target_canister_id, call_sender).await?;
     if !snapshots.is_empty() {
         bail!(
-            "The canister to be replaced '{}' has snapshots",
+            "The canister '{}' whose canister ID will be replaced has snapshots",
             target_canister
         );
     }
@@ -107,7 +107,7 @@ pub async fn exec(
     let source_subnet = get_subnet_for_canister(agent, source_canister_id).await?;
     let target_subnet = get_subnet_for_canister(agent, target_canister_id).await?;
     if source_subnet == target_subnet {
-        bail!("The from and target canisters are on the same subnet");
+        bail!("The canisters '{source_canister}' and '{target_canister}' are on the same subnet");
     }
 
     // Add the NNS migration canister as a controller to the source canister.
