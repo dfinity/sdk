@@ -464,7 +464,7 @@ fn initialize_pocketic(
     _: u16,
     _: &Path,
     _: &Option<Vec<SocketAddr>>,
-    _: &Option<BitcoinIntegrationConfig>,
+    _: bool,
     _: &ReplicaConfig,
     _: Option<Vec<String>>,
     _: SocketAddr,
