@@ -1,5 +1,5 @@
 {
-  "replica-rev": "575bcd0954e9d00066fd465223b755bda645edd6",
+  "replica-rev": "9276bb4c90c5adc5718cd144342e6b56c13a3ff6",
   "x86_64-darwin": {
     "motoko": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.16.2/motoko-Darwin-x86_64-0.16.2.tar.gz",
@@ -7,9 +7,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/575bcd0954e9d00066fd465223b755bda645edd6/binaries/x86_64-darwin/pocket-ic.gz",
-      "sha256": "aae66c74224421a9a8055b48d2189891eea12d8fa932ec5fb36a6c827e0be43a",
-      "rev": "575bcd0954e9d00066fd465223b755bda645edd6"
+      "url": "https://download.dfinity.systems/ic/9276bb4c90c5adc5718cd144342e6b56c13a3ff6/binaries/x86_64-darwin/pocket-ic.gz",
+      "sha256": "3af2af65b87d6a6b3c3bfb4ee08a42d840c29a881a652a1e63eeac496c029597",
+      "rev": "9276bb4c90c5adc5718cd144342e6b56c13a3ff6"
     }
   },
   "arm64-darwin": {
@@ -19,9 +19,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/575bcd0954e9d00066fd465223b755bda645edd6/binaries/arm64-darwin/pocket-ic.gz",
-      "sha256": "988020fde4cfba0abfd9957d4364dcab6d5c2b64aae19c786f33474a192ff11e",
-      "rev": "575bcd0954e9d00066fd465223b755bda645edd6"
+      "url": "https://download.dfinity.systems/ic/9276bb4c90c5adc5718cd144342e6b56c13a3ff6/binaries/arm64-darwin/pocket-ic.gz",
+      "sha256": "a9b8b29b88a47069babb18e524abdbd9f54a7a32ff878d93ba5c93230faae7de",
+      "rev": "9276bb4c90c5adc5718cd144342e6b56c13a3ff6"
     }
   },
   "x86_64-linux": {
@@ -31,9 +31,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/575bcd0954e9d00066fd465223b755bda645edd6/binaries/x86_64-linux/pocket-ic.gz",
-      "sha256": "99edb5b28c1e62ad3d2b86b3ad022c98ddc734671dad9abe1fc672bc0048d1e9",
-      "rev": "575bcd0954e9d00066fd465223b755bda645edd6"
+      "url": "https://download.dfinity.systems/ic/9276bb4c90c5adc5718cd144342e6b56c13a3ff6/binaries/x86_64-linux/pocket-ic.gz",
+      "sha256": "08e45801214ec1f0e95a483e39a007553785a5cb676c4144eb8a5eb2749bf67b",
+      "rev": "9276bb4c90c5adc5718cd144342e6b56c13a3ff6"
     }
   },
   "arm64-linux": {
@@ -43,9 +43,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/575bcd0954e9d00066fd465223b755bda645edd6/binaries/arm64-linux/pocket-ic.gz",
-      "sha256": "bd5aae42649a68e7febd715d7cadf4a78a6b9b5e2cd5fb6ae528750a463fdd77",
-      "rev": "575bcd0954e9d00066fd465223b755bda645edd6"
+      "url": "https://download.dfinity.systems/ic/9276bb4c90c5adc5718cd144342e6b56c13a3ff6/binaries/arm64-linux/pocket-ic.gz",
+      "sha256": "f4db572e52cda7d92a4b6a233c240df0fa9cbd1f1e91034a97e03de75a43e375",
+      "rev": "9276bb4c90c5adc5718cd144342e6b56c13a3ff6"
     }
   },
   "common": {
