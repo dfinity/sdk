@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+### feat: improved the canister snapshot download/upload feature
+
+Improved the canister snapshot download/upload feature by
+- adding progress bars to snapshot download/upload
+- streaming snapshot download/upload directly to/from disk.
+- supporting download/upload with resuming.
+- supporting download/upload with concurrency, default to 3 tasks in parallel.
+
 # 0.30.0
 
 ### feat: `dfx start --system-canisters` for bootstrapping system canisters

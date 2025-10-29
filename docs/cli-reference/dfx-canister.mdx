@@ -1028,11 +1028,13 @@ dfx canister snapshot download <canister> <snapshot> --dir <DIR>
 
 You can use the following arguments with the `dfx canister snapshot download` command.
 
-| Argument      | Description                                                                |
-|---------------|----------------------------------------------------------------------------|
-| `<canister>`  | The canister to download the snapshot from.                                |
-| `<snapshot>`  | The ID of the snapshot to download.                                        |
-| --dir `<dir>` | The directory to download the snapshot to. It should be created and empty. |
+| Argument                      | Description                                                                                |
+|-------------------------------|--------------------------------------------------------------------------------------------|
+| `<canister>`                  | The canister to download the snapshot from.                                                |
+| `<snapshot>`                  | The ID of the snapshot to download.                                                        |
+| --dir `<dir>`                 | The directory to download the snapshot to. It should be created and empty if not resuming. |
+| --resume                      | Whether to resume the download if the previous snapshot download failed.                   |
+| --concurrency `<concurrency>` | The number of concurrent downloads to perform [default: 3].                                |
 
 ### Examples
 
@@ -1056,11 +1058,13 @@ dfx canister snapshot upload <canister> --dir <DIR>
 
 You can use the following arguments with the `dfx canister snapshot upload` command.
 
-| Argument              | Description                                                                    |
-|-----------------------|--------------------------------------------------------------------------------|
-| `<canister>`          | The canister to upload the snapshot to.                                        |
-| --dir `<dir>`         | The directory to upload the snapshot from.                                     |
-| --replace `<replace>` | If a snapshot ID is specified, the snapshot identified by this ID will be deleted and a snapshot with a new ID will be returned. |
+| Argument                      | Description                                                                    |
+|-------------------------------|--------------------------------------------------------------------------------|
+| `<canister>`                  | The canister to upload the snapshot to.                                        |
+| --dir `<dir>`                 | The directory to upload the snapshot from.                                     |
+| --replace `<replace>`         | If a snapshot ID is specified, the snapshot identified by this ID will be deleted and a snapshot with a new ID will be returned. |
+| --resume `<resume>`           | The snapshot ID to resume uploading to.                                        |
+| --concurrency `<concurrency>` | The number of concurrent uploads to perform [default: 3].                      |
 
 ### Examples
 
