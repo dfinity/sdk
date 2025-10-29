@@ -10,6 +10,11 @@ Improved the canister snapshot download/upload feature by
 - supporting download/upload with resuming.
 - supporting download/upload with concurrency, default to 3 tasks in parallel.
 
+### fix: use `pocket-ic` to init BTC canisters
+
+The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
+By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
+
 # 0.30.0
 
 ### feat: `dfx start --system-canisters` for bootstrapping system canisters
