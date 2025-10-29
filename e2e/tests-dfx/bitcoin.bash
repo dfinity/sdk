@@ -3,7 +3,6 @@
 load ../utils/_
 
 BITCOIN_CANISTER_ID="g4xu7-jiaaa-aaaan-aaaaq-cai"
-NNS_ROOT_CANISTER_ID="r7inp-6aaaa-aaaaa-aaabq-cai"
 
 setup() {
   standard_setup
