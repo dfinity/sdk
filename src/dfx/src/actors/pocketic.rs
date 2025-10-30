@@ -8,10 +8,6 @@ use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
-#[cfg(unix)]
-use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
-#[cfg(unix)]
-use crate::lib::integrations::create_integrations_agent;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -58,18 +54,13 @@ pub struct Config {
     pub effective_config_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub bitcoind_addr: Option<Vec<SocketAddr>>,
-    pub bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
+    pub enable_bitcoin: bool,
     pub port: Option<u16>,
     pub port_file: PathBuf,
     pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
     pub pocketic_proxy_config: PocketIcProxyConfig,
-}
-
-#[derive(Clone)]
-pub struct BitcoinIntegrationConfig {
-    pub canister_init_arg: String,
 }
 
 /// A PocketIC actor. Starts the server, can subscribe to a Ready signal and a
@@ -287,7 +278,7 @@ fn pocketic_start_thread(
                 port,
                 &config.effective_config_path,
                 &config.bitcoind_addr,
-                &config.bitcoin_integration_config,
+                config.enable_bitcoin,
                 &config.replica_config,
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
@@ -350,7 +341,7 @@ async fn initialize_pocketic(
     port: u16,
     effective_config_path: &Path,
     bitcoind_addr: &Option<Vec<SocketAddr>>,
-    bitcoin_integration_config: &Option<BitcoinIntegrationConfig>,
+    enable_bitcoin: bool,
     replica_config: &ReplicaConfig,
     domains: Option<Vec<String>>,
     addr: SocketAddr,
@@ -383,10 +374,11 @@ async fn initialize_pocketic(
         }
     }
 
+    let icp_features = IcpFeatures::default();
     let icp_features = if replica_config.system_canisters {
         // Explicitly enabling specific system canisters here
         // ensures we'll notice if pocket-ic adds support for additional ones
-        Some(IcpFeatures {
+        IcpFeatures {
             registry: Some(IcpFeaturesConfig::default()),
             cycles_minting: Some(IcpFeaturesConfig::default()),
             icp_token: Some(IcpFeaturesConfig::default()),
@@ -395,10 +387,18 @@ async fn initialize_pocketic(
             sns: Some(IcpFeaturesConfig::default()),
             ii: Some(IcpFeaturesConfig::default()),
             nns_ui: Some(IcpFeaturesConfig::default()),
-            bitcoin: None,
-        })
+            bitcoin: icp_features.bitcoin,
+        }
     } else {
-        None
+        icp_features
+    };
+    let icp_features = if bitcoind_addr.is_some() || enable_bitcoin {
+        IcpFeatures {
+            bitcoin: Some(IcpFeaturesConfig::default()),
+            ..icp_features
+        }
+    } else {
+        icp_features
     };
 
     let resp = init_client
@@ -412,7 +412,7 @@ async fn initialize_pocketic(
             }),
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
-            icp_features,
+            icp_features: Some(icp_features),
             http_gateway_config: Some(InstanceHttpGatewayConfig {
                 ip_addr: Some(addr.ip().to_string()),
                 port: Some(addr.port()),
@@ -455,11 +455,6 @@ async fn initialize_pocketic(
     debug!(logger, "Waiting for replica to report healthy status");
     crate::lib::replica::status::ping_and_wait(&agent_url).await?;
 
-    if let Some(bitcoin_integration_config) = bitcoin_integration_config {
-        let agent = create_integrations_agent(&agent_url, &logger).await?;
-        initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config.clone()).await?;
-    }
-
     debug!(logger, "Initialized PocketIC with gateway.");
     Ok(server_instance)
 }
@@ -469,7 +464,7 @@ fn initialize_pocketic(
     _: u16,
     _: &Path,
     _: &Option<Vec<SocketAddr>>,
-    _: &Option<BitcoinIntegrationConfig>,
+    _: bool,
     _: &ReplicaConfig,
     _: Option<Vec<String>>,
     _: SocketAddr,

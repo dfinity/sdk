@@ -54,11 +54,6 @@
       "sha256": "c41db448cf9fd63d285aac5415e122d1970a94e13a870a381322584f3153c2b4",
       "version": "0.16.2"
     },
-    "ic-btc-canister": {
-      "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2025-07-02/ic-btc-canister.wasm.gz",
-      "sha256": "42af59ae4fd5041f30f8ac12f324e3a93533de0cb89cd2278100c2389cbfff65",
-      "version": "release/2025-07-02"
-    },
     "motoko-core": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.16.2/motoko-core.tar.gz",
       "sha256": "e4154b1cff9387bb1ead2e3c0ddbeeb39fe9aa2c5a4d8af0142b3f7b174a5fa2",

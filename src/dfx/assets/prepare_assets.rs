@@ -53,34 +53,6 @@ fn copy_canisters(out_dir: PathBuf) {
     }
 }
 
-async fn download_canisters(
-    client: Client,
-    sources: Arc<HashMap<String, Source>>,
-    out_dir: PathBuf,
-) {
-    // replace with joinset setup from download_binaries if another gets added
-    let source = sources["ic-btc-canister"].clone();
-    let btc_canister = download_and_check_sha(client, source).await;
-    spawn_blocking(move || {
-        let mut tar = Builder::new(GzEncoder::new(
-            BufWriter::new(File::create(out_dir.join("btc_canister.tgz")).unwrap()),
-            Compression::new(6),
-        ));
-        let mut header = Header::new_gnu();
-        header.set_mode(0o644);
-        header.set_size(btc_canister.len() as u64);
-        tar.append_data(
-            &mut header,
-            "ic-btc-canister.wasm.gz",
-            btc_canister.reader(),
-        )
-        .unwrap();
-        tar.finish().unwrap();
-    })
-    .await
-    .unwrap();
-}
-
 async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
     let sources = Arc::new(sources);
     let client = Client::builder()
@@ -91,13 +63,8 @@ async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
     let mo_core = spawn(download_mo_core(client.clone(), sources.clone()));
     let bins = spawn(download_binaries(client.clone(), sources.clone()));
     let bin_tars = spawn(download_bin_tarballs(client.clone(), sources.clone()));
-    let canisters = spawn(download_canisters(
-        client.clone(),
-        sources.clone(),
-        out_dir.clone(),
-    ));
-    let (mo_base, mo_core, bins, bin_tars, _) =
-        tokio::try_join!(mo_base, mo_core, bins, bin_tars, canisters).unwrap();
+    let (mo_base, mo_core, bins, bin_tars) =
+        tokio::try_join!(mo_base, mo_core, bins, bin_tars).unwrap();
     spawn_blocking(|| write_binary_cache(out_dir, mo_base, mo_core, bins, bin_tars))
         .await
         .unwrap();

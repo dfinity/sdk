@@ -42,15 +42,7 @@ set_local_network_bitcoin_enabled() {
   dfx_start --enable-bitcoin
 
   assert_command dfx canister info "$BITCOIN_CANISTER_ID"
-  assert_contains "Controllers: 2vxsx-fae"
   assert_contains "Module hash: 0x"
-}
-
-@test "bitcoin canister has decent amount of cycles" {
-  dfx_start --enable-bitcoin
-  # The canister is created with default amount of cycles: 100T
-  cycles_balance=$( dfx --identity anonymous canister status "$BITCOIN_CANISTER_ID" 2>&1 | grep 'Balance:' | sed 's/[^0-9]//g' )
-  assert_command test "$cycles_balance" -gt 99000000000000 # 99T
 }
 
 @test "can call bitcoin API of the management canister" {
