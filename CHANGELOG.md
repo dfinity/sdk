@@ -15,6 +15,17 @@ Improved the canister snapshot download/upload feature by
 The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
 By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 03783153d1596a81311b38cc1602063c400a3c8a.
+This incorporates the following executed proposals:
+
+- [139317](https://dashboard.internetcomputer.org/proposal/139317)
+- [139192](https://dashboard.internetcomputer.org/proposal/139192)
+- [139079](https://dashboard.internetcomputer.org/proposal/139079)
+
 # 0.30.0
 
 ### feat: `dfx start --system-canisters` for bootstrapping system canisters
