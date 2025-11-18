@@ -15,6 +15,8 @@ Improved the canister snapshot download/upload feature by
 The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
 By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
 
+### chore: Bump cdk to 0.19 in project template.
+
 ## Dependencies
 
 ### Replica
@@ -25,6 +27,7 @@ This incorporates the following executed proposals:
 - [139317](https://dashboard.internetcomputer.org/proposal/139317)
 - [139192](https://dashboard.internetcomputer.org/proposal/139192)
 - [139079](https://dashboard.internetcomputer.org/proposal/139079)
+
 
 # 0.30.0
 
