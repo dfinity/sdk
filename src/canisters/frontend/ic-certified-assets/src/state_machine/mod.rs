@@ -236,6 +236,8 @@ pub struct State {
     asset_hashes: CertifiedResponses,
 
     encoded_canister_env: String,
+
+    last_state_update_timestamp_ns: u64,
 }
 
 impl Asset {
@@ -354,6 +356,10 @@ impl State {
 
     pub fn root_hash(&self) -> Hash {
         self.asset_hashes.root_hash()
+    }
+
+    pub fn last_state_update_timestamp_ns(&self) -> u64 {
+        self.last_state_update_timestamp_ns
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
@@ -557,6 +563,8 @@ impl State {
             dependent_keys,
             Some(&self.encoded_canister_env),
         );
+        self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
+
         Ok(())
     }
 
@@ -738,6 +746,7 @@ impl State {
         self.certify_404_if_required();
 
         self.update_ic_env_cookie_in_html_files();
+        self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
 
         Ok(())
     }
@@ -1222,6 +1231,7 @@ impl From<StableStateV2> for State {
                 .configuration
                 .map(Into::into)
                 .unwrap_or_default(),
+            last_state_update_timestamp_ns: stable_state.last_state_update_timestamp.unwrap_or(0),
             ..Self::default()
         };
 

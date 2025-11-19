@@ -4582,3 +4582,164 @@ mod enforce_limits {
         );
     }
 }
+
+#[cfg(test)]
+mod last_state_update_timestamp {
+    use super::*;
+    use crate::types::StoreArg;
+
+    #[test]
+    fn timestamp_updates_on_commit_batch() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        // Initial timestamp should be 0
+        assert_eq!(state.last_state_update_timestamp_ns(), 0);
+
+        // Create and commit a batch with asset operations
+        let batch_id = state.create_batch(&system_context).unwrap();
+
+        state
+            .commit_batch(
+                CommitBatchArguments {
+                    batch_id,
+                    operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                        key: "/test.txt".to_string(),
+                        content_type: "text/plain".to_string(),
+                        max_age: None,
+                        headers: None,
+                        enable_aliasing: None,
+                        allow_raw_access: None,
+                    })],
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // Timestamp should be updated to system context timestamp
+        assert_eq!(
+            state.last_state_update_timestamp_ns(),
+            system_context.current_timestamp_ns
+        );
+    }
+
+    #[test]
+    fn timestamp_updates_on_store() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        // Initial timestamp should be 0
+        assert_eq!(state.last_state_update_timestamp_ns(), 0);
+
+        // Store an asset
+        state
+            .store(
+                StoreArg {
+                    key: "/test.txt".to_string(),
+                    content_type: "text/plain".to_string(),
+                    content_encoding: "identity".to_string(),
+                    content: ByteBuf::from(b"test content".to_vec()),
+                    sha256: None,
+                    aliased: None,
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // Timestamp should be updated
+        assert_eq!(
+            state.last_state_update_timestamp_ns(),
+            system_context.current_timestamp_ns
+        );
+    }
+
+    #[test]
+    fn timestamp_updates_on_multiple_operations() {
+        let mut state = State::default();
+        let mut system_context = mock_system_context();
+
+        // Initial timestamp should be 0
+        assert_eq!(state.last_state_update_timestamp_ns(), 0);
+
+        // First operation at time T1
+        let initial_time = system_context.current_timestamp_ns;
+        state
+            .store(
+                StoreArg {
+                    key: "/test.txt".to_string(),
+                    content_type: "text/plain".to_string(),
+                    content_encoding: "identity".to_string(),
+                    content: ByteBuf::from(b"test content".to_vec()),
+                    sha256: None,
+                    aliased: None,
+                },
+                &system_context,
+            )
+            .unwrap();
+        assert_eq!(state.last_state_update_timestamp_ns(), initial_time);
+
+        // Second operation at time T2 (advanced)
+        system_context.current_timestamp_ns += 1_000_000_000; // +1 second
+        let updated_time = system_context.current_timestamp_ns;
+
+        let batch_id = state.create_batch(&system_context).unwrap();
+        state
+            .commit_batch(
+                CommitBatchArguments {
+                    batch_id,
+                    operations: vec![BatchOperation::SetAssetProperties(
+                        SetAssetPropertiesArguments {
+                            key: "/test.txt".to_string(),
+                            headers: Some(Some(BTreeMap::from([(
+                                "x-custom".to_string(),
+                                "value".to_string(),
+                            )]))),
+                            max_age: None,
+                            is_aliased: None,
+                            allow_raw_access: None,
+                        },
+                    )],
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // Timestamp should be updated to new time
+        assert_eq!(state.last_state_update_timestamp_ns(), updated_time);
+        assert!(state.last_state_update_timestamp_ns() > initial_time);
+    }
+
+    #[test]
+    fn timestamp_persists_in_stable_state() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        // Store an asset to update timestamp
+        state
+            .store(
+                StoreArg {
+                    key: "/test.txt".to_string(),
+                    content_type: "text/plain".to_string(),
+                    content_encoding: "identity".to_string(),
+                    content: ByteBuf::from(b"test content".to_vec()),
+                    sha256: None,
+                    aliased: None,
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        let expected_timestamp = state.last_state_update_timestamp_ns();
+        assert_eq!(expected_timestamp, system_context.current_timestamp_ns);
+
+        // Convert to stable state and back
+        let stable_state: StableStateV2 = state.into();
+        let restored_state: State = stable_state.into();
+
+        // Timestamp should be preserved
+        assert_eq!(
+            restored_state.last_state_update_timestamp_ns(),
+            expected_timestamp
+        );
+    }
+}
