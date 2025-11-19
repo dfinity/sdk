@@ -1,7 +1,9 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsDogecoin, ConfigDefaultsProxy, ConfigDefaultsReplica, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND, ReplicaLogLevel, ReplicaSubnetType, to_socket_addr
+    ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsDogecoin, ConfigDefaultsProxy,
+    ConfigDefaultsReplica, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND, ReplicaLogLevel,
+    ReplicaSubnetType, to_socket_addr,
 };
 use crate::config::model::replica_config::CachedConfig;
 use crate::error::network_config::{

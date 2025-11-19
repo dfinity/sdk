@@ -602,7 +602,6 @@ pub struct ConfigDefaultsDogecoin {
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).
     #[serde(default)]
     pub nodes: Option<Vec<SocketAddr>>,
-
 }
 
 /// # HTTP Adapter Configuration

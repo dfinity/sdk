@@ -97,7 +97,7 @@ fn config_network_to_network_descriptor(
             let dogecoin = local_provider
                 .dogecoin
                 .clone()
-                .or_else(||  project_defaults.and_then(|x| x.dogecoin.clone()))
+                .or_else(|| project_defaults.and_then(|x| x.dogecoin.clone()))
                 .unwrap_or_default();
             let canister_http = local_provider
                 .canister_http

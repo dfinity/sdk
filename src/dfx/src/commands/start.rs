@@ -157,7 +157,7 @@ pub fn exec(
         bitcoin_node,
         enable_bitcoin,
         dogecoin_node,
-        enable_dogecoin ,
+        enable_dogecoin,
         enable_canister_http,
         artificial_delay,
         domain,
