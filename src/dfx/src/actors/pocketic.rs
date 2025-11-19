@@ -55,6 +55,8 @@ pub struct Config {
     pub replica_config: ReplicaConfig,
     pub bitcoind_addr: Option<Vec<SocketAddr>>,
     pub enable_bitcoin: bool,
+    pub dogecoind_addr: Option<Vec<SocketAddr>>,
+    pub enable_dogecoin: bool,
     pub port: Option<u16>,
     pub port_file: PathBuf,
     pub pid_file: PathBuf,
@@ -279,6 +281,8 @@ fn pocketic_start_thread(
                 &config.effective_config_path,
                 &config.bitcoind_addr,
                 config.enable_bitcoin,
+                &config.dogecoind_addr,
+                config.enable_dogecoin,
                 &config.replica_config,
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
@@ -342,6 +346,8 @@ async fn initialize_pocketic(
     effective_config_path: &Path,
     bitcoind_addr: &Option<Vec<SocketAddr>>,
     enable_bitcoin: bool,
+    dogecoind_addr: &Option<Vec<SocketAddr>>,
+    enable_dogecoin: bool,
     replica_config: &ReplicaConfig,
     domains: Option<Vec<String>>,
     addr: SocketAddr,
@@ -389,13 +395,24 @@ async fn initialize_pocketic(
             nns_ui: Some(IcpFeaturesConfig::default()),
             bitcoin: icp_features.bitcoin,
             canister_migration: None,
+            dogecoin: icp_features.dogecoin,
         }
     } else {
         icp_features
     };
+
     let icp_features = if bitcoind_addr.is_some() || enable_bitcoin {
         IcpFeatures {
             bitcoin: Some(IcpFeaturesConfig::default()),
+            ..icp_features
+        }
+    } else {
+        icp_features
+    };
+
+    let icp_features = if dogecoind_addr.is_some() || enable_dogecoin {
+        IcpFeatures {
+            dogecoin: Some(IcpFeaturesConfig::default()),
             ..icp_features
         }
     } else {
@@ -464,6 +481,8 @@ async fn initialize_pocketic(
 fn initialize_pocketic(
     _: u16,
     _: &Path,
+    _: &Option<Vec<SocketAddr>>,
+    _: bool,
     _: &Option<Vec<SocketAddr>>,
     _: bool,
     _: &ReplicaConfig,
