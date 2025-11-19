@@ -483,6 +483,8 @@ fn initialize_pocketic(
     _: &Path,
     _: &Option<Vec<SocketAddr>>,
     _: bool,
+    _: &Option<Vec<SocketAddr>>,
+    _: bool,
     _: &ReplicaConfig,
     _: Option<Vec<String>>,
     _: SocketAddr,
