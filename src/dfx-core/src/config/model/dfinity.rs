@@ -73,6 +73,7 @@ pub const BUILTIN_CANISTER_TYPES: [&str; 5] = ["rust", "motoko", "assets", "cust
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bitcoin: None,
+    dogecoin: None,
     bootstrap: None,
     build: None,
     canister_http: None,
@@ -590,6 +591,20 @@ impl Default for ConfigDefaultsBitcoin {
     }
 }
 
+/// # Dogecoin Adapter Configuration
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema, Default)]
+pub struct ConfigDefaultsDogecoin {
+    /// # Enable Dogecoin Adapter
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// # Available Nodes
+    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).
+    #[serde(default)]
+    pub nodes: Option<Vec<SocketAddr>>,
+
+}
+
 /// # HTTP Adapter Configuration
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
@@ -813,6 +828,7 @@ pub struct ConfigLocalProvider {
     pub r#type: NetworkType,
 
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub dogecoin: Option<ConfigDefaultsDogecoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
@@ -839,6 +855,7 @@ pub enum Profile {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaults {
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub dogecoin: Option<ConfigDefaultsDogecoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,

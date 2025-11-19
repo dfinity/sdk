@@ -1,9 +1,7 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsProxy, ConfigDefaultsReplica,
-    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND, ReplicaLogLevel, ReplicaSubnetType,
-    to_socket_addr,
+    ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsDogecoin, ConfigDefaultsProxy, ConfigDefaultsReplica, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND, ReplicaLogLevel, ReplicaSubnetType, to_socket_addr
 };
 use crate::config::model::replica_config::CachedConfig;
 use crate::error::network_config::{
@@ -45,6 +43,7 @@ pub struct LocalServerDescriptor {
     pub bind_address: SocketAddr,
 
     pub bitcoin: ConfigDefaultsBitcoin,
+    pub dogecoin: ConfigDefaultsDogecoin,
     pub canister_http: ConfigDefaultsCanisterHttp,
     pub proxy: ConfigDefaultsProxy,
     pub replica: ConfigDefaultsReplica,
@@ -67,6 +66,7 @@ impl LocalServerDescriptor {
         data_directory: PathBuf,
         bind: String,
         bitcoin: ConfigDefaultsBitcoin,
+        dogecoin: ConfigDefaultsDogecoin,
         canister_http: ConfigDefaultsCanisterHttp,
         proxy: ConfigDefaultsProxy,
         replica: ConfigDefaultsReplica,
@@ -80,6 +80,7 @@ impl LocalServerDescriptor {
             settings_digest,
             bind_address,
             bitcoin,
+            dogecoin,
             canister_http,
             proxy,
             replica,
@@ -197,6 +198,22 @@ impl LocalServerDescriptor {
             ..self.bitcoin
         };
         Self { bitcoin, ..self }
+    }
+
+    pub fn with_dogecoin_enabled(self) -> LocalServerDescriptor {
+        let dogecoin = ConfigDefaultsDogecoin {
+            enabled: true,
+            ..self.dogecoin
+        };
+        Self { dogecoin, ..self }
+    }
+
+    pub fn with_dogecoin_nodes(self, nodes: Vec<SocketAddr>) -> LocalServerDescriptor {
+        let dogecoin = ConfigDefaultsDogecoin {
+            nodes: Some(nodes),
+            ..self.dogecoin
+        };
+        Self { dogecoin, ..self }
     }
 
     pub fn with_proxy_domains(self, domains: Vec<String>) -> LocalServerDescriptor {
