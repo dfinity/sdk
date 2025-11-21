@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: support dogecoin for the local dev environment
+
+You can now launch a network with `dfx network start --enable-dogeoin` to run the dogecoin
+integration locally.
+
 ### feat: improved the canister snapshot download/upload feature
 
 Improved the canister snapshot download/upload feature by
@@ -21,7 +26,7 @@ By using `pocket-ic`, which gets updated frequently, the BTC integration is sign
 
 ### Replica
 
-Updated replica to elected commit 03783153d1596a81311b38cc1602063c400a3c8a.
+Updated replica to commit 2e99e6c26c0eacd4f321e7c2604d118d645828ad
 This incorporates the following executed proposals:
 
 - [139317](https://dashboard.internetcomputer.org/proposal/139317)
