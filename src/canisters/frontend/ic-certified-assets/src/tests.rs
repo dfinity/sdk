@@ -20,6 +20,7 @@ use ic_response_verification_test_utils::{
     base64_encode, create_canister_id, get_current_timestamp,
 };
 use serde_bytes::ByteBuf;
+use sha2::Digest as Sha2Digest;
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
@@ -4870,5 +4871,271 @@ mod list_assets {
         let state = State::default();
         let list = state.list_assets(None);
         assert_eq!(list.len(), 0);
+    }
+}
+
+#[cfg(test)]
+mod set_asset_content_sha256_verification {
+    use super::*;
+
+    #[test]
+    fn verifies_correct_sha256() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const CONTENT: &[u8] = b"Hello, World!";
+        let correct_hash = sha2::Sha256::digest(CONTENT);
+
+        // Create asset first
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/test.txt".to_string(),
+                content_type: "text/plain".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap();
+
+        // Create batch and chunk
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CONTENT),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // set_asset_content with correct hash should succeed
+        let result = state.set_asset_content(
+            SetAssetContentArguments {
+                key: "/test.txt".to_string(),
+                content_encoding: "identity".to_string(),
+                chunk_ids: vec![chunk_id],
+                last_chunk: None,
+                sha256: Some(ByteBuf::from(correct_hash.as_slice())),
+            },
+            &system_context,
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn rejects_incorrect_sha256() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const CONTENT: &[u8] = b"Hello, World!";
+        let incorrect_hash = sha2::Sha256::digest(b"Different content");
+
+        // Create asset first
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/test.txt".to_string(),
+                content_type: "text/plain".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap();
+
+        // Create batch and chunk
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CONTENT),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // set_asset_content with incorrect hash should fail
+        let result = state.set_asset_content(
+            SetAssetContentArguments {
+                key: "/test.txt".to_string(),
+                content_encoding: "identity".to_string(),
+                chunk_ids: vec![chunk_id],
+                last_chunk: None,
+                sha256: Some(ByteBuf::from(incorrect_hash.as_slice())),
+            },
+            &system_context,
+        );
+
+        assert_eq!(result.unwrap_err(), "sha256 mismatch");
+    }
+
+    #[test]
+    fn computes_sha256_when_not_provided() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const CONTENT: &[u8] = b"Hello, World!";
+        let expected_hash = sha2::Sha256::digest(CONTENT);
+
+        // Create asset first
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/test.txt".to_string(),
+                content_type: "text/plain".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap();
+
+        // Create batch and chunk
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CONTENT),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // set_asset_content without hash should succeed and compute it
+        let result = state.set_asset_content(
+            SetAssetContentArguments {
+                key: "/test.txt".to_string(),
+                content_encoding: "identity".to_string(),
+                chunk_ids: vec![chunk_id],
+                last_chunk: None,
+                sha256: None,
+            },
+            &system_context,
+        );
+
+        assert!(result.is_ok());
+
+        // Verify the hash was computed correctly by retrieving the asset
+        let retrieved = state
+            .get(GetArg {
+                key: "/test.txt".to_string(),
+                accept_encodings: vec!["identity".to_string()],
+            })
+            .unwrap();
+        assert_eq!(retrieved.sha256.unwrap().as_ref(), expected_hash.as_slice());
+    }
+
+    #[test]
+    fn verifies_sha256_with_multiple_chunks() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const CHUNK_1: &[u8] = b"Hello, ";
+        const CHUNK_2: &[u8] = b"World!";
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(CHUNK_1);
+        hasher.update(CHUNK_2);
+        let correct_hash = hasher.finalize();
+
+        // Create asset first
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/test.txt".to_string(),
+                content_type: "text/plain".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap();
+
+        // Create batch and chunks
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id_1 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CHUNK_1),
+                },
+                &system_context,
+            )
+            .unwrap();
+        let chunk_id_2 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CHUNK_2),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // set_asset_content with correct hash for combined chunks should succeed
+        let result = state.set_asset_content(
+            SetAssetContentArguments {
+                key: "/test.txt".to_string(),
+                content_encoding: "identity".to_string(),
+                chunk_ids: vec![chunk_id_1, chunk_id_2],
+                last_chunk: None,
+                sha256: Some(ByteBuf::from(correct_hash.as_slice())),
+            },
+            &system_context,
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn verifies_sha256_with_last_chunk() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const CHUNK_1: &[u8] = b"Hello, ";
+        const LAST_CHUNK: &[u8] = b"World!";
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(CHUNK_1);
+        hasher.update(LAST_CHUNK);
+        let correct_hash = hasher.finalize();
+
+        // Create asset first
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/test.txt".to_string(),
+                content_type: "text/plain".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap();
+
+        // Create batch and chunk
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id_1 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CHUNK_1),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // set_asset_content with last_chunk and correct hash should succeed
+        let result = state.set_asset_content(
+            SetAssetContentArguments {
+                key: "/test.txt".to_string(),
+                content_encoding: "identity".to_string(),
+                chunk_ids: vec![chunk_id_1],
+                last_chunk: Some(ByteBuf::from(LAST_CHUNK)),
+                sha256: Some(ByteBuf::from(correct_hash.as_slice())),
+            },
+            &system_context,
+        );
+
+        assert!(result.is_ok());
     }
 }

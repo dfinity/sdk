@@ -411,19 +411,21 @@ impl State {
             content_chunks.push(encoding_content.into());
         }
 
-        let sha256: [u8; 32] = match arg.sha256 {
-            Some(bytes) => bytes
+        let mut hasher = sha2::Sha256::new();
+        for chunk in content_chunks.iter() {
+            hasher.update(chunk);
+        }
+        let sha256: [u8; 32] = hasher.finalize().into();
+
+        if let Some(provided_hash) = arg.sha256 {
+            let provided_hash: [u8; 32] = provided_hash
                 .into_vec()
                 .try_into()
-                .map_err(|_| "invalid SHA-256".to_string())?,
-            None => {
-                let mut hasher = sha2::Sha256::new();
-                for chunk in content_chunks.iter() {
-                    hasher.update(chunk);
-                }
-                hasher.finalize().into()
+                .map_err(|_| "invalid SHA-256".to_string())?;
+            if sha256 != provided_hash {
+                return Err("sha256 mismatch".to_string());
             }
-        };
+        }
 
         let total_length: usize = content_chunks.iter().map(|c| c.len()).sum();
         let enc = AssetEncoding {
