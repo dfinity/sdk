@@ -1,6 +1,6 @@
 use crate::lib::builders::BuildConfig;
-use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -15,7 +15,7 @@ use crate::lib::operations::canister::{
 };
 use crate::util::clap::install_mode::InstallModeHint;
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
@@ -280,6 +280,7 @@ async fn register_canisters(
                     wasm_memory_limit,
                     wasm_memory_threshold: None,
                     log_visibility,
+                    environment_variables: None,
                 },
                 created_at_time,
                 subnet_selection,
@@ -419,7 +420,7 @@ async fn compute_evidence(
 
     let evidence =
         ic_asset::compute_evidence(&canister, &source_paths, env.get_logger(), None).await?;
-    println!("{}", evidence);
+    println!("{evidence}");
 
     Ok(())
 }

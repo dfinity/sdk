@@ -3,8 +3,9 @@ use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
-    get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
-    get_reserved_cycles_limit, get_wasm_memory_limit, get_wasm_memory_threshold, CanisterSettings,
+    CanisterSettings, get_compute_allocation, get_freezing_threshold, get_log_visibility,
+    get_memory_allocation, get_reserved_cycles_limit, get_wasm_memory_limit,
+    get_wasm_memory_threshold,
 };
 use crate::lib::operations::canister::{create_canister, skip_remote_canister};
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -15,7 +16,7 @@ use crate::util::clap::parsers::{
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
 use clap::{ArgAction, Parser};
@@ -72,12 +73,12 @@ pub struct CanisterCreateOpts {
     /// Specifies the upper limit of the canister's reserved cycles balance.
     ///
     /// Reserved cycles are cycles that the system sets aside for future use by the canister.
-    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// If a subnet's storage exceeds 750 GiB, then every time a canister allocates new storage bytes,
     /// the system sets aside some amount of cycles from the main balance of the canister.
     /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
     /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
     ///
-    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 750 GiB.
     #[arg(long, value_parser = reserved_cycles_limit_parser, hide = true)]
     reserved_cycles_limit: Option<u128>,
 
@@ -183,12 +184,17 @@ pub async fn exec(
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
         if pull_canisters_in_config.contains_key(canister_name) {
-            bail!("{canister_name} is a pull dependency. Please deploy it using `dfx deps deploy {canister_name}`");
+            bail!(
+                "{canister_name} is a pull dependency. Please deploy it using `dfx deps deploy {canister_name}`"
+            );
         }
         let canister_is_remote =
             config_interface.is_remote_canister(canister_name, &network.name)?;
         if canister_is_remote {
-            bail!("Canister '{canister_name}' is a remote canister on network '{}', and cannot be created from here.", &network.name)
+            bail!(
+                "Canister '{canister_name}' is a remote canister on network '{}', and cannot be created from here.",
+                &network.name
+            )
         }
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation,
@@ -251,6 +257,7 @@ pub async fn exec(
                 wasm_memory_limit,
                 wasm_memory_threshold,
                 log_visibility,
+                environment_variables: None,
             },
             opts.created_at_time,
             &mut subnet_selection,
@@ -337,6 +344,7 @@ pub async fn exec(
                         wasm_memory_limit,
                         wasm_memory_threshold,
                         log_visibility,
+                        environment_variables: None,
                     },
                     opts.created_at_time,
                     &mut subnet_selection,
@@ -344,7 +352,10 @@ pub async fn exec(
                 .await?;
             }
             if !pull_canisters_in_config.is_empty() {
-                info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
+                info!(
+                    env.get_logger(),
+                    "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`."
+                );
             }
         }
         Ok(())

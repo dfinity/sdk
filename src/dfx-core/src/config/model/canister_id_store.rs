@@ -8,14 +8,14 @@ use crate::network::directory::ensure_cohesive_network_directory;
 use candid::Principal as CanisterId;
 use ic_agent::export::Principal;
 use serde::{Deserialize, Serialize, Serializer};
-use slog::{warn, Logger};
+use slog::{Logger, warn};
 use std::collections::BTreeMap;
 use std::ops::{Deref, DerefMut, Sub};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
-use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 
 pub type CanisterName = String;
 pub type NetworkName = String;
@@ -247,7 +247,11 @@ impl CanisterIdStore {
         crate::fs::composite::ensure_parent_dir_exists(path)?;
         crate::json::save_json_file(path, &self.ids)?;
         if to_warn {
-            warn!(log, "The {:?} file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.", path);
+            warn!(
+                log,
+                "The {:?} file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.",
+                path
+            );
         }
         Ok(())
     }

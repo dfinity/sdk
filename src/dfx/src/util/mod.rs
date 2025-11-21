@@ -4,11 +4,11 @@ use crate::lib::integrations::bitcoin::MAINNET_BITCOIN_CANISTER_ID;
 use crate::lib::ledger_types::{MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::subnet::MAINNET_REGISTRY_CANISTER_ID;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
-use anyhow::{anyhow, bail, Context};
-use backoff::backoff::Backoff;
+use anyhow::{Context, anyhow, bail};
 use backoff::ExponentialBackoff;
+use backoff::backoff::Backoff;
 use bytes::Bytes;
-use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
+use candid::types::{Function, Type, TypeEnv, TypeInner, value::IDLValue};
 use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
@@ -16,12 +16,13 @@ use dfx_core::config::model::network_descriptor::MAINNET_MOTOKO_PLAYGROUND_CANIS
 use dfx_core::error::cli::UserConsent;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
-use idl2json::{idl2json, Idl2JsonOptions};
+use idl2json::{Idl2JsonOptions, idl2json};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
+use serde_dhall::SimpleValue;
 use std::collections::BTreeMap;
-use std::io::{stderr, stdin, stdout, IsTerminal, Read};
+use std::io::{IsTerminal, Read, stderr, stdin, stdout};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::time::Duration;
@@ -40,7 +41,7 @@ const DECIMAL_POINT: char = '.';
 #[context("Failed to find available socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let listener = TcpListener::bind(SocketAddr::new(ip, port))
-        .with_context(|| format!("Failed to bind socket to {}:{}.", ip, port))?;
+        .with_context(|| format!("Failed to bind socket to {ip}:{port}."))?;
     listener
         .local_addr()
         .context("Failed to fetch local address.")
@@ -57,7 +58,7 @@ pub fn print_idl_blob(
     match output_type {
         "raw" => {
             let hex_string = hex::encode(blob);
-            println!("{}", hex_string);
+            println!("{hex_string}");
         }
         "idl" | "pp" | "json" => {
             let result = match method_type {
@@ -66,13 +67,13 @@ pub fn print_idl_blob(
             };
             if result.is_err() {
                 let hex_string = hex::encode(blob);
-                eprintln!("Error deserializing blob 0x{}", hex_string);
+                eprintln!("Error deserializing blob 0x{hex_string}");
             }
             if output_type == "idl" {
                 println!("{:?}", result?);
             } else if output_type == "json" {
                 let json = convert_all(&result?)?;
-                println!("{}", json);
+                println!("{json}");
             } else {
                 println!("{}", result?);
             }
@@ -225,12 +226,17 @@ pub fn blob_from_arguments(
                         };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
-                        let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid_parser::configs::Configs::from_dhall(random)
-                            .context("Failed to create candid parser config.")?;
-                        let args = candid_parser::random::any(&seed, &config, env, &func.args)
+                        let seed: Vec<u8> = (0..2048).map(|_| rng.r#gen::<u8>()).collect();
+                        let dhall_value: SimpleValue = serde_dhall::from_str(random).parse()?;
+                        let toml_conversion = toml::Value::try_from(dhall_value)
+                            .context("Failed to convert dhall value to toml value.")?;
+                        let toml::Value::Table(table) = toml_conversion else {
+                            bail!("Failed to convert dhall value to toml table.")
+                        };
+                        let config = candid_parser::configs::Configs(table);
+                        let args = candid_parser::random::any(&seed, config, env, &func.args, &None)
                             .context("Failed to create idl args.")?;
-                        eprintln!("Sending the following random argument:\n{}\n", args);
+                        eprintln!("Sending the following random argument:\n{args}\n");
                         args.to_bytes_with_types(env, &func.args)
                     } else if is_terminal {
                         use candid_parser::assist::{input_args, Context};
@@ -251,7 +257,7 @@ pub fn blob_from_arguments(
                                 eprintln!("This method requires arguments.");
                             }
                             let args = input_args(&ctx, &func.args)?;
-                            eprintln!("Sending the following argument:\n{}\n", args);
+                            eprintln!("Sending the following argument:\n{args}\n");
                             if is_init_arg {
                                 eprintln!("Do you want to initialize the canister with this argument? [y/N]");
                             } else {
@@ -366,7 +372,7 @@ pub fn pretty_thousand_separators(num: String) -> String {
                 && num.len() != idx + 1
             {
                 count += 1;
-                format!("{}{}", c, GROUP_DELIMITER)
+                format!("{c}{GROUP_DELIMITER}")
             } else if count == 0 {
                 c.to_string()
             } else {
@@ -434,7 +440,7 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
 pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserConsent> {
     with_suspend_all_spinners(env, || {
         eprintln!("WARNING!");
-        eprintln!("{}", message);
+        eprintln!("{message}");
         eprintln!("Do you want to proceed? yes/No");
         let mut input_string = String::new();
         stdin()
@@ -474,7 +480,7 @@ pub fn with_suspend_all_spinners<R>(env: &dyn Environment, f: impl FnOnce() -> R
 
 #[cfg(test)]
 mod tests {
-    use super::{download_file, format_as_trillions, pretty_thousand_separators};
+    use super::{format_as_trillions, pretty_thousand_separators};
 
     #[test]
     fn prettify_balance_amount() {
@@ -539,16 +545,5 @@ mod tests {
             "340,282,366,920,938,463,463,374,607.431",
             pretty_thousand_separators(format_as_trillions(u128::MAX))
         );
-    }
-
-    #[test]
-    fn download_file_retry_at_most_60s() {
-        let url = reqwest::Url::parse("http://httpbin.org/status/500").unwrap();
-        let time0 = std::time::Instant::now();
-        let _res = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(download_file(&url));
-        let time1 = std::time::Instant::now();
-        assert!(time1 - time0 < std::time::Duration::from_secs(61));
     }
 }

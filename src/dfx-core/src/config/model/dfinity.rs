@@ -58,7 +58,7 @@ use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::default::Default;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -73,6 +73,7 @@ pub const BUILTIN_CANISTER_TYPES: [&str; 5] = ["rust", "motoko", "assets", "cust
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bitcoin: None,
+    dogecoin: None,
     bootstrap: None,
     build: None,
     canister_http: None,
@@ -209,7 +210,7 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
-pub type TechStackCategoryMap = HashMap<String, HashMap<String, String>>;
+pub type TechStackCategoryMap = BTreeMap<String, BTreeMap<String, String>>;
 
 /// # Tech Stack
 /// The tech stack used to build a canister.
@@ -475,12 +476,12 @@ pub struct InitializationValues {
     /// Specifies the upper limit of the canister's reserved cycles balance.
     ///
     /// Reserved cycles are cycles that the system sets aside for future use by the canister.
-    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// If a subnet's storage exceeds 750 GiB, then every time a canister allocates new storage bytes,
     /// the system sets aside some amount of cycles from the main balance of the canister.
     /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
     /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
     ///
-    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 750 GiB.
     #[schemars(with = "Option<u128>")]
     pub reserved_cycles_limit: Option<u128>,
 
@@ -588,6 +589,19 @@ impl Default for ConfigDefaultsBitcoin {
             canister_init_arg: default_bitcoin_canister_init_arg(),
         }
     }
+}
+
+/// # Dogecoin Adapter Configuration
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema, Default)]
+pub struct ConfigDefaultsDogecoin {
+    /// # Enable Dogecoin Adapter
+    #[serde(default)]
+    pub enabled: bool,
+
+    /// # Available Nodes
+    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).
+    #[serde(default)]
+    pub nodes: Option<Vec<SocketAddr>>,
 }
 
 /// # HTTP Adapter Configuration
@@ -813,6 +827,7 @@ pub struct ConfigLocalProvider {
     pub r#type: NetworkType,
 
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub dogecoin: Option<ConfigDefaultsDogecoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
@@ -839,6 +854,7 @@ pub enum Profile {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaults {
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub dogecoin: Option<ConfigDefaultsDogecoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
@@ -1703,5 +1719,24 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
+    }
+
+    #[test]
+    fn tech_stack_category_deterministic_serialization() {
+        let first = build_and_serialize();
+        // Repeat `build and serialize` many times and assert equality
+        for _ in 0..10 {
+            let next = build_and_serialize();
+            assert_eq!(first, next);
+        }
+    }
+
+    fn build_and_serialize() -> String {
+        use super::TechStackCategoryMap;
+        use std::collections::BTreeMap;
+        let mut data: TechStackCategoryMap = BTreeMap::new();
+        data.insert("typescript".into(), BTreeMap::new());
+        data.insert("javascript".into(), BTreeMap::new());
+        serde_json::to_string(&data).unwrap()
     }
 }

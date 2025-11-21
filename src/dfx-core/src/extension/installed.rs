@@ -1,8 +1,8 @@
 use crate::config::project_templates::ProjectTemplate;
 use crate::error::extension::ConvertExtensionIntoClapCommandError;
+use crate::extension::ExtensionName;
 use crate::extension::manager::ExtensionManager;
 use crate::extension::manifest::ExtensionManifest;
-use crate::extension::ExtensionName;
 use clap::Command;
 use std::collections::HashMap;
 

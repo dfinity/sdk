@@ -3,8 +3,9 @@ use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
 use dfx_core::network::provider::get_network_context;
-use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
+use ic_agent::agent::{RejectCode, RejectResponse};
+use ic_agent::agent_error::TransportError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
 use regex::Regex;
 use std::path::Path;
@@ -92,9 +93,11 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
             err.downcast_ref::<AgentError>()
         }
     };
-    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
-        transport_error.is_connect()
-            && transport_error
+    if let Some(AgentError::TransportError(TransportError::Reqwest(reqwest_err))) =
+        maybe_agent_error
+    {
+        reqwest_err.is_connect()
+            && reqwest_err
                 .url()
                 .and_then(|url| url.host())
                 .map(|host| match host {
@@ -187,7 +190,7 @@ fn duplicate_asset_key_dist_and_src(sync_error: &SyncError) -> bool {
             let project_dir = caps["project_dir"].to_string();
             let canister = caps["canister"].to_string();
             let rest = caps["rest"].to_string();
-            let transformed = format!("{}/src/{}/assets/{}", project_dir, canister, rest);
+            let transformed = format!("{project_dir}/src/{canister}/assets/{rest}");
             return transformed == path1;
         }
         false
@@ -277,7 +280,7 @@ fn diagnose_insufficient_cycles() -> DiagnosedError {
             if value == "local" {
                 "".to_string()
             } else {
-                format!(" --network {}", value)
+                format!(" --network {value}")
             }
         }
         Err(_) => "".to_string(),
@@ -286,8 +289,7 @@ fn diagnose_insufficient_cycles() -> DiagnosedError {
     let explanation = "Insufficient cycles balance to create the canister.";
     let suggestion = format!(
         "Please top up your cycles balance by converting ICP to cycles like below:
-'dfx cycles convert --amount=0.123{}'",
-        network
+'dfx cycles convert --amount=0.123{network}'"
     );
     DiagnosedError::new(explanation, suggestion)
 }

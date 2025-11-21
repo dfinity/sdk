@@ -3,11 +3,11 @@
 import json
 import os
 
-# Only run these tests on macOS
-MACOS_TESTS = ["dfx/bitcoin", "dfx/canister_http_adapter", "dfx/start"]
+# Only run these tests on macOS and Ubuntu-arm64
+SELECTED_TESTS = ["dfx/bitcoin", "dfx/canister_http_adapter", "dfx/start"]
 
 # Run these tests in serial
-SERIAL_TESTS = ["dfx/start", "dfx/bitcoin", "dfx/cycles-ledger", "dfx/ledger", "dfx/serial_misc"]
+SERIAL_TESTS = ["dfx/start", "dfx/bitcoin", "dfx/cycles-ledger", "dfx/ledger", "dfx/serial_misc", "dfx/canister_extra"]
 
 def test_scripts(prefix):
     all_files = os.listdir(f"e2e/tests-{prefix}")
@@ -31,16 +31,21 @@ for test in all_tests:
         "serial": serial,
     })
 
-    # macOS: only run selected tests
-    if test in MACOS_TESTS:
+    # macOS and Ubuntu-arm64: only run selected tests
+    if test in SELECTED_TESTS:
         include.append({
             "test": test,
-            "os": "macos-13",
+            "os": "macos-14",       # arm64 
             "serial": serial,
         })
         include.append({
             "test": test,
-            "os": "macos-13-xlarge",
+            "os": "macos-14-large", # intel
+            "serial": serial,
+        })
+        include.append({
+            "test": test,
+            "os": "ubuntu-22.04-arm",
             "serial": serial,
         })
 

@@ -19,24 +19,24 @@ import Logs "./Logs";
 import Metrics "./Metrics";
 import WasmUtilsType "./Wasm-utils";
 
-shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
-    let IC : ICType.Self = actor "aaaaa-aa";
-    let evm : EVM.Self = actor "7hfb6-caaaa-aaaar-qadga-cai";
-    let params = Option.get(opt_params, Types.defaultParams);
-    let Wasm : WasmUtilsType.Self = actor(Option.get(params.wasm_utils_principal, "ozk6r-tyaaa-aaaab-qab4a-cai"));
-    var pool = Types.CanisterPool(params);
-    let nonceCache = PoW.NonceCache(params.nonce_time_to_live);
-    var statsByOrigin = Logs.StatsByOrigin();
+shared (creator) persistent actor class Self(opt_params : ?Types.InitParams) = this {
+    transient let IC : ICType.Self = actor "aaaaa-aa";
+    transient let evm : EVM.Self = actor "7hfb6-caaaa-aaaar-qadga-cai";
+    transient let params = Option.get(opt_params, Types.defaultParams);
+    transient let Wasm : WasmUtilsType.Self = actor(Option.get(params.wasm_utils_principal, "ozk6r-tyaaa-aaaab-qab4a-cai"));
+    transient var pool = Types.CanisterPool(params);
+    transient let nonceCache = PoW.NonceCache(params.nonce_time_to_live);
+    transient var statsByOrigin = Logs.StatsByOrigin();
 
-    stable let controller = creator.caller;
-    stable var stats = Logs.defaultStats;
-    stable var stablePool : [Types.CanisterInfo] = [];
-    stable var stableMetadata : [(Principal, (Int, Bool))] = [];
-    stable var stableChildren : [(Principal, [Principal])] = [];
-    stable var stableTimers : [Types.CanisterInfo] = [];
-    stable var stableSnapshots : [(Principal, Blob)] = [];
-    stable var previousParam : ?Types.InitParams = null;
-    stable var stableStatsByOrigin : Logs.SharedStatsByOrigin = (#leaf, #leaf);
+    let controller = creator.caller;
+    var stats = Logs.defaultStats;
+    var stablePool : [Types.CanisterInfo] = [];
+    var stableMetadata : [(Principal, (Int, Bool))] = [];
+    var stableChildren : [(Principal, [Principal])] = [];
+    var stableTimers : [Types.CanisterInfo] = [];
+    var stableSnapshots : [(Principal, Blob)] = [];
+    var previousParam : ?Types.InitParams = null;
+    var stableStatsByOrigin : Logs.SharedStatsByOrigin = (#leaf, #leaf);
 
     system func preupgrade() {
         let (tree, metadata, children, timers, snapshots) = pool.share();

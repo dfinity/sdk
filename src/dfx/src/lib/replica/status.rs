@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use ic_agent::Agent;
 use std::time::Duration;
 

@@ -5,7 +5,12 @@ pub mod motoko_playground;
 mod skip_remote_canister;
 
 pub use create_canister::create_canister;
-use ic_utils::interfaces::management_canister::Snapshot;
+use ic_management_canister_types::{
+    LoadCanisterSnapshotArgs, ReadCanisterSnapshotDataArgs, ReadCanisterSnapshotDataResult,
+    ReadCanisterSnapshotMetadataArgs, ReadCanisterSnapshotMetadataResult, Snapshot,
+    UploadCanisterSnapshotDataArgs, UploadCanisterSnapshotMetadataArgs,
+    UploadCanisterSnapshotMetadataResult,
+};
 pub use install_canister::install_wallet;
 pub use skip_remote_canister::skip_remote_canister;
 
@@ -13,23 +18,23 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use anyhow::{anyhow, bail, Context};
-use candid::utils::ArgumentDecoder;
+use anyhow::{Context, anyhow, bail};
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use candid::utils::ArgumentDecoder;
 use candid::{decode_args, encode_args};
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
+use ic_utils::Argument;
 use ic_utils::call::SyncCall;
+use ic_utils::interfaces::ManagementCanister;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{
-    FetchCanisterLogsResponse, MgmtMethod, StatusCallResult,
+    CanisterStatusResult, FetchCanisterLogsResult, MgmtMethod,
 };
-use ic_utils::interfaces::ManagementCanister;
-use ic_utils::Argument;
 use pocket_ic::common::rest::RawEffectivePrincipal;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -189,13 +194,13 @@ pub async fn get_canister_status(
     env: &dyn Environment,
     canister_id: Principal,
     call_sender: &CallSender,
-) -> DfxResult<StatusCallResult> {
+) -> DfxResult<CanisterStatusResult> {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
 
-    let (out,): (StatusCallResult,) = do_management_call(
+    let (out,): (CanisterStatusResult,) = do_management_call(
         env,
         canister_id,
         MgmtMethod::CanisterStatus.as_ref(),
@@ -212,13 +217,13 @@ pub async fn get_canister_logs(
     env: &dyn Environment,
     canister_id: Principal,
     call_sender: &CallSender,
-) -> DfxResult<FetchCanisterLogsResponse> {
+) -> DfxResult<FetchCanisterLogsResult> {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
 
-    let (out,): (FetchCanisterLogsResponse,) = do_management_query_call(
+    let (out,): (FetchCanisterLogsResult,) = do_management_query_call(
         env,
         canister_id,
         MgmtMethod::FetchCanisterLogs.as_ref(),
@@ -497,29 +502,19 @@ pub async fn take_canister_snapshot(
 
 #[context(
     "Failed to load snapshot {} in canister {canister_id}",
-    hex::encode(snapshot_id)
+    hex::encode(&load_args.snapshot_id)
 )]
 pub async fn load_canister_snapshot(
     env: &dyn Environment,
     canister_id: Principal,
-    snapshot_id: &[u8],
+    load_args: &LoadCanisterSnapshotArgs,
     call_sender: &CallSender,
 ) -> DfxResult {
-    #[derive(CandidType)]
-    struct In<'a> {
-        canister_id: Principal,
-        snapshot_id: &'a [u8],
-        sender_canister_version: Option<u64>,
-    }
     do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::LoadCanisterSnapshot.as_ref(),
-        &In {
-            canister_id,
-            snapshot_id,
-            sender_canister_version: None,
-        },
+        load_args,
         call_sender,
         0,
     )
@@ -577,4 +572,76 @@ pub async fn delete_canister_snapshot(
     )
     .await?;
     Ok(())
+}
+
+pub async fn read_canister_snapshot_metadata(
+    env: &dyn Environment,
+    canister_id: Principal,
+    metadata_args: &ReadCanisterSnapshotMetadataArgs,
+    call_sender: &CallSender,
+) -> DfxResult<ReadCanisterSnapshotMetadataResult> {
+    let (snapshot_metadata,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ReadCanisterSnapshotMetadata.as_ref(),
+        metadata_args,
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_metadata)
+}
+
+pub async fn read_canister_snapshot_data(
+    env: &dyn Environment,
+    canister_id: Principal,
+    data_args: &ReadCanisterSnapshotDataArgs,
+    call_sender: &CallSender,
+) -> DfxResult<ReadCanisterSnapshotDataResult> {
+    let (snapshot_data,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ReadCanisterSnapshotData.as_ref(),
+        data_args,
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_data)
+}
+
+pub async fn upload_canister_snapshot_metadata(
+    env: &dyn Environment,
+    canister_id: Principal,
+    metadata_args: &UploadCanisterSnapshotMetadataArgs,
+    call_sender: &CallSender,
+) -> DfxResult<UploadCanisterSnapshotMetadataResult> {
+    let (snapshot_id,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::UploadCanisterSnapshotMetadata.as_ref(),
+        metadata_args,
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_id)
+}
+
+pub async fn upload_canister_snapshot_data(
+    env: &dyn Environment,
+    canister_id: Principal,
+    data_args: &UploadCanisterSnapshotDataArgs,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let (snapshot_data,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::UploadCanisterSnapshotData.as_ref(),
+        data_args,
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_data)
 }

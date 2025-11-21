@@ -1,9 +1,9 @@
 use std::{borrow::Cow, time::Duration};
 
 use schemars::{
-    gen::SchemaGenerator,
-    schema::{InstanceType, Metadata, Schema, SchemaObject, StringValidation},
     JsonSchema,
+    r#gen::SchemaGenerator,
+    schema::{InstanceType, Metadata, Schema, SchemaObject, StringValidation},
 };
 
 pub fn network_to_pathcompat(network_name: &str) -> String {

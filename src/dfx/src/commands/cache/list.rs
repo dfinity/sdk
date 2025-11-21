@@ -20,11 +20,11 @@ pub fn exec(env: &dyn Environment, _opts: CacheListOpts) -> DfxResult {
             current_printed = true;
             // Same version, prefix with `*`.
             std::io::stderr().flush()?;
-            print!("{}", version);
+            print!("{version}");
             std::io::stdout().flush()?;
             eprintln!(" *");
         } else {
-            eprintln!("{}", version);
+            eprintln!("{version}");
         }
     }
 

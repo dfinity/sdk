@@ -11,7 +11,7 @@ pub struct ControllersOpts {}
 pub async fn exec(env: &dyn Environment, _opts: ControllersOpts) -> DfxResult {
     let (controllers,): (Vec<Principal>,) = wallet_query(env, "get_controllers", ()).await?;
     for controller in controllers.iter() {
-        println!("{}", controller);
+        println!("{controller}");
     }
     Ok(())
 }

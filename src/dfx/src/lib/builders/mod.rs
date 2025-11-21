@@ -5,15 +5,14 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::command::direct_or_shell_command;
 use crate::util::with_suspend_all_spinners;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal as CanisterId;
-use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
-use slog::{info, trace, Logger};
+use slog::{Logger, info, trace};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -137,7 +136,11 @@ pub trait CanisterBuilder {
             .context("`bindings` must not be None")?;
 
         if bindings.is_empty() {
-            info!(logger, "`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
+            info!(
+                logger,
+                "`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.",
+                &info.get_name()
+            );
             return Ok(());
         }
 
@@ -157,15 +160,16 @@ pub trait CanisterBuilder {
             bail!("Candid file: {} doesn't exist.", did_from_build.display());
         }
 
-        let (env, ty) = CandidSource::File(did_from_build.as_path()).load()?;
+        let (env, ty, prog) = candid_parser::pretty_check_file(did_from_build.as_path())?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
-            let content =
-                ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
+            let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(
+                &env, &ty, &prog,
+            ));
             std::fs::write(&output_did_ts_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -198,7 +202,7 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("mo");
             let content =
-                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
+                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty, &prog));
             std::fs::write(&output_mo_path, content)
                 .with_context(|| format!("Failed to write to {}.", output_mo_path.display()))?;
             trace!(logger, "  {}", &output_mo_path.display());
@@ -254,7 +258,7 @@ fn compile_handlebars_files(
             .path()
             .context("Failed to read language bindings entry path name.")?
             .to_path_buf();
-        let file_extension = format!("{}.hbs", lang);
+        let file_extension = format!("{lang}.hbs");
         let is_template = pathname
             .to_str()
             .is_some_and(|name| name.ends_with(&file_extension));
@@ -438,7 +442,7 @@ pub fn get_and_write_environment_variables<'a>(
         ));
     }
     if let Ok(id) = info.get_canister_id() {
-        vars.push((Borrowed("CANISTER_ID"), Owned(format!("{}", id).into())));
+        vars.push((Borrowed("CANISTER_ID"), Owned(format!("{id}").into())));
     }
     vars.push((
         Borrowed("CANISTER_CANDID_PATH"),

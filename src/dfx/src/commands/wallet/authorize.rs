@@ -20,6 +20,6 @@ pub async fn exec(env: &dyn Environment, opts: AuthorizeOpts) -> DfxResult {
         )
     })?;
     wallet_update::<_, ()>(env, "authorize", custodian).await?;
-    println!("Authorized {} as a custodian.", custodian);
+    println!("Authorized {custodian} as a custodian.");
     Ok(())
 }

@@ -100,7 +100,11 @@ teardown() {
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/rust_svelte_with_tests_and_ii.exp"
   assert_file_exists e2e_project/Cargo.toml
   assert_file_exists e2e_project/src/e2e_project_frontend/src/routes/+page.svelte
-  assert_file_exists e2e_project/src/e2e_project_frontend/src/setupTests.js
+
+  assert_command cat e2e_project/src/e2e_project_frontend/vite.config.js
+  assert_contains "jsdom"
+  assert_contains "svelteTesting"
+
   assert_command jq .canisters.internet_identity e2e_project/dfx.json
 }
 

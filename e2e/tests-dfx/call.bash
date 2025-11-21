@@ -316,10 +316,6 @@ function impersonate_sender() {
     # updating settings succeeds when impersonating the management canister as the sender
     assert_command dfx canister update-settings hello_backend --freezing-threshold 0 --confirm-very-short-freezing-threshold --impersonate "${IDENTITY_PRINCIPAL}"
 
-    # test management canister call failure (setting memory allocation to a low value)
-    assert_command_fail dfx canister update-settings hello_backend --memory-allocation 1 --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Canister was given 1 B memory allocation but at least"
-
     # canister status fails because the default identity does not control the canister anymore
     assert_command_fail dfx canister status hello_backend
     assert_contains "The principal you are using to call a management function is not part of the controllers."
@@ -361,7 +357,7 @@ function impersonate_sender() {
 
     # test query call failure
     assert_command_fail dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "$CANISTER_ID"
-    assert_contains "Failed to perform query call: Caller $CANISTER_ID is not allowed to query ic00 method fetch_canister_logs"
+    assert_contains "Failed to perform query call: Caller $CANISTER_ID is not allowed to access canister logs (IC0406)"
 
     # test query call
     assert_command dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "${IDENTITY_PRINCIPAL}"

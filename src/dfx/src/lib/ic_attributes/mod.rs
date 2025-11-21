@@ -1,15 +1,16 @@
 use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use anyhow::{anyhow, Context, Error};
+use anyhow::{Context, Error, anyhow};
 use byte_unit::Byte;
 use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
+use ic_management_canister_types::EnvironmentVariable;
 use ic_utils::interfaces::management_canister::{
+    CanisterStatusResult, LogVisibility,
     attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
     builders::WasmMemoryLimit,
-    LogVisibility, StatusCallResult,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;
@@ -24,6 +25,7 @@ pub struct CanisterSettings {
     pub wasm_memory_limit: Option<WasmMemoryLimit>,
     pub wasm_memory_threshold: Option<WasmMemoryLimit>,
     pub log_visibility: Option<LogVisibility>,
+    pub environment_variables: Option<Vec<EnvironmentVariable>>,
 }
 
 impl From<CanisterSettings>
@@ -57,6 +59,7 @@ impl From<CanisterSettings>
                 .map(u64::from)
                 .map(candid::Nat::from),
             log_visibility: value.log_visibility,
+            environment_variables: value.environment_variables,
         }
     }
 }
@@ -121,6 +124,7 @@ impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettin
                 })
                 .transpose()?,
             log_visibility: value.log_visibility,
+            environment_variables: value.environment_variables,
         })
     }
 }
@@ -256,7 +260,7 @@ pub fn get_wasm_memory_threshold(
 pub fn get_log_visibility(
     env: &dyn Environment,
     log_visibility: Option<&LogVisibilityOpt>,
-    current_settings: Option<&StatusCallResult>,
+    current_settings: Option<&CanisterStatusResult>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<LogVisibility>> {

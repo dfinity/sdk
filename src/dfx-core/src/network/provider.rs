@@ -2,8 +2,8 @@ use crate::config::directories::{
     get_shared_network_data_directory, get_shared_wallet_config_path,
 };
 use crate::config::model::dfinity::{
-    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
-    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND, NetworkType, NetworksConfig,
 };
 use crate::config::model::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
@@ -19,7 +19,7 @@ use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::util;
 use lazy_static::lazy_static;
 use serde_json::json;
-use slog::{debug, info, warn, Logger};
+use slog::{Logger, debug, info, warn};
 use std::path::{Display, Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -94,6 +94,11 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.bitcoin.clone()))
                 .unwrap_or_default();
+            let dogecoin = local_provider
+                .dogecoin
+                .clone()
+                .or_else(|| project_defaults.and_then(|x| x.dogecoin.clone()))
+                .unwrap_or_default();
             let canister_http = local_provider
                 .canister_http
                 .clone()
@@ -122,12 +127,13 @@ fn config_network_to_network_descriptor(
                 &data_directory,
                 default_local_bind,
             )?;
-            let provider_url = format!("http://{}", bind_address);
+            let provider_url = format!("http://{bind_address}");
             let providers = vec![parse_provider_url(&provider_url)?];
             let local_server_descriptor = LocalServerDescriptor::new(
                 data_directory,
                 bind_address,
                 bitcoin,
+                dogecoin,
                 canister_http,
                 proxy,
                 replica,
@@ -244,6 +250,7 @@ fn create_shared_network_descriptor(
                 bind: Some(String::from(DEFAULT_SHARED_LOCAL_BIND)),
                 r#type: NetworkType::Ephemeral,
                 bitcoin: None,
+                dogecoin: None,
                 bootstrap: None,
                 canister_http: None,
                 replica: None,
@@ -336,11 +343,14 @@ fn warn_if_ignoring_project_defaults_in_shared_network(
 
             let example_networks_json =
                 serde_json::to_string_pretty(&example_networks_json).unwrap();
-            warn!(logger, "Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network.\n\
+            warn!(
+                logger,
+                "Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network.\n\
                     To apply these settings to the shared network, define them in {shared_config_display_path} like so:\n\
                     {example_networks_json}",
-                    shared_config_display_path = &shared_config_display_path,
-                    example_networks_json = &example_networks_json);
+                shared_config_display_path = &shared_config_display_path,
+                example_networks_json = &example_networks_json
+            );
         }
     }
 }
@@ -455,7 +465,7 @@ fn get_running_webserver_bind_address(
                 None => local_bind.clone(),
                 Some(index) => local_bind[0..index].to_string(),
             };
-            Ok(format!("{}:{}", host, port))
+            Ok(format!("{host}:{port}"))
         }
     } else {
         Ok(local_bind)
@@ -466,7 +476,7 @@ pub fn command_line_provider_to_url(s: &str) -> Result<String, NetworkConfigErro
     match parse_provider_url(s) {
         Ok(url) => Ok(url),
         Err(original_error) => {
-            let prefixed_with_http = format!("http://{}", s);
+            let prefixed_with_http = format!("http://{s}");
             parse_provider_url(&prefixed_with_http).or(Err(original_error))
         }
     }
@@ -485,8 +495,8 @@ mod tests {
     use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
     use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::model::dfinity::{
-        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
-        ReplicaLogLevel,
+        ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica, ReplicaLogLevel,
+        to_socket_addr,
     };
     use std::fs;
     use std::net::SocketAddr;

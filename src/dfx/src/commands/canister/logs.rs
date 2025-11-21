@@ -6,10 +6,10 @@ use crate::util::clap::parsers::{duration_parser, timestamp_parser};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
-use ic_utils::interfaces::management_canister::{CanisterLogRecord, FetchCanisterLogsResponse};
+use ic_utils::interfaces::management_canister::{CanisterLogRecord, FetchCanisterLogsResult};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 
 /// Get the canister logs.
 #[derive(Parser)]
@@ -51,10 +51,7 @@ struct FilterOpts {
     last_idx: Option<u64>,
 }
 
-fn filter_canister_logs<'a>(
-    logs: &'a FetchCanisterLogsResponse,
-    opts: FilterOpts,
-) -> &'a [CanisterLogRecord] {
+fn filter_canister_logs(logs: &FetchCanisterLogsResult, opts: FilterOpts) -> &[CanisterLogRecord] {
     if let Some(number) = opts.tail {
         &logs.canister_log_records[logs
             .canister_log_records
@@ -168,7 +165,7 @@ pub async fn exec(env: &dyn Environment, opts: LogsOpts, call_sender: &CallSende
 
 #[test]
 fn test_format_canister_logs() {
-    let logs = FetchCanisterLogsResponse {
+    let logs = FetchCanisterLogsResult {
         canister_log_records: vec![
             CanisterLogRecord {
                 idx: 42,

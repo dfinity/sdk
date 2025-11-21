@@ -7,14 +7,14 @@ use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use crate::util::command::direct_or_shell_command;
-use anyhow::{anyhow, bail, ensure, Context, Error};
-use clap::builder::PossibleValuesParser;
+use anyhow::{Context, Error, anyhow, bail, ensure};
 use clap::Parser;
-use console::{style, Style};
+use clap::builder::PossibleValuesParser;
+use console::{Style, style};
 use dfx_core::config::model::project_template::ProjectTemplateCategory as Category;
 use dfx_core::config::project_templates::{
-    find_project_template, get_project_template, get_sorted_templates, project_template_cli_names,
-    ProjectTemplate, ProjectTemplateName, ResourceLocation,
+    ProjectTemplate, ProjectTemplateName, ResourceLocation, find_project_template,
+    get_project_template, get_sorted_templates, project_template_cli_names,
 };
 use dfx_core::json::{load_json_file, save_json_file};
 use dialoguer::theme::ColorfulTheme;
@@ -22,7 +22,7 @@ use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
-use slog::{debug, error, info, trace, warn, Logger};
+use slog::{Logger, debug, error, info, trace, warn};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
@@ -410,7 +410,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
     let output = Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
-        .arg(format!("dist-tags.{}", dist_tag))
+        .arg(format!("dist-tags.{dist_tag}"))
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .output()
@@ -443,7 +443,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     }
 
     let current_version = env.get_version();
-    let version_str = format!("{}", current_version);
+    let version_str = format!("{current_version}");
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.

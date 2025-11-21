@@ -639,6 +639,16 @@
             }
           ]
         },
+        "dogecoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsDogecoin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "proxy": {
           "anyOf": [
             {
@@ -768,6 +778,29 @@
         }
       }
     },
+    "ConfigDefaultsDogecoin": {
+      "title": "Dogecoin Adapter Configuration",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Enable Dogecoin Adapter",
+          "default": false,
+          "type": "boolean"
+        },
+        "nodes": {
+          "title": "Available Nodes",
+          "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "ConfigDefaultsProxy": {
       "description": "Configuration for the HTTP gateway.",
       "type": "object",
@@ -858,6 +891,16 @@
           "anyOf": [
             {
               "$ref": "#/definitions/ConfigDefaultsCanisterHttp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dogecoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsDogecoin"
             },
             {
               "type": "null"
@@ -1016,7 +1059,7 @@
         },
         "reserved_cycles_limit": {
           "title": "Reserved Cycles Limit",
-          "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
+          "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 750 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 750 GiB.",
           "default": null,
           "type": [
             "integer",

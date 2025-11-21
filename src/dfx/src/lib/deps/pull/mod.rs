@@ -1,6 +1,6 @@
 use super::{
-    get_candid_path_in_project, get_pulled_canister_dir, get_pulled_service_candid_path,
-    get_pulled_wasm_path, PulledCanister, PulledJson,
+    PulledCanister, PulledJson, get_candid_path_in_project, get_pulled_canister_dir,
+    get_pulled_service_candid_path, get_pulled_wasm_path,
 };
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::dfx::DfxMetadata;
@@ -8,7 +8,7 @@ use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::lib::wasm::file::{decompress_bytes, read_wasm_module};
 use crate::util::download_file;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal;
 use dfx_core::config::model::dfinity::Pullable;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
@@ -16,7 +16,7 @@ use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
-use slog::{error, info, trace, warn, Logger};
+use slog::{Logger, error, info, trace, warn};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 use std::path::Path;
@@ -239,7 +239,10 @@ async fn get_hash_on_chain(
     pullable: &Pullable,
 ) -> DfxResult<Vec<u8>> {
     if pullable.wasm_hash.is_some() && pullable.wasm_hash_url.is_some() {
-        warn!(logger, "Canister {canister_id} specified both `wasm_hash` and `wasm_hash_url`. `wasm_hash` will be used.");
+        warn!(
+            logger,
+            "Canister {canister_id} specified both `wasm_hash` and `wasm_hash_url`. `wasm_hash` will be used."
+        );
     };
     if let Some(wasm_hash_str) = &pullable.wasm_hash {
         trace!(
@@ -313,12 +316,9 @@ fn get_metadata_as_string(
     wasm_path: &Path,
 ) -> DfxResult<String> {
     let metadata_bytes = get_metadata(module, section)
-        .with_context(|| format!("Failed to get {} metadata from {:?}", section, wasm_path))?;
+        .with_context(|| format!("Failed to get {section} metadata from {wasm_path:?}"))?;
     let metadata = String::from_utf8(metadata_bytes.to_vec()).with_context(|| {
-        format!(
-            "Failed to read {} metadata from {:?} as UTF-8 text",
-            section, wasm_path
-        )
+        format!("Failed to read {section} metadata from {wasm_path:?} as UTF-8 text")
     })?;
     Ok(metadata)
 }

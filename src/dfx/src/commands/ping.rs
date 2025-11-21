@@ -1,11 +1,11 @@
-use crate::lib::environment::{create_agent, Environment};
+use crate::lib::environment::{Environment, create_agent};
 use crate::lib::error::{DfxError, DfxResult};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use clap::Parser;
 use dfx_core::identity::Identity;
 use dfx_core::network::provider::{
-    command_line_provider_to_url, create_network_descriptor, get_network_context,
-    LocalBindDetermination,
+    LocalBindDetermination, command_line_provider_to_url, create_network_descriptor,
+    get_network_context,
 };
 use dfx_core::util::expiry_duration;
 use slog::warn;
@@ -66,10 +66,10 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                         _ => false,
                     };
                     if healthy {
-                        println!("{}", status);
+                        println!("{status}");
                         break;
                     } else {
-                        eprintln!("{}", status);
+                        eprintln!("{status}");
                     }
                 }
                 if retries >= 60 {
@@ -83,7 +83,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 .status()
                 .await
                 .context("Failed while waiting for agent status.")?;
-            println!("{}", status);
+            println!("{status}");
         }
 
         Ok(())

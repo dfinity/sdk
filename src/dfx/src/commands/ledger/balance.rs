@@ -5,7 +5,7 @@ use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use candid::Principal;
 use clap::Parser;
 use icrc_ledger_types::icrc1;

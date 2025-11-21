@@ -167,23 +167,6 @@ dfx_start() {
         || (echo "could not connect to replica on port ${port}" && exit 1)
 }
 
-# Tries to start dfx on the default port, repeating until it succeeds or times out.
-#
-# Motivation: dfx nns install works only on port 8080, as URLs are compiled into the wasms.  This means that multiple
-# tests MAY compete for the same port.
-# - It may be possible in future for the wasms to detect their own URL and recompute signatures accordingly,
-#   however until such a time, we have this restriction.
-# - It may also be that ic-nns-install, if used on a non-standard port, installs only the core canisters not the UI.
-# - However until we have implemented good solutions, all tests on ic-nns-install must run on port 8080.
-dfx_start_for_nns_install() {
-    # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
-    assert_command timeout 300 sh -c \
-        "until dfx start --clean --background --host 127.0.0.1:8080 --verbose --artificial-delay 100; do echo waiting for port 8080 to become free; sleep 3; done" \
-        || (echo "could not connect to replica on port 8080" && exit 1)
-    assert_match "subnet type: System"
-    assert_match "127.0.0.1:8080"
-}
-
 wait_until_replica_healthy() {
     echo "waiting for replica to become healthy"
     dfx ping --wait-healthy
@@ -326,4 +309,25 @@ stop_and_delete() {
     assert_command dfx canister stop "$1"
     assert_command dfx canister delete -y --no-withdrawal "$1"
     echo "Canister $1 deleted"
+}
+
+set_canister_environment_variables() {
+  local canister_id=$1
+  shift
+
+  # Build the Candid vec of records from the remaining arguments
+  # Each argument should be in format "NAME=VALUE"
+  local env_records=""
+  for env_var in "$@"; do
+    local name="${env_var%%=*}"
+    local value="${env_var#*=}"
+    if [ -n "$env_records" ]; then
+      env_records="$env_records; "
+    fi
+    env_records="${env_records}record { name = \"$name\"; value = \"$value\" }"
+  done
+
+  management_canister_id=aaaaa-aa
+
+  dfx canister call $management_canister_id update_settings "(record { canister_id = principal \"$canister_id\"; settings = record { environment_variables = opt vec { $env_records } } })"
 }

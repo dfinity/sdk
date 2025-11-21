@@ -4,7 +4,7 @@ use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use rust_decimal::Decimal;
 use std::{path::PathBuf, str::FromStr};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 /// Removes `_`, interprets `k`, `m`, `b`, `t` suffix (case-insensitive)
 fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
@@ -25,7 +25,7 @@ fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
         "m" => Ok(1_000_000),
         "b" => Ok(1_000_000_000),
         "t" => Ok(1_000_000_000_000),
-        other => Err(format!("Unknown amount specifier: '{}'", other)),
+        other => Err(format!("Unknown amount specifier: '{other}'")),
     }?;
     let number = Decimal::from_str(number).map_err(|err| err.to_string())?;
     Decimal::from(multiplier)
@@ -86,6 +86,18 @@ pub fn file_or_stdin_parser(path: &str) -> Result<PathBuf, String> {
         Ok(PathBuf::from(path))
     } else {
         file_parser(path)
+    }
+}
+
+pub fn directory_parser(path: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(path);
+    if path.is_dir() {
+        Ok(path)
+    } else {
+        Err(format!(
+            "Path '{}' does not exist or is not a directory.",
+            path.display()
+        ))
     }
 }
 
@@ -238,9 +250,8 @@ pub fn duration_parser(duration: &str) -> Result<u64, String> {
         "d" => number * 86400,
         _ => {
             return Err(format!(
-                "Unknown duration unit: '{}'. Valid units are s, m, h, d",
-                unit
-            ))
+                "Unknown duration unit: '{unit}'. Valid units are s, m, h, d"
+            ));
         }
     };
 
@@ -258,11 +269,13 @@ pub fn timestamp_parser(timestamp: &str) -> Result<u64, String> {
         let nanos = time.unix_timestamp_nanos();
         let nanos = nanos
             .try_into()
-            .map_err(|_| format!("Timestamp {} out of range for u64", nanos))?;
+            .map_err(|_| format!("Timestamp {nanos} out of range for u64"))?;
         return Ok(nanos);
     }
 
-    Err(format!("Invalid timestamp format: {}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')", timestamp))
+    Err(format!(
+        "Invalid timestamp format: {timestamp}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')"
+    ))
 }
 
 #[test]

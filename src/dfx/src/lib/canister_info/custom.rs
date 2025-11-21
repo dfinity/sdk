@@ -55,18 +55,16 @@ impl CanisterInfoFactory for CustomCanisterInfo {
                     info.name
                 );
             }
-            let filename = input_wasm_url.path_segments().ok_or_else(|| {
+            let mut filename = input_wasm_url.path_segments().ok_or_else(|| {
                 anyhow!(
                     "unable to determine path segments for url {}",
                     &input_wasm_url
                 )
             })?;
-            let filename = filename.last().ok_or_else(|| {
+            let filename = filename.next_back().ok_or_else(|| {
                 anyhow!("Unable to determine filename for url {}", &input_wasm_url)
             })?;
-            let output_wasm_path = info
-                .get_output_root()
-                .join(format!("download-{}", filename));
+            let output_wasm_path = info.get_output_root().join(format!("download-{filename}"));
             (Some(input_wasm_url), output_wasm_path)
         } else {
             let output_wasm_path = workspace_root.join(wasm);
@@ -74,10 +72,8 @@ impl CanisterInfoFactory for CustomCanisterInfo {
         };
         let input_candid_url = if info.get_remote_candid_if_remote().is_some() {
             None
-        } else if let Ok(input_candid_url) = Url::parse(&candid) {
-            Some(input_candid_url)
         } else {
-            None
+            Url::parse(&candid).ok()
         };
 
         Ok(Self {

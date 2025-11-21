@@ -1,7 +1,7 @@
 import A "mo:base/Array";
 import M "secret_import";
 
-actor {
+persistent actor {
     type Matrix = [[Int]];
     
     public func multiply(a: Matrix, b: Matrix) : async Matrix {

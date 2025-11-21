@@ -1,5 +1,5 @@
 use anyhow::bail;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::provider::{LocalBindDetermination, create_network_descriptor};
 
 use crate::lib::{environment::Environment, error::DfxResult};
 
@@ -19,7 +19,7 @@ pub(crate) fn get_pocketic_config_port(env: &dyn Environment) -> DfxResult<Strin
     }
     let logger = None;
     if let Some(port) = local.get_running_pocketic_port(logger)? {
-        Ok(format!("{}", port))
+        Ok(format!("{port}"))
     } else {
         bail!("No PocketIC port found");
     }

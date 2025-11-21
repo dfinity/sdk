@@ -2,8 +2,8 @@ use crate::config::cache::VersionCache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
@@ -14,7 +14,7 @@ use anyhow::Context;
 use candid::Principal as CanisterId;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use fn_error_context::context;
-use slog::{info, o, trace, warn, Logger};
+use slog::{Logger, info, o, trace, warn};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -65,7 +65,7 @@ fn get_imports(
         let command = command.arg("--print-deps").arg(file);
         let output = command
             .output()
-            .with_context(|| format!("Error executing {:#?}", command))?;
+            .with_context(|| format!("Error executing {command:#?}"))?;
         let output = String::from_utf8_lossy(&output.stdout);
 
         for line in output.lines() {
@@ -308,8 +308,7 @@ impl TryFrom<&str> for MotokoImport {
             Some(index) => {
                 if index >= line.len() - 1 {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
-                        "Unknown import {}",
-                        line
+                        "Unknown import {line}"
                     ))));
                 }
                 let (url, fullpath) = line.split_at(index + 1);
@@ -321,8 +320,7 @@ impl TryFrom<&str> for MotokoImport {
             Some(index) => {
                 if index >= line.len() - 1 {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
-                        "Unknown import {}",
-                        url
+                        "Unknown import {url}"
                     ))));
                 }
                 let (prefix, name) = url.split_at(index + 1);
@@ -332,9 +330,8 @@ impl TryFrom<&str> for MotokoImport {
                     "mo:" => MotokoImport::Lib(name.to_owned()),
                     _ => {
                         return Err(DfxError::new(BuildError::DependencyError(format!(
-                            "Unknown import {}",
-                            url
-                        ))))
+                            "Unknown import {url}"
+                        ))));
                     }
                 }
             }
@@ -351,9 +348,8 @@ impl TryFrom<&str> for MotokoImport {
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
-                        "Cannot resolve relative import {}",
-                        url
-                    ))))
+                        "Cannot resolve relative import {url}"
+                    ))));
                 }
             },
         };
@@ -372,7 +368,7 @@ fn run_command(
     let output = cmd.output().context("Error while executing command.")?;
     if !output.status.success() {
         Err(DfxError::new(BuildError::CommandError(
-            format!("{:?}", cmd),
+            format!("{cmd:?}"),
             output.status,
             String::from_utf8_lossy(&output.stdout).to_string(),
             String::from_utf8_lossy(&output.stderr).to_string(),

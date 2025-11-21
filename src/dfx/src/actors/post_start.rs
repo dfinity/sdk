@@ -2,7 +2,7 @@ use crate::actors::pocketic::PocketIc;
 use crate::actors::post_start::signals::{PocketIcReadySignal, PocketIcReadySubscribe};
 use crate::lib::progress_bar::ProgressBar;
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
-use slog::{info, Logger};
+use slog::{Logger, info};
 
 pub mod signals {
     use std::net::SocketAddr;

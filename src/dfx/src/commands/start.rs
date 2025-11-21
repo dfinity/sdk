@@ -4,11 +4,10 @@ use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
-use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
 use crate::util::get_reusable_socket_addr;
-use anyhow::{anyhow, bail, ensure, Context, Error};
+use anyhow::{Context, Error, anyhow, bail, ensure};
 use clap::{ArgAction, Parser};
 use dfx_core::{
     config::model::{
@@ -19,10 +18,10 @@ use dfx_core::{
     },
     fs,
     json::{load_json_file, save_json_file},
-    network::provider::{create_network_descriptor, LocalBindDetermination},
+    network::provider::{LocalBindDetermination, create_network_descriptor},
 };
 use fn_error_context::context;
-use slog::{info, warn, Logger};
+use slog::{Logger, info, warn};
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -50,6 +49,10 @@ pub struct StartOpts {
     #[arg(long)]
     clean: bool,
 
+    /// Bootstraps system canisters.
+    #[arg(long)]
+    system_canisters: bool,
+
     /// Address of bitcoind node.  Implies --enable-bitcoin.
     #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
@@ -57,6 +60,14 @@ pub struct StartOpts {
     /// enable bitcoin integration
     #[arg(long)]
     enable_bitcoin: bool,
+
+    /// Address of dogecoind node.  Implies --enable-dogecoin.
+    #[arg(long, action = ArgAction::Append)]
+    dogecoin_node: Vec<SocketAddr>,
+
+    /// enable bitcoin integration
+    #[arg(long)]
+    enable_dogecoin: bool,
 
     /// enable canister http requests (on by default)
     #[arg(long)]
@@ -90,12 +101,13 @@ pub struct StartOpts {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 async fn fg_ping_and_wait(
+    pocketic_port_path: &Path,
     webserver_port_path: &Path,
     frontend_url: &str,
-    logger: &Logger,
-    local_server_descriptor: &LocalServerDescriptor,
 ) -> DfxResult {
     let port = wait_for_port(webserver_port_path).await?;
+    _ = wait_for_port(pocketic_port_path).await?; // used as a signal that initialization is complete
+    // not needed for network functionality, but ensures the child is done sending to stderr
 
     let mut frontend_url_mod = frontend_url.to_string();
     let port_offset = frontend_url_mod
@@ -103,9 +115,7 @@ async fn fg_ping_and_wait(
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    ping_and_wait(&frontend_url_mod).await?;
-
-    wait_for_integrations_initialized(&frontend_url_mod, logger, local_server_descriptor).await
+    ping_and_wait(&frontend_url_mod).await
 }
 
 async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
@@ -142,9 +152,12 @@ pub fn exec(
         background,
         running_in_background,
         clean,
+        system_canisters,
         force,
         bitcoin_node,
         enable_bitcoin,
+        dogecoin_node,
+        enable_dogecoin,
         enable_canister_http,
         artificial_delay,
         domain,
@@ -183,6 +196,8 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         host,
         enable_bitcoin,
         bitcoin_node,
+        enable_dogecoin,
+        dogecoin_node,
         enable_canister_http,
         domain,
         artificial_delay,
@@ -234,13 +249,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         return Runtime::new()
             .expect("Unable to create a runtime")
             .block_on(async {
-                fg_ping_and_wait(
-                    &webserver_port_path,
-                    &frontend_url,
-                    env.get_logger(),
-                    local_server_descriptor,
-                )
-                .await
+                fg_ping_and_wait(&pocketic_port_path, &webserver_port_path, &frontend_url).await
             });
     }
     local_server_descriptor.describe(env.get_logger());
@@ -271,6 +280,9 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         }
         if local_server_descriptor.canister_http.enabled {
             replica_config = replica_config.with_canister_http_adapter_enabled();
+        }
+        if system_canisters {
+            replica_config = replica_config.with_system_canisters();
         }
         replica_config
     };
@@ -382,6 +394,8 @@ pub fn apply_command_line_parameters(
     host: Option<String>,
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
+    enable_dogecoin: bool,
+    dogecoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
     domain: Vec<String>,
     artificial_delay: u32,
@@ -391,7 +405,10 @@ pub fn apply_command_line_parameters(
             logger,
             "The --enable-canister-http parameter is deprecated."
         );
-        warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
+        warn!(
+            logger,
+            "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json."
+        );
     }
 
     let _ = network_descriptor.local_server_descriptor()?;
@@ -409,6 +426,14 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
+    }
+
+    if enable_dogecoin || !dogecoin_nodes.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_dogecoin_enabled();
+    }
+
+    if !dogecoin_nodes.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_dogecoin_nodes(dogecoin_nodes)
     }
 
     if !domain.is_empty() {

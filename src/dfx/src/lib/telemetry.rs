@@ -1,8 +1,8 @@
 #![allow(unused)] // remove when there are no more todos
 
+use crate::CliOpts;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
-use crate::CliOpts;
 use anyhow::Context;
 use candid::Principal;
 use chrono::{Datelike, Local, NaiveDateTime};
@@ -19,9 +19,9 @@ use dfx_core::fs;
 use dfx_core::identity::IdentityType;
 use fd_lock::{RwLock as FdRwLock, RwLockWriteGuard};
 use fn_error_context::context;
+use ic_agent::AgentError;
 use ic_agent::agent::RejectResponse;
 use ic_agent::agent_error::Operation;
-use ic_agent::AgentError;
 use reqwest::StatusCode;
 use semver::Version;
 use serde::Serialize;
@@ -233,7 +233,7 @@ impl Telemetry {
                 .open(Self::get_log_path()?)?,
         );
         let mut lock = file.write()?;
-        writeln!(*lock, "{}", record)?;
+        writeln!(*lock, "{record}")?;
         Ok(())
     }
 
@@ -363,7 +363,7 @@ impl Telemetry {
         let send_time = fs::read_to_string(path)?;
         let send_time = send_time.trim();
         let send_time = NaiveDateTime::parse_from_str(send_time, "%Y-%m-%d %H:%M:%S")
-            .with_context(|| format!("failed to parse send time: {:?}", send_time))?;
+            .with_context(|| format!("failed to parse send time: {send_time:?}"))?;
         Ok(send_time)
     }
 
@@ -385,7 +385,7 @@ impl Telemetry {
         let future_time = Local::now().naive_local() + future_duration;
         let future_time_str = future_time.format("%Y-%m-%d %H:%M:%S").to_string();
 
-        writeln!(*guard, "{}", future_time_str)?;
+        writeln!(*guard, "{future_time_str}")?;
         Ok(())
     }
 
@@ -428,7 +428,7 @@ impl Telemetry {
         fs::create_dir_all(&send_dir)?;
 
         let batch_id = Uuid::new_v4();
-        eprintln!("Assigning telemetry.log contents to batch {:?}", batch_id);
+        eprintln!("Assigning telemetry.log contents to batch {batch_id:?}");
         let batch_path = send_dir.join(batch_id.to_string());
 
         let mut file = FdRwLock::new(
@@ -448,7 +448,7 @@ impl Telemetry {
 
         eprintln!("Batches to send:");
         for batch in &batches {
-            eprintln!("  {:?}", batch);
+            eprintln!("  {batch:?}");
         }
 
         batches
@@ -459,7 +459,7 @@ impl Telemetry {
     }
 
     fn transmit_batch(batch: &Uuid, url: &Url) -> DfxResult {
-        eprintln!("Transmitting batch: {:?}", batch);
+        eprintln!("Transmitting batch: {batch:?}");
         let batch_path = Self::get_send_dir()?.join(batch.to_string());
 
         let original_content = fs::read_to_string(&batch_path)?;
@@ -481,7 +481,7 @@ impl Telemetry {
                 .map(|_| ())
         };
         let notify = |err, dur| {
-            println!("Error happened at {:?}: {}", dur, err);
+            println!("Error happened at {dur:?}: {err}");
         };
 
         let policy = backoff::ExponentialBackoffBuilder::default()
@@ -609,7 +609,7 @@ impl CanisterRecord {
         let r#type = match &config.type_specific {
             CanisterTypeProperties::Rust { .. } => CanisterType::Rust,
             CanisterTypeProperties::Assets { .. } => CanisterType::Assets,
-            CanisterTypeProperties::Motoko { .. } => CanisterType::Motoko,
+            CanisterTypeProperties::Motoko => CanisterType::Motoko,
             CanisterTypeProperties::Custom { .. } => CanisterType::Custom,
             CanisterTypeProperties::Pull { .. } => CanisterType::Pull,
         };
@@ -750,7 +750,9 @@ mod tests {
     #[test]
     fn hide_parameter_value() {
         let _guard = setup_test();
-        let actual = full_command_to_telemetry("dfx canister update-settings --add-log-viewer=evtzg-5hnpy-uoy4t-tn3fa-7c4ca-nweso-exmhj-nt3vs-htbce-pys7c-yqe e2e_project");
+        let actual = full_command_to_telemetry(
+            "dfx canister update-settings --add-log-viewer=evtzg-5hnpy-uoy4t-tn3fa-7c4ca-nweso-exmhj-nt3vs-htbce-pys7c-yqe e2e_project",
+        );
         let expected = Telemetry {
             command: "canister update-settings".to_string(),
             arguments: vec![

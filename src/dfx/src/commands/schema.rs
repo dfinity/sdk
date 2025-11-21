@@ -43,7 +43,7 @@ pub fn exec(opts: SchemaOpts) -> DfxResult {
         std::fs::write(&outfile, nice_schema)
             .with_context(|| format!("Failed to write schema to {}.", outfile.to_string_lossy()))?;
     } else {
-        println!("{}", nice_schema);
+        println!("{nice_schema}");
     }
     Ok(())
 }

@@ -1,8 +1,8 @@
 use crate::lib::error::DfxResult;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
+use flate2::Compression;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
-use flate2::Compression;
 use fn_error_context::context;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -16,13 +16,13 @@ pub fn read_wasm_module(path: &Path) -> DfxResult<walrus::Module> {
     let m = match path.extension() {
         Some(f) if f == "gz" => {
             let unzip_bytes = decompress_bytes(&bytes)
-                .with_context(|| format!("Failed to decode gzip file {:?}", path))?;
+                .with_context(|| format!("Failed to decode gzip file {path:?}"))?;
             bytes_to_module(&unzip_bytes).with_context(|| {
-                format!("Failed to parse wasm module from decompressed {:?}", path)
+                format!("Failed to parse wasm module from decompressed {path:?}")
             })?
         }
         Some(f) if f == "wasm" => bytes_to_module(&bytes)
-            .with_context(|| format!("Failed to parse wasm module from {:?}", path))?,
+            .with_context(|| format!("Failed to parse wasm module from {path:?}"))?,
         _ => {
             bail!("{:?} is neither a wasm nor a wasm.gz file", path);
         }

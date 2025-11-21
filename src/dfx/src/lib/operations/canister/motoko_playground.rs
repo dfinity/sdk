@@ -1,14 +1,14 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::{environment::Environment, error::DfxResult};
-use anyhow::{anyhow, bail, Context};
-use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
+use anyhow::{Context, anyhow, bail};
+use candid::{CandidType, Decode, Deserialize, Encode, Principal, encode_args};
 use dfx_core::config::model::canister_id_store::AcquisitionDateTime;
 use dfx_core::config::model::network_descriptor::{
-    NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+    MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID, NetworkTypeDescriptor,
 };
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::{
-    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
+    CanisterInstallMode, UpgradeFlags, WasmMemoryPersistence,
 };
 use num_traits::ToPrimitive;
 use rand::Rng;
@@ -67,24 +67,24 @@ pub enum PlaygroundInstallMode {
     Reinstall,
 }
 
-impl TryFrom<InstallMode> for PlaygroundInstallMode {
+impl TryFrom<CanisterInstallMode> for PlaygroundInstallMode {
     type Error = anyhow::Error;
-    fn try_from(m: InstallMode) -> DfxResult<Self> {
+    fn try_from(m: CanisterInstallMode) -> DfxResult<Self> {
         match m {
-            InstallMode::Install => Ok(Self::Install),
-            InstallMode::Reinstall => Ok(Self::Reinstall),
-            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+            CanisterInstallMode::Install => Ok(Self::Install),
+            CanisterInstallMode::Reinstall => Ok(Self::Reinstall),
+            CanisterInstallMode::Upgrade(Some(UpgradeFlags {
                 skip_pre_upgrade: Some(true),
                 ..
             })) => bail!("Cannot skip pre-upgrade on the playground"),
-            InstallMode::Upgrade(
-                Some(CanisterUpgradeOptions {
+            CanisterInstallMode::Upgrade(
+                Some(UpgradeFlags {
                     wasm_memory_persistence: None | Some(WasmMemoryPersistence::Replace),
                     ..
                 })
                 | None,
             ) => Ok(Self::Upgrade(None)),
-            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+            CanisterInstallMode::Upgrade(Some(UpgradeFlags {
                 wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
                 ..
             })) => Ok(Self::Upgrade(Some(PlaygroundCanisterUpgradeOptions {
@@ -132,7 +132,9 @@ pub async fn reserve_canister_with_playground(
         bail!("Trying to reserve canister with playground on non-playground network.")
     };
     if ci_info::is_ci() && playground_canister == MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID {
-        bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
+        bail!(
+            "Cannot reserve playground canister in CI, please run `dfx start` to use the local replica."
+        )
     }
 
     let canister_id_store = env.get_canister_id_store()?;
@@ -197,7 +199,7 @@ pub async fn playground_install_code(
     canister_timestamp: AcquisitionDateTime,
     arg: &[u8],
     wasm_module: &[u8],
-    mode: InstallMode,
+    mode: CanisterInstallMode,
     is_asset_canister: bool,
 ) -> DfxResult<AcquisitionDateTime> {
     let canister_info = CanisterInfo::from(canister_id, canister_timestamp);
@@ -240,7 +242,7 @@ pub async fn playground_install_code(
     out.get_timestamp()
 }
 
-fn convert_mode(mode: InstallMode, wasm_module: &[u8]) -> DfxResult<PlaygroundInstallMode> {
+fn convert_mode(mode: CanisterInstallMode, wasm_module: &[u8]) -> DfxResult<PlaygroundInstallMode> {
     let converted_mode: PlaygroundInstallMode = mode.try_into()?;
     // Motoko EOP requires `wasm_memory_persistence: Keep` for canister upgrades.
     // Usually, this option is auto-set if the installed wasm has the private metadata `enhanced-orthogonal-persistence` set.
@@ -270,10 +272,10 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         .as_nanos();
     let timestamp = candid::Int::from(now);
     let mut rng = rand::thread_rng();
-    let mut nonce = candid::Nat::from(rng.gen::<u32>());
-    let prefix = format!("{}{}", POW_DOMAIN, timestamp);
+    let mut nonce = candid::Nat::from(rng.r#gen::<u32>());
+    let prefix = format!("{POW_DOMAIN}{timestamp}");
     loop {
-        let to_hash = format!("{}{}", prefix, nonce).replace('_', "");
+        let to_hash = format!("{prefix}{nonce}").replace('_', "");
         let hash = motoko_hash(&to_hash);
         if (hash & 0xc0000000) == 0 {
             return (timestamp, nonce);

@@ -24,7 +24,7 @@ teardown() {
   assert_command dfx canister install --all --mode upgrade
   assert_match "Module hash.*is already installed"
 
-  assert_command dfx canister install --all --mode upgrade --upgrade-unchanged
+  assert_command dfx canister install --all --mode upgrade --upgrade-unchanged --wasm-memory-persistence replace
   assert_not_match "Module hash.*is already installed"
 }
 

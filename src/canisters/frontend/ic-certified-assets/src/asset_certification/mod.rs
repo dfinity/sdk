@@ -3,7 +3,7 @@ use self::{
     types::{
         certification::{AssetPath, HashTreePath, NestedTreeKey, RequestHash, WitnessResult},
         http::{
-            build_ic_certificate_expression_from_headers, response_hash, HeaderField, FALLBACK_FILE,
+            FALLBACK_FILE, HeaderField, build_ic_certificate_expression_from_headers, response_hash,
         },
     },
 };

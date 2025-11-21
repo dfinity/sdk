@@ -22,8 +22,8 @@ use crate::identity::keyring_mock;
 use crate::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
-use argon2::{password_hash::PasswordHasher, Argon2};
-use slog::{debug, trace, Logger};
+use argon2::{Argon2, password_hash::PasswordHasher};
+use slog::{Logger, debug, trace};
 use std::path::Path;
 
 /// Loads an identity's PEM file content.
@@ -59,8 +59,7 @@ pub(crate) fn save_pem(
 ) -> Result<(), SavePemError> {
     trace!(
         log,
-        "Saving pem with input identity name '{name}' and identity config {:?}",
-        identity_config
+        "Saving pem with input identity name '{name}' and identity config {:?}", identity_config
     );
     if identity_config.hsm.is_some() {
         Err(CannotSavePemContentForHsm())

@@ -7,14 +7,14 @@ use crate::error::keyring::{KeyringError, KeyringMaintenanceError};
 use crate::json::{load_json_file, save_json_file};
 use keyring;
 use serde::{Deserialize, Serialize};
-use slog::{trace, Logger};
+use slog::{Logger, trace};
 use std::{collections::HashMap, path::PathBuf};
 
 pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";
 pub const KEYRING_IDENTITY_PREFIX: &str = "internet_computer_identity_";
 pub const USE_KEYRING_MOCK_ENV_VAR: &str = "DFX_CI_MOCK_KEYRING_LOCATION";
 fn keyring_identity_name_from_suffix(suffix: &str) -> String {
-    format!("{}{}", KEYRING_IDENTITY_PREFIX, suffix)
+    format!("{KEYRING_IDENTITY_PREFIX}{suffix}")
 }
 
 enum KeyringMockMode {

@@ -13,8 +13,20 @@ sudo apt-get install --yes bats parallel moreutils
 # Modifications needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
-    BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
-    BITCOIN_CORE_TARBALL_SHA="59ebd25dd82a51638b7a6bb914586201e67db67b919b2a1ff08925a7936d1b16"
+
+    # Check architecture and set filename and sha
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
+        BITCOIN_CORE_TARBALL_SHA="59ebd25dd82a51638b7a6bb914586201e67db67b919b2a1ff08925a7936d1b16"
+    elif [ "$ARCH" = "aarch64" ]; then
+        BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-aarch64-linux-gnu.tar.gz"
+        BITCOIN_CORE_TARBALL_SHA="ac718fed08570a81b3587587872ad85a25173afa5f9fbbd0c03ba4d1714cfa3e"
+    else
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+    fi
+
     (
         cd "$(mktemp -d)"
         wget "https://bitcoin.org/bin/bitcoin-core-$BITCOIN_CORE_VERSION/$BITCOIN_CORE_FILENAME"
@@ -41,6 +53,22 @@ then
 fi
 if [ "$E2E_TEST" = "tests-dfx/info.bash" ]; then
     sudo apt-get install --yes libarchive-zip-perl
+fi
+if [ "$E2E_TEST" = "tests-dfx/canister_extra.bash" ]; then
+    VERSION=v2.10.0
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64|amd64)  ARCH_DL="amd64" ;;
+        arm64|aarch64) ARCH_DL="arm64" ;;
+        *) echo "Unsupported ARCH: $ARCH" >&2; exit 1 ;;
+    esac
+
+    BASE_URL="https://github.com/Shopify/toxiproxy/releases/download/$VERSION"
+    curl -fsSL "$BASE_URL/toxiproxy-server-linux-${ARCH_DL}" -o toxiproxy-server
+    curl -fsSL "$BASE_URL/toxiproxy-cli-linux-${ARCH_DL}" -o toxiproxy-cli
+    chmod +x toxiproxy-server toxiproxy-cli
+    sudo mv toxiproxy-server /usr/local/bin/
+    sudo mv toxiproxy-cli /usr/local/bin/
 fi
 
 # Set environment variables.

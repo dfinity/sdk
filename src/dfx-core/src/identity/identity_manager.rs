@@ -1,5 +1,5 @@
 use super::pem_utils::validate_pem_file;
-use super::{keyring_mock, WALLET_CONFIG_FILENAME};
+use super::{WALLET_CONFIG_FILENAME, keyring_mock};
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
@@ -54,22 +54,22 @@ use crate::error::identity::{
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
-use crate::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
+use crate::identity::identity_file_locations::{IDENTITY_PEM, IdentityFileLocations};
 use crate::identity::identity_manager::IdentityStorageModeError::UnknownStorageMode;
 use crate::identity::{
-    pem_safekeeping, pem_utils, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON,
-    TEMP_IDENTITY_PREFIX,
+    ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, Identity as DfxIdentity, TEMP_IDENTITY_PREFIX,
+    pem_safekeeping, pem_utils,
 };
 use crate::json::{load_json_file, save_json_file};
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
-use k256::pkcs8::LineEnding;
 use k256::SecretKey;
+use k256::pkcs8::LineEnding;
 use ring::{rand, rand::SecureRandom};
 use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
-use slog::{debug, trace, Logger};
+use slog::{Logger, debug, trace};
 use std::boxed::Box;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -373,7 +373,7 @@ impl IdentityManager {
 
         // Use a temporary directory to prepare all identity parts in so that we don't end up with broken parts if the
         // creation process fails half-way through.
-        let temp_identity_name = format!("{}{}", TEMP_IDENTITY_PREFIX, name);
+        let temp_identity_name = format!("{TEMP_IDENTITY_PREFIX}{name}");
         let temp_identity_dir = self.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
@@ -395,7 +395,10 @@ impl IdentityManager {
                     pem_content.as_slice(),
                 )
                 .map_err(CreateNewIdentityError::SavePemFailed)?;
-                eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
+                eprintln!(
+                    "Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.",
+                    mnemonic.phrase()
+                );
             }
             IdentityCreationParameters::PemFile { src_pem_file, mode } => {
                 identity_config = create_identity_config(log, mode, name, None)
@@ -424,7 +427,7 @@ impl IdentityManager {
                 identity_config = create_identity_config(log, mode, name, None)
                     .map_err(CreateNewIdentityError::CreateIdentityConfigFailed)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)
-                    .map_err(|e| CreateMnemonicFromPhraseFailed(format!("{}", e)))?;
+                    .map_err(|e| CreateMnemonicFromPhraseFailed(format!("{e}")))?;
                 let key = mnemonic_to_key(&mnemonic)
                     .map_err(CreateNewIdentityError::ConvertMnemonicToKeyFailed)?;
                 let pem = key
@@ -776,7 +779,10 @@ To create a more secure identity, create and use an identity that is protected b
             let (key, mnemonic) = generate_key().map_err(GenerateKeyFailed)?;
             pem_safekeeping::write_pem_to_file(&identity_pem_path, None, key.as_slice())
                 .map_err(WritePemToFileFailed)?;
-            eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
+            eprintln!(
+                "Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.",
+                mnemonic.phrase()
+            );
         }
     } else {
         slog::info!(
@@ -801,7 +807,10 @@ fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, GetLegacyCredentialsPe
         // No legacy path on Windows - there was no Windows support when paths were changed
         Ok(None)
     } else {
-        let config_root = std::env::var_os("DFX_CONFIG_ROOT");
+        let config_root = crate::config::directories::DFX_CONFIG_ROOT
+            .lock()
+            .unwrap()
+            .clone();
         let home = get_user_home().map_err(GetLegacyPemPathFailed)?;
         let root = config_root.unwrap_or(home);
 

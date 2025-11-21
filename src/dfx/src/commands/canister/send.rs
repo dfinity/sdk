@@ -1,14 +1,14 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::{IDLArgs, Principal};
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use dfx_core::json::load_json_file;
-use ic_agent::agent::{CallResponse, RequestStatusResponse};
 use ic_agent::Agent;
 use ic_agent::RequestId;
+use ic_agent::agent::{CallResponse, RequestStatusResponse};
 use std::path::PathBuf;
 
 /// Send a previously-signed message.
@@ -28,7 +28,9 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     if *call_sender != CallSender::SelectedId {
-        bail!("`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`.");
+        bail!(
+            "`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`."
+        );
     }
     let file_name = opts.file_name;
     let message: SignedMessageV1 = load_json_file(&file_name)?;
@@ -60,7 +62,7 @@ pub async fn exec(
         let (response, _cert) = agent
             .request_status_signed(&request_id, canister_id, envelope)
             .await
-            .with_context(|| format!("Failed to read canister state of {}.", canister_id))?;
+            .with_context(|| format!("Failed to read canister state of {canister_id}."))?;
         eprint!("Response: ");
         match response {
             RequestStatusResponse::Received => eprintln!("Received, not yet processing"),
@@ -117,10 +119,10 @@ pub async fn exec(
             let response = agent
                 .query_signed(canister_id, content)
                 .await
-                .with_context(|| format!("Query call to {} failed.", canister_id))?;
+                .with_context(|| format!("Query call to {canister_id} failed."))?;
             eprint!("Response: ");
             if let Ok(idl) = IDLArgs::from_bytes(&response) {
-                println!("{}", idl)
+                println!("{idl}")
             } else {
                 println!("{}", hex::encode(&response));
             }
@@ -129,18 +131,20 @@ pub async fn exec(
             let call_response = agent
                 .update_signed(canister_id, content)
                 .await
-                .with_context(|| format!("Update call to {} failed.", canister_id))?;
+                .with_context(|| format!("Update call to {canister_id} failed."))?;
             match call_response {
                 CallResponse::Poll(request_id) => {
                     eprintln!(
                         "To check the status of this update call, append `--status` to current command."
                     );
                     eprintln!("e.g. `dfx canister send message.json --status`");
-                    eprintln!("Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments.");
+                    eprintln!(
+                        "Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments."
+                    );
                     eprint!("Request ID: ");
                     println!("0x{}", String::from(request_id));
                     eprint!("Canister ID: ");
-                    println!("{}", canister_id);
+                    println!("{canister_id}");
                 }
                 CallResponse::Response(response) => {
                     eprint!("Response: ");

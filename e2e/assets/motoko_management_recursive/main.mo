@@ -1,6 +1,6 @@
 import Rand "dependency";
 
-actor {
+persistent actor {
   public func rand() : async Blob {
     await Rand.rand();
   };

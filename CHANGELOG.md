@@ -2,6 +2,216 @@
 
 # UNRELEASED
 
+### feat: improved the canister snapshot download/upload feature
+
+Improved the canister snapshot download/upload feature by
+- adding progress bars to snapshot download/upload
+- streaming snapshot download/upload directly to/from disk.
+- supporting download/upload with resuming.
+- supporting download/upload with concurrency, default to 3 tasks in parallel.
+
+### fix: use `pocket-ic` to init BTC canisters
+
+The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
+By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
+
+### chore: Bump cdk to 0.19 in project template.
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 03783153d1596a81311b38cc1602063c400a3c8a.
+This incorporates the following executed proposals:
+
+- [139317](https://dashboard.internetcomputer.org/proposal/139317)
+- [139192](https://dashboard.internetcomputer.org/proposal/139192)
+- [139079](https://dashboard.internetcomputer.org/proposal/139079)
+
+
+# 0.30.0
+
+### feat: `dfx start --system-canisters` for bootstrapping system canisters
+
+This new flag utilizes the built-in system canisters bootstrapping capability provided by PocketIC v10.
+`dfx nns install` is not needed anymore.
+
+When using `dfx start --system-canisters`, there's no option to specify accounts to have initial balances like you can with `dfx nns install --ledger-accounts <account-ids>`.
+However, the anonymous identity's account comes with an initial balance of 1 Billion ICP. You can transfer some of these ICP tokens to your own account on the ICP ledger. Then convert some ICP into cycles balance on the cycles-ledger.
+
+```sh
+YOUR_ACCOUNT_ID="$(dfx ledger account-id)"
+dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$YOUR_ACCOUNT_ID"
+dfx cycles convert --amount 100
+```
+
+### fix: bump svelte dependencies in project templates
+
+### Frontend canister
+
+Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic ordering.
+
+Sets the `ic_env` cookie for html files, which contains the root key and the canister environment variables that are prefixed with `PUBLIC_`.
+Please note that this version of the frontend canister is only compatible with PocketIC **v10** and above.
+
+- Module hash: b312a16c3179cf8384afa852e468c1333b7439d4c5a39f26df69b12320f629f8
+- https://github.com/dfinity/sdk/pull/4400
+- https://github.com/dfinity/sdk/pull/4392
+- https://github.com/dfinity/sdk/pull/4387
+- https://github.com/dfinity/sdk/pull/4389
+
+## Dependencies
+
+### Candid
+
+Updated candid_parser to 0.2.2.
+
+### Replica
+
+Updated replica to elected commit 575bcd0954e9d00066fd465223b755bda645edd6.
+This incorporates the following executed proposals:
+
+- [139002](https://dashboard.internetcomputer.org/proposal/139002)
+- [138996](https://dashboard.internetcomputer.org/proposal/138996)
+- [138908](https://dashboard.internetcomputer.org/proposal/138908)
+- [138814](https://dashboard.internetcomputer.org/proposal/138814)
+- [138708](https://dashboard.internetcomputer.org/proposal/138708)
+- [138597](https://dashboard.internetcomputer.org/proposal/138597)
+- [138478](https://dashboard.internetcomputer.org/proposal/138478)
+- [138476](https://dashboard.internetcomputer.org/proposal/138476)
+- [138477](https://dashboard.internetcomputer.org/proposal/138477)
+- [138363](https://dashboard.internetcomputer.org/proposal/138363)
+- [138362](https://dashboard.internetcomputer.org/proposal/138362)
+- [138361](https://dashboard.internetcomputer.org/proposal/138361)
+- [138268](https://dashboard.internetcomputer.org/proposal/138268)
+- [138266](https://dashboard.internetcomputer.org/proposal/138266)
+- [138128](https://dashboard.internetcomputer.org/proposal/138128)
+- [138129](https://dashboard.internetcomputer.org/proposal/138129)
+- [137921](https://dashboard.internetcomputer.org/proposal/137921)
+- [137795](https://dashboard.internetcomputer.org/proposal/137795)
+- [137678](https://dashboard.internetcomputer.org/proposal/137678)
+
+
+# 0.29.2
+
+### Frontend canister
+
+Use CBOR for serializing asset canister state to stable memory instead of Candid.
+
+- Module hash: 423f20ee4e5daf8f76d6bb2b4a87440227f15b26cf874c132fd75d83e252c8f6
+- https://github.com/dfinity/sdk/pull/4368
+
+
+### feat: extended `dfx canister update-settings` with `--sync-with` option.
+
+Extended `dfx canister update-settings` with `--sync-with` option to support syncing canister settings from one cansiter to another, example as below.
+
+```
+dfx canister update-settings to_canister --sync-with from_canister
+```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.2](https://github.com/dfinity/motoko/releases/tag/0.16.2)
+
+### Bitcoin canister
+
+Upgraded Bitcoin canister to [release/2025-07-02](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2025-07-02)
+
+### Replica
+
+Updated replica to commit 615045e039c57ed842c689e49a07ab3de3a8a781.
+
+# 0.29.1
+
+### fix: ensure deterministic serialization of `tech_stack` metadata
+
+The `tech_stack` metadata was previously defined with `HashMap`, which resulted in non-deterministic serialization due to its random key ordering.
+This has been fixed by replacing it with `BTreeMap`, which sorts keys and guarantees consistent, deterministic output every time.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.1](https://github.com/dfinity/motoko/releases/tag/0.16.1)
+
+### Candid
+
+Updated candid_parser to 0.2.1.
+
+Comments applied to Candid elements will now become doc comments in dfx's generated bindings.
+
+```candid
+// Type comments
+type Ex = variant {
+  // Variant comments
+  Var: record {
+    // Field comments
+    field: nat;
+  }
+}
+// Service comments
+service : {
+  // Method comments
+  func : (Ex) -> ();
+}
+```
+
+### Candid
+
+Updated candid_parser to 0.2.1.
+
+Comments applied to Candid elements will now become doc comments in dfx's generated bindings.
+
+```candid
+// Type comments
+type Ex = variant {
+  // Variant comments
+  Var: record {
+    // Field comments
+    field: nat;
+  }
+}
+// Service comments
+service : {
+  // Method comments
+  func : (Ex) -> ();
+}
+```
+
+### Frontend canister
+
+- Module hash: 4014793c83ae0ff2d851a0c4e62f289a114d36bc1826f5579f55a70ff3c70551
+- https://github.com/dfinity/sdk/pull/4354
+
+# 0.29.0
+
+### feat: add dfx native support for aarch64-Linux
+
+Add dfx native support for aarch64-Linux.
+
+### feat: support canister snapshot download and upload.
+
+Added `dfx canister snapshot download` and `dfx canister snapshot upload` commands to download and upload the canister snapshot.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.15.1](https://github.com/dfinity/motoko/releases/tag/0.15.1)
+
+### Replica
+
+Updated replica to elected commit 615045e039c57ed842c689e49a07ab3de3a8a781.
+This incorporates the following executed proposals:
+
+- [137578](https://dashboard.internetcomputer.org/proposal/137578)
+- [137497](https://dashboard.internetcomputer.org/proposal/137497)
+- [137345](https://dashboard.internetcomputer.org/proposal/137345)
+- [137224](https://dashboard.internetcomputer.org/proposal/137224)
+
 # 0.28.0
 
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets

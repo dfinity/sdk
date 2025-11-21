@@ -8,7 +8,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::lib::{environment::Environment, operations::cycles_ledger};
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
@@ -167,7 +167,7 @@ pub async fn exec(
                     opts.from_subaccount,
                 )
                 .await
-                .with_context(|| format!("Failed to deposit cycles into {}.", canister))?;
+                .with_context(|| format!("Failed to deposit cycles into {canister}."))?;
             }
         }
         Ok(())

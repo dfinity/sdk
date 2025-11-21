@@ -1,8 +1,8 @@
 use super::ExtensionManager;
 use crate::error::extension::{ListAvailableExtensionsError, ListInstalledExtensionsError};
+use crate::extension::ExtensionName;
 use crate::extension::catalog::ExtensionCatalog;
 use crate::extension::installed::InstalledExtensionList;
-use crate::extension::ExtensionName;
 use std::vec;
 use url::Url;
 

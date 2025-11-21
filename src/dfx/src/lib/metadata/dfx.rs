@@ -3,7 +3,7 @@
 //! The cli tool dfx should consolidate its usage of canister metadata into this single section
 //! It's originally for pulling dependencies. But open to extend for other usage.
 use crate::lib::{builders::command_output, environment::Environment, error::DfxResult};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use dfx_core::config::model::dfinity::{Pullable, TechStack, TechStackCategoryMap};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -66,15 +66,12 @@ fn overwrite_field_from_command(
         for (name, fields) in category_map.iter_mut() {
             for (field, value) in fields.iter_mut() {
                 if value.starts_with("$(") && value.ends_with(')') {
-                    let triple = format!("{}->{}->{}", category, name, field);
+                    let triple = format!("{category}->{name}->{field}");
                     let command = &value[2..value.len() - 1];
                     let bytes = command_output(env, command, &[], project_root)
-                        .with_context(|| format!("Failed to run the value_command: {}.", triple))?;
+                        .with_context(|| format!("Failed to run the value_command: {triple}."))?;
                     let calculated_value = String::from_utf8(bytes).with_context(|| {
-                        format!(
-                            "The value_command didn't return a valid UTF-8 string: {}.",
-                            triple
-                        )
+                        format!("The value_command didn't return a valid UTF-8 string: {triple}.")
                     })?;
                     *value = calculated_value.trim().to_string();
                 }

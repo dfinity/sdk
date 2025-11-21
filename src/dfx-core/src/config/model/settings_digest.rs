@@ -70,7 +70,7 @@ pub fn get_settings_digest(
 fn get_replica_backend_settings(
     local_server_descriptor: &LocalServerDescriptor,
     artificial_delay: u32,
-) -> BackendSettings {
+) -> BackendSettings<'_> {
     let http_handler = HttpHandlerSettings {
         port: if let Some(port) = local_server_descriptor.replica.port {
             HttpHandlerPortSetting::Port { port }

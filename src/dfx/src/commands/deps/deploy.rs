@@ -1,8 +1,8 @@
 use crate::lib::deps::deploy::try_create_canister;
 use crate::lib::deps::{
-    get_canister_prompt, get_pull_canister_or_principal, get_pull_canisters_in_config,
-    get_pulled_wasm_path, load_init_json, load_pulled_json, validate_pulled, InitJson,
-    PulledCanister,
+    InitJson, PulledCanister, get_canister_prompt, get_pull_canister_or_principal,
+    get_pull_canisters_in_config, get_pulled_wasm_path, load_init_json, load_pulled_json,
+    validate_pulled,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -13,8 +13,10 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
-use slog::{info, Logger};
+use ic_utils::interfaces::{
+    ManagementCanister, management_canister::builders::CanisterInstallMode,
+};
+use slog::{Logger, info};
 
 /// Deploy pulled dependencies locally.
 #[derive(Parser)]
@@ -89,7 +91,7 @@ async fn install_pulled_canister(
     let mgr = ManagementCanister::create(agent);
     mgr.install_code(canister_id, &wasm)
         // always reinstall pulled canister
-        .with_mode(InstallMode::Reinstall)
+        .with_mode(CanisterInstallMode::Reinstall)
         .with_raw_arg(install_args)
         .await?;
     Ok(())

@@ -912,7 +912,7 @@ You can use the following arguments with the `dfx canister snapshot create` comm
 | Argument              | Description                                                                    |
 |-----------------------|--------------------------------------------------------------------------------|
 | `<canister>`          | The canister to snapshot.                                                      |
-| `--replace <replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID. |
+| `--replace <replace>` | If a snapshot ID is specified, the snapshot identified by this ID will be deleted and a snapshot with a new ID will be returned. |
 
 ### Examples
 
@@ -1012,6 +1012,66 @@ Use the `dfx canister snapshot list` command to list the snapshots in canister `
 
 ```sh
 dfx canister snapshot list hello
+```
+
+## dfx canister snapshot download
+
+Use the `dfx canister snapshot download` command to download an existing canister snapshot to a given directory. The downloaded data can be uploaded with `dfx canister snapshot upload`.
+
+### Basic usage
+
+```sh
+dfx canister snapshot download <canister> <snapshot> --dir <DIR>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot download` command.
+
+| Argument                      | Description                                                                                |
+|-------------------------------|--------------------------------------------------------------------------------------------|
+| `<canister>`                  | The canister to download the snapshot from.                                                |
+| `<snapshot>`                  | The ID of the snapshot to download.                                                        |
+| --dir `<dir>`                 | The directory to download the snapshot to. It should be created and empty if not resuming. |
+| --resume                      | Whether to resume the download if the previous snapshot download failed.                   |
+| --concurrency `<concurrency>` | The number of concurrent downloads to perform [default: 3].                                |
+
+### Examples
+
+Use the `dfx canister snapshot download` command to download the snapshot `0000000000000000ffffffffff9000010101` in canister `hello` to the `output` directory:
+
+```sh
+dfx canister snapshot download hello 0000000000000000ffffffffff9000010101 --dir output
+```
+
+## dfx canister snapshot upload
+
+Use the `dfx canister snapshot upload` command to upload a downloaded snapshot from a given directory to a canister.
+
+### Basic usage
+
+```sh
+dfx canister snapshot upload <canister> --dir <DIR>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot upload` command.
+
+| Argument                      | Description                                                                    |
+|-------------------------------|--------------------------------------------------------------------------------|
+| `<canister>`                  | The canister to upload the snapshot to.                                        |
+| --dir `<dir>`                 | The directory to upload the snapshot from.                                     |
+| --replace `<replace>`         | If a snapshot ID is specified, the snapshot identified by this ID will be deleted and a snapshot with a new ID will be returned. |
+| --resume `<resume>`           | The snapshot ID to resume uploading to.                                        |
+| --concurrency `<concurrency>` | The number of concurrent uploads to perform [default: 3].                      |
+
+### Examples
+
+Use the `dfx canister snapshot upload` command to upload a downloaded snapshot from the `output` directory to canister `hello`:
+
+```sh
+dfx canister snapshot upload hello --dir output
 ```
 
 ## dfx canister start
@@ -1212,6 +1272,7 @@ You can specify the following options for the `dfx canister update-settings` com
 | `--impersonate <principal>`               | Specifies a principal on behalf of which requests to a local PocketIC instance are sent.                                                                                                                                                                                                                                                                                                 |
 | `--set-controller <principal>`            | Specifies the identity name or the principal of the new controller. Can be specified more than once, indicating the canister will have multiple controllers. If any controllers are set with this parameter, any other controllers will be removed.                                                                                                                                      |
 | `--set-log-viewer <principal>`            | Specifies the principal of the log viewer of the canister. Can be specified more than once, indicating the canister will have multiple log viewers. If any log viewers are set with this parameter, any other log viewers will be removed. If current log visibility is `public` or `controllers`, it will be changed to the custom allowed viewer list.                             |
+| `--sync-with <FROM_CANISTER>`             | Specifies the canister name or id to sync the settings from. |
 | `--memory-allocation <allocation>`        | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a "best-effort" basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn't space available on the subnet. |
 | `--reserved-cycles-limit <limit>`         | Specifies the upper limit of the canister's reserved cycles.                                                                                                                                                                                                                                                                                                                             |
 | `--wasm-memory-limit <limit>`             | Specifies a soft upper limit for the canister's heap memory.                                                                                                                                                                                                                                                                                                                             |
@@ -1237,6 +1298,12 @@ To update the settings of the `hello_world` canister, you can run the following 
 
 ``` bash
 dfx canister update-settings --freezing-threshold 2592000 --compute-allocation 99 hello_world
+```
+
+To sync the canister settings from the `from_canister` canister to the `to_canister` canister, you can run the following command:
+
+```bash
+dfx canister update-settings to_canister --sync-with from_canister
 ```
 
 ## dfx canister url

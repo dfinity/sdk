@@ -39,7 +39,9 @@ pub enum CanisterIdStoreError {
 
 #[derive(Error, Debug)]
 pub enum AddCanisterIdError {
-    #[error("failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
+    #[error(
+        "failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store"
+    )]
     SaveIds {
         canister_name: String,
         canister_id: String,

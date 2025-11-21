@@ -57,8 +57,7 @@ impl ICPTs {
             .ok_or_else(|| CONSTRUCTION_FAILED.to_string())?;
         if e8s >= ICP_SUBDIVIDABLE_BY {
             return Err(format!(
-                "You've added too many e8s, make sure there are less than {}",
-                ICP_SUBDIVIDABLE_BY
+                "You've added too many e8s, make sure there are less than {ICP_SUBDIVIDABLE_BY}"
             ));
         }
         let e8s = icp_part
@@ -211,23 +210,22 @@ impl FromStr for ICPTs {
                 }
                 let icpts = match amount.trunc().to_string().parse::<u64>() {
                     Ok(v) => v,
-                    Err(e) => return Err(format!("{}", e)),
+                    Err(e) => return Err(format!("{e}")),
                 };
                 let e8s = match amount.fract().to_string().as_str() {
                     "0" => 0_u64,
                     e8s => {
                         let e8s = &e8s.to_string()[2..e8s.to_string().len()];
-                        let amount = e8s.chars().enumerate().fold(0, |amount, (idx, val)| {
+                        e8s.chars().enumerate().fold(0, |amount, (idx, val)| {
                             amount
                                 + (10_u64.pow(DECIMAL_PLACES - 1 - (idx as u32))
                                     * (val.to_digit(10).unwrap() as u64))
-                        });
-                        amount
+                        })
                     }
                 };
                 ICPTs::new(icpts, e8s)
             }
-            Err(e) => Err(format!("Decimal conversion error: {}", e)),
+            Err(e) => Err(format!("Decimal conversion error: {e}")),
         }
     }
 }

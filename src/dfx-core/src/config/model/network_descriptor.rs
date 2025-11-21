@@ -1,5 +1,5 @@
 use crate::config::model::dfinity::{
-    NetworkType, PlaygroundConfig, DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH,
+    DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH, NetworkType, PlaygroundConfig,
 };
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
@@ -149,7 +149,7 @@ impl NetworkDescriptor {
             if let Some(port) = local_server_descriptor.get_running_pocketic_port(logger)? {
                 let mut socket_addr = local_server_descriptor.bind_address;
                 socket_addr.set_port(port);
-                let url = format!("http://{}", socket_addr);
+                let url = format!("http://{socket_addr}");
                 let url =
                     Url::parse(&url).map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
                 return Ok(vec![url]);

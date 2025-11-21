@@ -13,7 +13,7 @@ where
     D: Deserializer<'de>,
 {
     semver::Version::parse(version)
-        .map_err(|e| serde::de::Error::custom(format!("invalid SemVer: {}", e)))
+        .map_err(|e| serde::de::Error::custom(format!("invalid SemVer: {e}")))
 }
 
 fn deserialize_tags<'de, D>(deserializer: D) -> Result<BTreeMap<String, Version>, D::Error>
