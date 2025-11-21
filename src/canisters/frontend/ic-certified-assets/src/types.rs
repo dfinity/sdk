@@ -198,6 +198,11 @@ pub struct ListPermittedArguments {
     pub permission: Permission,
 }
 
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ListRequest {
+    pub start: Option<Nat>,
+}
+
 /// The argument to `init` and `post_upgrade` needs to have the same argument type by definition.
 /// `AssetCanisterArgs` is there so that the two functions can take different argument types.
 #[derive(Clone, Debug, CandidType, Deserialize)]

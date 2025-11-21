@@ -182,6 +182,10 @@ pub struct AssetDetails {
     pub key: String,
     pub content_type: String,
     pub encodings: Vec<AssetEncodingDetails>,
+    pub max_age: Option<u64>,
+    pub headers: Option<BTreeMap<String, String>>,
+    pub allow_raw_access: Option<bool>,
+    pub is_aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -876,29 +880,50 @@ impl State {
         Ok(())
     }
 
-    pub fn list_assets(&self) -> Vec<AssetDetails> {
-        self.assets
-            .iter()
-            .map(|(key, asset)| {
-                let mut encodings: Vec<_> = asset
-                    .encodings
-                    .iter()
-                    .map(|(enc_name, enc)| AssetEncodingDetails {
-                        content_encoding: enc_name.clone(),
-                        sha256: Some(ByteBuf::from(enc.sha256)),
-                        length: Nat::from(enc.total_length),
-                        modified: enc.modified.clone(),
-                    })
-                    .collect();
-                encodings.sort_by(|l, r| l.content_encoding.cmp(&r.content_encoding));
+    pub fn list_assets(&self, request: Option<ListRequest>) -> Vec<AssetDetails> {
+        const PAGE_SIZE: usize = 100;
 
-                AssetDetails {
-                    key: key.clone(),
-                    content_type: asset.content_type.clone(),
-                    encodings,
-                }
+        let start_idx = request
+            .and_then(|r| r.start)
+            .and_then(|n| {
+                let n_u64: u64 = n.0.try_into().ok()?;
+                usize::try_from(n_u64).ok()
             })
-            .collect::<Vec<_>>()
+            .unwrap_or(0);
+
+        let mut sorted_keys: Vec<_> = self.assets.keys().collect();
+        sorted_keys.sort();
+
+        sorted_keys
+            .into_iter()
+            .skip(start_idx)
+            .take(PAGE_SIZE)
+            .filter_map(|key| {
+                self.assets.get(key).map(|asset| {
+                    let mut encodings: Vec<_> = asset
+                        .encodings
+                        .iter()
+                        .map(|(enc_name, enc)| AssetEncodingDetails {
+                            content_encoding: enc_name.clone(),
+                            sha256: Some(ByteBuf::from(enc.sha256)),
+                            length: Nat::from(enc.total_length),
+                            modified: enc.modified.clone(),
+                        })
+                        .collect();
+                    encodings.sort_by(|l, r| l.content_encoding.cmp(&r.content_encoding));
+
+                    AssetDetails {
+                        key: key.clone(),
+                        content_type: asset.content_type.clone(),
+                        encodings,
+                        max_age: asset.max_age,
+                        headers: asset.headers.clone(),
+                        allow_raw_access: asset.allow_raw_access,
+                        is_aliased: asset.is_aliased,
+                    }
+                })
+            })
+            .collect()
     }
 
     pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {

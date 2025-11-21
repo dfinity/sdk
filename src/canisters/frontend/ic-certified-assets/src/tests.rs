@@ -8,7 +8,7 @@ use crate::system_context::canister_env::CanisterEnv;
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
     ComputeEvidenceArguments, CreateAssetArguments, CreateChunkArg, DeleteAssetArguments,
-    DeleteBatchArguments, GetArg, GetChunkArg, SetAssetContentArguments,
+    DeleteBatchArguments, GetArg, GetChunkArg, ListRequest, SetAssetContentArguments,
     SetAssetPropertiesArguments,
 };
 use crate::url::{UrlDecodeError, url_decode, url_encode};
@@ -4741,5 +4741,134 @@ mod last_state_update_timestamp {
             restored_state.last_state_update_timestamp_ns(),
             expected_timestamp
         );
+    }
+}
+
+#[cfg(test)]
+mod list_assets {
+    use super::*;
+
+    #[test]
+    fn list_pagination_starts_from_beginning_by_default() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const BODY: &[u8] = b"content";
+
+        // Create 10 assets
+        let assets: Vec<_> = (0..10)
+            .map(|i| {
+                AssetBuilder::new(format!("/asset{:02}.txt", i), "text/plain")
+                    .with_encoding("identity", vec![BODY])
+            })
+            .collect();
+
+        create_assets(&mut state, &system_context, assets);
+
+        // List with None should start from beginning
+        let list = state.list_assets(None);
+        assert_eq!(list.len(), 10);
+
+        // List with Some(0) should be the same
+        let list_from_zero = state.list_assets(Some(ListRequest {
+            start: Some(Nat::from(0u8)),
+        }));
+        assert_eq!(list_from_zero.len(), 10);
+
+        // Results should be sorted by key
+        for i in 0..9 {
+            assert!(list[i].key < list[i + 1].key);
+        }
+    }
+
+    #[test]
+    fn list_pagination_with_start_index() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const BODY: &[u8] = b"content";
+
+        // Create 20 assets
+        let assets: Vec<_> = (0..20)
+            .map(|i| {
+                AssetBuilder::new(format!("/asset{:02}.txt", i), "text/plain")
+                    .with_encoding("identity", vec![BODY])
+            })
+            .collect();
+
+        create_assets(&mut state, &system_context, assets);
+
+        // Get first page
+        let first_page = state.list_assets(None);
+        assert_eq!(first_page.len(), 20);
+
+        // Get second page starting at index 10
+        let second_page = state.list_assets(Some(ListRequest {
+            start: Some(Nat::from(10u8)),
+        }));
+        assert_eq!(second_page.len(), 10);
+
+        // Verify no overlap
+        let first_page_keys: Vec<_> = first_page.iter().take(10).map(|a| &a.key).collect();
+        let second_page_keys: Vec<_> = second_page.iter().map(|a| &a.key).collect();
+
+        for key in &second_page_keys {
+            assert!(!first_page_keys.contains(key));
+        }
+
+        // Concat the two pages and verify ordering
+        let mut combined: Vec<_> = first_page.iter().take(10).collect();
+        combined.extend(second_page.iter());
+
+        for i in 0..combined.len() - 1 {
+            assert!(
+                combined[i].key < combined[i + 1].key,
+                "Keys not in order at index {}: {} >= {}",
+                i,
+                combined[i].key,
+                combined[i + 1].key
+            );
+        }
+    }
+
+    #[test]
+    fn list_pagination_limits_to_100_assets() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const BODY: &[u8] = b"content";
+
+        // Create 150 assets
+        let assets: Vec<_> = (0..150)
+            .map(|i| {
+                AssetBuilder::new(format!("/asset{:03}.txt", i), "text/plain")
+                    .with_encoding("identity", vec![BODY])
+            })
+            .collect();
+
+        create_assets(&mut state, &system_context, assets);
+
+        // First page should have exactly 100 assets
+        let first_page = state.list_assets(None);
+        assert_eq!(first_page.len(), 100);
+
+        // Second page starting at 100 should have 50 assets
+        let second_page = state.list_assets(Some(ListRequest {
+            start: Some(Nat::from(100u8)),
+        }));
+        assert_eq!(second_page.len(), 50);
+
+        // Third page starting at 150 should be empty
+        let third_page = state.list_assets(Some(ListRequest {
+            start: Some(Nat::from(150u8)),
+        }));
+        assert_eq!(third_page.len(), 0);
+    }
+
+    #[test]
+    fn list_returns_empty_for_no_assets() {
+        let state = State::default();
+        let list = state.list_assets(None);
+        assert_eq!(list.len(), 0);
     }
 }

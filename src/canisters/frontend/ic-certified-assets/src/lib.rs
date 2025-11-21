@@ -265,8 +265,8 @@ pub fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
     })
 }
 
-pub fn list() -> Vec<AssetDetails> {
-    with_state(|s| s.list_assets())
+pub fn list(request: Option<ListRequest>) -> Vec<AssetDetails> {
+    with_state(|s| s.list_assets(request))
 }
 
 pub fn certified_tree() -> CertifiedTree {
@@ -467,8 +467,8 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_query]
         #[$crate::ic_certified_assets_candid_method(query)]
-        fn list() -> Vec<state_machine::AssetDetails> {
-            $crate::list()
+        fn list(request: Option<types::ListRequest>) -> Vec<state_machine::AssetDetails> {
+            $crate::list(request)
         }
 
         #[$crate::ic_certified_assets_query]
