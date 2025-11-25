@@ -28,7 +28,7 @@ txindex=1
 rpcuser=ic-doge-integration
 rpcpassword=QPQiNaph19FqUsCrBRN0FII7lyM26B51fAMeBQzCb-E=
 rpcauth=ic-doge-integration:cdf2741387f3a12438f69092f0fdad8e\$62081498c98bee09a0dce2b30671123fa561932992ce377585e8e08bb0c11dfa
-  EOF
+EOF
   
   # Start dogecoind with explicit datadir and timeout
   dogecoind -datadir="$DOGECOIN_DATADIR" -daemon -timeout=30 --port=18444
