@@ -430,6 +430,7 @@ async fn initialize_pocketic(
             }),
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
+            dogecoind_addr: dogecoind_addr.clone(),
             icp_features: Some(icp_features),
             http_gateway_config: Some(InstanceHttpGatewayConfig {
                 ip_addr: Some(addr.ip().to_string()),
