@@ -51,10 +51,7 @@ struct FilterOpts {
     last_idx: Option<u64>,
 }
 
-fn filter_canister_logs<'a>(
-    logs: &'a FetchCanisterLogsResult,
-    opts: FilterOpts,
-) -> &'a [CanisterLogRecord] {
+fn filter_canister_logs(logs: &FetchCanisterLogsResult, opts: FilterOpts) -> &[CanisterLogRecord] {
     if let Some(number) = opts.tail {
         &logs.canister_log_records[logs
             .canister_log_records

@@ -64,36 +64,6 @@ pub fn assets_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
     }
 }
 
-#[allow(unused)]
-#[context("Failed to load bitcoin wasm.")]
-pub fn bitcoin_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
-    if let Ok(dfx_assets_wasm) = std::env::var("DFX_BITCOIN_WASM") {
-        info!(logger, "Using wasm at path: {}", dfx_assets_wasm);
-        Ok(dfx_core::fs::read(dfx_assets_wasm.as_ref())?)
-    } else {
-        let mut canister_assets =
-            btc_canister().context("Failed to load bitcoin canister archive.")?;
-        for file in canister_assets
-            .entries()
-            .context("Failed to read bitcoin canister archive entries.")?
-        {
-            let mut file = file.context("Failed to read bitcoin canister archive entry.")?;
-            if file
-                .header()
-                .path()
-                .context("Failed to read archive entry path.")?
-                .ends_with("ic-btc-canister.wasm.gz")
-            {
-                let mut wasm = vec![];
-                file.read_to_end(&mut wasm)
-                    .context("Failed to read archive entry.")?;
-                return Ok(wasm);
-            }
-        }
-        bail!("Failed to find bitcoin canister archive entry");
-    }
-}
-
 pub fn management_idl() -> DfxResult<String> {
     // FIXME get idl from replica when it's available
     // Pulled from https://github.com/dfinity/interface-spec/blob/master/spec/_attachments/ic.did

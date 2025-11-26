@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: support dogecoin for the local dev environment
+
+You can now launch a network with `dfx network start --enable-dogeoin` to run the dogecoin
+integration locally.
+
 ### feat: improved the canister snapshot download/upload feature
 
 Improved the canister snapshot download/upload feature by
@@ -9,6 +14,25 @@ Improved the canister snapshot download/upload feature by
 - streaming snapshot download/upload directly to/from disk.
 - supporting download/upload with resuming.
 - supporting download/upload with concurrency, default to 3 tasks in parallel.
+
+### fix: use `pocket-ic` to init BTC canisters
+
+The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
+By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
+
+### chore: Bump cdk to 0.19 in project template.
+
+## Dependencies
+
+### Replica
+
+Updated replica to commit 2e99e6c26c0eacd4f321e7c2604d118d645828ad
+This incorporates the following executed proposals:
+
+- [139317](https://dashboard.internetcomputer.org/proposal/139317)
+- [139192](https://dashboard.internetcomputer.org/proposal/139192)
+- [139079](https://dashboard.internetcomputer.org/proposal/139079)
+
 
 # 0.30.0
 
