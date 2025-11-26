@@ -80,4 +80,15 @@ teardown() {
     network = variant { regtest };
   },
 )'
+
+  dogecoin-cli -datadir="$DOGECOIN_DATADIR" -regtest generatetoaddress 61 mujckCaBWYE4boMJaAmxaumzfxExipZXej
+
+  assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_balance '(
+  record {
+    network = variant { regtest };
+    address = "mujckCaBWYE4boMJaAmxaumzfxExipZXej";
+    min_confirmations = null;
+  },
+)'
+
 }
