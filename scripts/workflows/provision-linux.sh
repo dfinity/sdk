@@ -43,7 +43,7 @@ fi
 
 # dogecoin
 if [ "$E2E_TEST" = "tests-dfx/dogecoin.bash" ]; then
-    DOGECOIN_VERSION=1.49.9
+    DOGECOIN_VERSION=1.14.9
 
     # Check architecture and set filename and sha
     ARCH=$(uname -m)
