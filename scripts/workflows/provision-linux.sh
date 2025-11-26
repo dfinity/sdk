@@ -61,7 +61,7 @@ if [ "$E2E_TEST" = "tests-dfx/dogecoin.bash" ]; then
         wget "https://github.com/dogecoin/dogecoin/releases/download/v$DOGECOIN_VERSION/$DOGECOIN_FILENAME"
         echo "$DOGECOIN_TARBALL_SHA  $DOGECOIN_FILENAME" | shasum -c
         tar xzf "$DOGECOIN_FILENAME"
-        cd "DOGECOIN-$DOGECOIN_VERSION/bin"
+        cd "dogecoin-$DOGECOIN_VERSION/bin"
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
     )
 fi
