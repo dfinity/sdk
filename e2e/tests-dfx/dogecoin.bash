@@ -75,7 +75,7 @@ set_local_network_dogecoin_enabled() {
 }
 
 @test "can call dogecoin API of the management canister" {
-  install_asset dogecoin
+
   dfx_start --enable-dogecoin
   dfx identity get-wallet 
 
