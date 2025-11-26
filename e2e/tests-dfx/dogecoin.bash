@@ -56,8 +56,6 @@ teardown() {
 }
 
 @test "dfx start --enable-dogecoin --background waits until dogecoin canister is installed" {
-  dfx_new hello
-
   dfx_start --enable-dogecoin
 
   assert_command dfx canister info "$DOGECOIN_CANISTER_ID"
@@ -81,7 +79,7 @@ teardown() {
   },
 )'
 
-  dogecoin-cli -datadir="$DOGECOIN_DATADIR" -regtest generatetoaddress 61 mujckCaBWYE4boMJaAmxaumzfxExipZXej
+  assert_command dogecoin-cli -datadir="$DOGECOIN_DATADIR" -regtest generatetoaddress 61 mujckCaBWYE4boMJaAmxaumzfxExipZXej
 
   assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_balance '(
   record {
