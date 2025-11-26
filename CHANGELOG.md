@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: support for canister ID migration
+
+Canister ID migration can be performed using `dfx canister migrate-id`
+and its status can be checked out using `dfx canister migration-status`.
+
 ### feat: support dogecoin for the local dev environment
 
 You can now launch a network with `dfx network start --enable-dogeoin` to run the dogecoin
