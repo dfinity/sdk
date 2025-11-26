@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use candid::{CandidType, Principal};
+use candid::{CandidType, Principal, Reserved};
 use ic_agent::Agent;
 use ic_utils::Canister;
 use serde::Deserialize;
@@ -12,32 +12,37 @@ const MIGRATION_STATUS_METHOD: &str = "migration_status";
 
 #[derive(Clone, CandidType, Deserialize)]
 pub struct MigrateCanisterArgs {
-    pub source: Principal,
-    pub target: Principal,
+    pub canister_id: Principal,
+    pub replace_canister_id: Principal,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub enum ValidationError {
-    MigrationsDisabled,
-    RateLimited,
+    MigrationsDisabled(Reserved),
+    RateLimited(Reserved),
+    ValidationInProgress { canister: Principal },
     MigrationInProgress { canister: Principal },
     CanisterNotFound { canister: Principal },
-    SameSubnet,
+    SameSubnet(Reserved),
     CallerNotController { canister: Principal },
     NotController { canister: Principal },
-    SourceNotStopped,
-    SourceNotReady,
-    TargetNotStopped,
-    TargetHasSnapshots,
-    SourceInsufficientCycles,
+    SourceNotStopped(Reserved),
+    SourceNotReady(Reserved),
+    TargetNotStopped(Reserved),
+    TargetHasSnapshots(Reserved),
+    SourceInsufficientCycles(Reserved),
     CallFailed { reason: String },
 }
 
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidationError::MigrationsDisabled => write!(f, "MigrationsDisabled"),
-            ValidationError::RateLimited => write!(f, "RateLimited"),
+            ValidationError::MigrationsDisabled(Reserved) => write!(f, "MigrationsDisabled"),
+            ValidationError::RateLimited(Reserved) => write!(f, "RateLimited"),
+            ValidationError::ValidationInProgress { canister } => write!(
+                f,
+                "ValidationError::ValidationInProgress {{ canister: {canister} }}",
+            ),
             ValidationError::MigrationInProgress { canister } => write!(
                 f,
                 "ValidationError::MigrationInProgress {{ canister: {canister} }}",
@@ -46,7 +51,7 @@ impl fmt::Display for ValidationError {
                 f,
                 "ValidationError::CanisterNotFound {{ canister: {canister} }}",
             ),
-            ValidationError::SameSubnet => write!(f, "SameSubnet"),
+            ValidationError::SameSubnet(Reserved) => write!(f, "SameSubnet"),
             ValidationError::CallerNotController { canister } => write!(
                 f,
                 "ValidationError::CallerNotController {{ canister: {canister} }}",
@@ -55,11 +60,13 @@ impl fmt::Display for ValidationError {
                 f,
                 "ValidationError::NotController {{ canister: {canister} }}",
             ),
-            ValidationError::SourceNotStopped => write!(f, "SourceNotStopped"),
-            ValidationError::SourceNotReady => write!(f, "SourceNotReady"),
-            ValidationError::TargetNotStopped => write!(f, "TargetNotStopped"),
-            ValidationError::TargetHasSnapshots => write!(f, "TargetHasSnapshots"),
-            ValidationError::SourceInsufficientCycles => write!(f, "SourceInsufficientCycles"),
+            ValidationError::SourceNotStopped(Reserved) => write!(f, "SourceNotStopped"),
+            ValidationError::SourceNotReady(Reserved) => write!(f, "SourceNotReady"),
+            ValidationError::TargetNotStopped(Reserved) => write!(f, "TargetNotStopped"),
+            ValidationError::TargetHasSnapshots(Reserved) => write!(f, "TargetHasSnapshots"),
+            ValidationError::SourceInsufficientCycles(Reserved) => {
+                write!(f, "SourceInsufficientCycles")
+            }
             ValidationError::CallFailed { reason } => {
                 write!(f, "ValidationError::CallFailed {{ reason: {reason} }}")
             }
@@ -104,8 +111,8 @@ pub async fn migrate_canister(
         .build()?;
 
     let arg = MigrateCanisterArgs {
-        source: from_canister,
-        target: to_canister,
+        canister_id: from_canister,
+        replace_canister_id: to_canister,
     };
 
     let _: () = canister
@@ -128,8 +135,8 @@ pub async fn migration_status(
         .build()?;
 
     let arg = MigrateCanisterArgs {
-        source: from_canister,
-        target: to_canister,
+        canister_id: from_canister,
+        replace_canister_id: to_canister,
     };
 
     let (result,): (Vec<MigrationStatus>,) = canister
