@@ -32,6 +32,9 @@ EOF
   
   # Start dogecoind with explicit datadir and timeout
   dogecoind -datadir="$DOGECOIN_DATADIR" -daemon -timeout=30 --port=18444
+
+  # Wait a little bit for the daemon to come up
+  sleep 5
 }
 
 teardown() {
@@ -46,19 +49,6 @@ teardown() {
 
   dfx_stop
   standard_teardown
-}
-
-set_project_default_dogecoin_enabled() {
-  jq '.defaults.dogecoin.enabled=true' dfx.json | sponge dfx.json
-}
-
-set_shared_local_network_dogecoin_enabled() {
-  create_networks_json
-  jq '.local.dogecoin.enabled=true' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-}
-
-set_local_network_dogecoin_enabled() {
-  jq '.networks.local.dogecoin.enabled=true' dfx.json | sponge dfx.json
 }
 
 @test "noop" {
