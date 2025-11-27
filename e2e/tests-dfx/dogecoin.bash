@@ -67,26 +67,34 @@ teardown() {
   dfx_start --enable-dogecoin
   dfx identity get-wallet 
 
+  # Make a call to the dogecoin canister and check that it succeeds
   # the non-query dogecoin API can only be called by a canister not an agent
   # we need to proxy the call through the wallet canister
-
-  # Make a call to the dogecoin canister and check that it succeeds
   assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
-  record {
-    start_height = 0 : nat32;
-    end_height = null;
-    network = variant { regtest };
-  },
-)'
+    record {
+      start_height = 0 : nat32;
+      end_height = null;
+      network = variant { regtest };
+    },
+  )'
 
+  # at this point the height should be 0
+  assert_contains "tip_height = 0 : nat32;"
+
+  # generate some blocks and wait a little
   assert_command dogecoin-cli -datadir="$DOGECOIN_DATADIR" -regtest generatetoaddress 61 mujckCaBWYE4boMJaAmxaumzfxExipZXej
+  sleep 5
 
-  assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_balance '(
-  record {
-    network = variant { regtest };
-    address = "mujckCaBWYE4boMJaAmxaumzfxExipZXej";
-    min_confirmations = null;
-  },
-)'
+  # Make a call to check the height again
+  assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
+    record {
+      start_height = 0 : nat32;
+      end_height = null;
+      network = variant { regtest };
+    },
+  )'
+
+  # It should be have increased
+  assert_contains "tip_height = 61 : nat32;"
 
 }
