@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use slog::{Logger, debug, info};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use time::OffsetDateTime;
 
 use super::replica_config::CachedReplicaConfig;
@@ -187,9 +188,19 @@ impl LocalServerDescriptor {
     }
 
     pub fn with_bitcoin_enabled(self) -> LocalServerDescriptor {
-        let bitcoin = ConfigDefaultsBitcoin {
-            enabled: true,
-            ..self.bitcoin
+        // if we're enabling bitcoin and there are no bitcoin nodes specified,
+        // we will add a default node at 127.0.0.1:18444
+        let bitcoin = if self.bitcoin.nodes.is_none() || self.bitcoin.nodes.clone().is_some_and(|n| n.is_empty()) {
+            ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                ..self.bitcoin
+            }
+        } else {
+            ConfigDefaultsBitcoin {
+                enabled: true,
+                ..self.bitcoin
+            }
         };
         Self { bitcoin, ..self }
     }
@@ -203,9 +214,18 @@ impl LocalServerDescriptor {
     }
 
     pub fn with_dogecoin_enabled(self) -> LocalServerDescriptor {
-        let dogecoin = ConfigDefaultsDogecoin {
-            enabled: true,
-            ..self.dogecoin
+        // if we're enabling dogecoin and there are no dogecoin nodes specified,
+        // we will add a default node at 127.0.0.1:18444
+        let dogecoin = if self.dogecoin.nodes.is_none() || self.dogecoin.nodes.clone().is_some_and(|n| n.is_empty()) {
+            ConfigDefaultsDogecoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+            }
+        } else {
+            ConfigDefaultsDogecoin {
+                enabled: true,
+                ..self.dogecoin
+            }
         };
         Self { dogecoin, ..self }
     }
