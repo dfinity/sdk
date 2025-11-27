@@ -82,8 +82,12 @@ teardown() {
   assert_contains "tip_height = 0 : nat32;"
 
   # generate some blocks and wait a little
-  assert_command dogecoin-cli -datadir="$DOGECOIN_DATADIR" -regtest generatetoaddress 61 mujckCaBWYE4boMJaAmxaumzfxExipZXej
-  sleep 5
+  # we wait to avoid having to handle an error like this:
+  #
+  # Caused by: An error happened during the call: 5: IC0503: Error from Canister gordg-fyaaa-aaaan-aaadq-cai:
+  # Canister called `ic0.trap` with message: 'Panicked at 'Canister state is not fully synced.', canister/src/lib.rs:341:13'.
+  assert_command dogecoin-cli -datadir="$DOGECOIN_DATADIR" -regtest generatetoaddress 11 mujckCaBWYE4boMJaAmxaumzfxExipZXej
+  sleep 20
 
   # Make a call to check the height again
   assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
@@ -95,6 +99,6 @@ teardown() {
   )'
 
   # It should be have increased
-  assert_contains "tip_height = 61 : nat32;"
+  assert_contains "tip_height = 11 : nat32;"
 
 }
