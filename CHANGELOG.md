@@ -31,6 +31,8 @@ By using `pocket-ic`, which gets updated frequently, the BTC integration is sign
 Updated replica to commit 948d5b9260494ec3e6c9bc9db499f34d52ba6c7f
 This incorporates the following executed proposals:
 
+- [139480](https://dashboard.internetcomputer.org/proposal/139480)
+- [139403](https://dashboard.internetcomputer.org/proposal/139403)
 - [139317](https://dashboard.internetcomputer.org/proposal/139317)
 - [139192](https://dashboard.internetcomputer.org/proposal/139192)
 - [139079](https://dashboard.internetcomputer.org/proposal/139079)
