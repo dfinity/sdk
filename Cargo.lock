@@ -790,9 +790,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.10.18"
+version = "0.10.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ae495fbaf9ee8f4f7898affbd3df85dba8598bfa4ffaca24726c42aa4beb7b1"
+checksum = "8037a01ec09d6c06883a38bad4f47b8d06158ad360b841e0ae5707c9884dfaf6"
 dependencies = [
  "anyhow",
  "binread",
@@ -813,9 +813,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.10.18"
+version = "0.10.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7388be3b345b1a2ad30e529619b4db0d1955852afb56da821fa6a805f7cbf6be"
+checksum = "fb45f4d5eff3805598ee633dd80f8afb306c023249d34b5b7dfdc2080ea1df2e"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -5148,7 +5148,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 [[package]]
 name = "pocket-ic"
 version = "10.0.0"
-source = "git+https://github.com/dfinity/ic?rev=2e99e6c26c0eacd4f321e7c2604d118d645828ad#2e99e6c26c0eacd4f321e7c2604d118d645828ad"
+source = "git+https://github.com/dfinity/ic?rev=948d5b9260494ec3e6c9bc9db499f34d52ba6c7f#948d5b9260494ec3e6c9bc9db499f34d52ba6c7f"
 dependencies = [
  "backoff",
  "base64 0.13.1",

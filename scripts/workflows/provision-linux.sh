@@ -10,7 +10,11 @@ pushd /tmp
 # Install Bats + moreutils + parallel.
 sudo apt-get install --yes bats parallel moreutils
 
+#
 # Modifications needed for some tests
+#
+
+# bitcoin daemon
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
 
@@ -36,6 +40,32 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
     )
 fi
+
+# dogecoin
+if [ "$E2E_TEST" = "tests-dfx/dogecoin.bash" ]; then
+    DOGECOIN_VERSION=1.14.9
+
+    # Check architecture and set filename and sha
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        DOGECOIN_FILENAME="dogecoin-$DOGECOIN_VERSION-x86_64-linux-gnu.tar.gz"
+        DOGECOIN_TARBALL_SHA="4f227117b411a7c98622c970986e27bcfc3f547a72bef65e7d9e82989175d4f8"
+    else
+        # It's tricky to build dogecoind on apple sillicon so we skip it
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+    fi
+
+    (
+        cd "$(mktemp -d)"
+        wget "https://github.com/dogecoin/dogecoin/releases/download/v$DOGECOIN_VERSION/$DOGECOIN_FILENAME"
+        echo "$DOGECOIN_TARBALL_SHA  $DOGECOIN_FILENAME" | shasum -c
+        tar xzf "$DOGECOIN_FILENAME"
+        cd "dogecoin-$DOGECOIN_VERSION/bin"
+        sudo install -m 0755 -o root -g root -t /usr/local/bin *
+    )
+fi
+
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
     sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz

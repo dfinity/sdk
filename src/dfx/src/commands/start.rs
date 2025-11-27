@@ -57,7 +57,7 @@ pub struct StartOpts {
     #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
-    /// enable bitcoin integration
+    /// enable bitcoin integration. If --bitcoin_node is not passed, defaults to 127.0.0.1:18444
     #[arg(long)]
     enable_bitcoin: bool,
 
@@ -65,7 +65,7 @@ pub struct StartOpts {
     #[arg(long, action = ArgAction::Append)]
     dogecoin_node: Vec<SocketAddr>,
 
-    /// enable bitcoin integration
+    /// enable dogecoin integration. If --dogecoin_node is not passed, defaults to 127.0.0.1:18444
     #[arg(long)]
     enable_dogecoin: bool,
 

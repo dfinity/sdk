@@ -419,29 +419,32 @@ async fn initialize_pocketic(
         icp_features
     };
 
+    let instance_config = InstanceConfig {
+        subnet_config_set,
+        state_dir: Some(replica_config.state_manager.state_root.clone()),
+        icp_config: Some(IcpConfig {
+            beta_features: Some(IcpConfigFlag::Enabled),
+            ..Default::default()
+        }),
+        log_level: Some(replica_config.log_level.to_pocketic_string()),
+        bitcoind_addr: bitcoind_addr.clone(),
+        dogecoind_addr: dogecoind_addr.clone(),
+        icp_features: Some(icp_features),
+        http_gateway_config: Some(InstanceHttpGatewayConfig {
+            ip_addr: Some(addr.ip().to_string()),
+            port: Some(addr.port()),
+            domains,
+            https_config: None,
+        }),
+        initial_time: Some(InitialTime::AutoProgress(AutoProgressConfig {
+            artificial_delay_ms: Some(replica_config.artificial_delay as u64),
+        })),
+        ..Default::default()
+    };
+
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
-        .json(&InstanceConfig {
-            subnet_config_set,
-            state_dir: Some(replica_config.state_manager.state_root.clone()),
-            icp_config: Some(IcpConfig {
-                beta_features: Some(IcpConfigFlag::Enabled),
-                ..Default::default()
-            }),
-            log_level: Some(replica_config.log_level.to_pocketic_string()),
-            bitcoind_addr: bitcoind_addr.clone(),
-            icp_features: Some(icp_features),
-            http_gateway_config: Some(InstanceHttpGatewayConfig {
-                ip_addr: Some(addr.ip().to_string()),
-                port: Some(addr.port()),
-                domains,
-                https_config: None,
-            }),
-            initial_time: Some(InitialTime::AutoProgress(AutoProgressConfig {
-                artificial_delay_ms: Some(replica_config.artificial_delay as u64),
-            })),
-            ..Default::default()
-        })
+        .json(&instance_config)
         .send()
         .await?
         .error_for_status()?
