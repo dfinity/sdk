@@ -70,7 +70,7 @@ teardown() {
   # Make a call to the dogecoin canister and check that it succeeds
   # the non-query dogecoin API can only be called by a canister not an agent
   # we need to proxy the call through the wallet canister
-  assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
+  assert_command dfx canister call --with-cycles 10000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
     record {
       start_height = 0 : nat32;
       end_height = null;
@@ -90,7 +90,7 @@ teardown() {
   sleep 20
 
   # Make a call to check the height again
-  assert_command dfx canister call --with-cycles 5000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
+  assert_command dfx canister call --with-cycles 10000000000 --wallet default $DOGECOIN_CANISTER_ID dogecoin_get_block_headers '(
     record {
       start_height = 0 : nat32;
       end_height = null;
