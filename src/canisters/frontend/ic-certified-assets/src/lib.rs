@@ -230,6 +230,12 @@ pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_as
     })
 }
 
+pub fn compute_state_hash() -> Option<ic_certified_assets_ByteBuf> {
+    let system_context = SystemContext::new();
+
+    with_state_mut(|s| s.compute_state_hash(&system_context))
+}
+
 pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     let system_context = SystemContext::new();
 
@@ -642,6 +648,12 @@ macro_rules! export_canister_methods {
             arg: types::ComputeEvidenceArguments,
         ) -> Option<ic_certified_assets_ByteBuf> {
             $crate::compute_evidence(arg)
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn compute_state_hash() -> Option<ic_certified_assets_ByteBuf> {
+            $crate::compute_state_hash()
         }
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]

@@ -5139,3 +5139,150 @@ mod set_asset_content_sha256_verification {
         assert!(result.is_ok());
     }
 }
+
+#[cfg(test)]
+mod compute_state_hash {
+    use super::*;
+    use sha2::{Digest, Sha256};
+
+    #[test]
+    fn test_compute_state_hash_matches_evidence() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        // Create a batch to compute evidence "normally"
+        let batch_id = state.create_batch(&system_context).unwrap();
+
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(b"content1"),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        // Compute SHA256 of content
+        let mut hasher = Sha256::new();
+        hasher.update(b"content1");
+        let sha256: [u8; 32] = hasher.finalize().into();
+
+        let args = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![
+                BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "asset1".to_string(),
+                    content_type: "text/plain".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),
+                BatchOperation::SetAssetContent(SetAssetContentArguments {
+                    key: "asset1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![chunk_id],
+                    last_chunk: None,
+                    sha256: Some(ByteBuf::from(sha256)),
+                }),
+            ],
+        };
+
+        state.propose_commit_batch(args.clone()).unwrap();
+
+        let evidence = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: None,
+            })
+            .unwrap()
+            .unwrap();
+
+        // Now apply the batch to state so we can compute state hash
+        state.commit_batch(args, &system_context).unwrap();
+
+        // Compute state hash
+        let state_hash = state.compute_state_hash(&system_context).unwrap();
+
+        assert_eq!(
+            evidence, state_hash,
+            "State hash should match evidence computed from batch when starting with an empty asset canister"
+        );
+    }
+
+    #[test]
+    fn test_compute_state_hash_interruption() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        // Setup state
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(b"content1"),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        let args = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![
+                BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "asset1".to_string(),
+                    content_type: "text/plain".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),
+                BatchOperation::SetAssetContent(SetAssetContentArguments {
+                    key: "asset1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![chunk_id],
+                    last_chunk: None,
+                    sha256: None,
+                }),
+            ],
+        };
+        state.commit_batch(args, &system_context).unwrap();
+
+        // Reset computation
+        state.compute_state_hash(&system_context).unwrap(); // Ensure it's done or started
+
+        // Update state using commit_batch to ensure timestamp is updated
+        // We need a new system context with a later timestamp
+        let canister_env = crate::system_context::canister_env::CanisterEnv {
+            ic_root_key: vec![0, 1, 2, 3],
+            icp_public_env_vars: BTreeMap::new(),
+        };
+        let system_context_later =
+            crate::system_context::SystemContext::new_with_options(Some(canister_env), 200);
+
+        let batch_id = state.create_batch(&system_context_later).unwrap();
+        let args = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                key: "asset2".to_string(),
+                content_type: "text/plain".to_string(),
+                max_age: None,
+                headers: None,
+                enable_aliasing: None,
+                allow_raw_access: None,
+            })],
+        };
+        state.commit_batch(args, &system_context_later).unwrap();
+
+        // Since the new API doesn't allow controlling instruction counter per call,
+        // we can't easily test interruption. This test now just verifies completion.
+        let result = state.compute_state_hash(&system_context_later);
+        assert!(result.is_some());
+
+        // Verify we can call it again
+        let result = state.compute_state_hash(&system_context_later);
+        assert!(result.is_some());
+    }
+}

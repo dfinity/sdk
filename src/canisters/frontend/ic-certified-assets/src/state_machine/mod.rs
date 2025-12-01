@@ -223,7 +223,7 @@ pub struct Configuration {
 
 #[derive(Default)]
 pub struct State {
-    assets: HashMap<AssetKey, Asset>,
+    pub(crate) assets: HashMap<AssetKey, Asset>,
     configuration: Configuration,
 
     chunks: HashMap<ChunkId, Chunk>,
@@ -241,7 +241,9 @@ pub struct State {
 
     encoded_canister_env: String,
 
+    state_hash_computation: Option<EvidenceComputation>,
     last_state_update_timestamp_ns: u64,
+    last_state_hash_timestamp: u64,
 }
 
 impl Asset {
@@ -871,6 +873,41 @@ impl State {
             Ok(Some(evidence.clone()))
         } else {
             Ok(None)
+        }
+    }
+
+    pub fn compute_state_hash(&mut self, system_context: &SystemContext) -> Option<ByteBuf> {
+        if self.last_state_hash_timestamp != self.last_state_update_timestamp_ns {
+            self.state_hash_computation = None;
+            self.last_state_hash_timestamp = self.last_state_update_timestamp_ns;
+        }
+
+        let mut ec = self.state_hash_computation.take().unwrap_or_else(|| {
+            let mut sorted_keys: Vec<_> = self.assets.keys().cloned().collect();
+            sorted_keys.sort();
+            EvidenceComputation::Virtual {
+                sorted_keys,
+                current_key_index: 0,
+                state: crate::evidence::VirtualState::CreateAsset,
+                hasher: sha2::Sha256::new(),
+            }
+        });
+
+        // 38 billion instructions
+        const INSTRUCTION_LIMIT: u64 = 38_000_000_000;
+
+        while system_context.instruction_counter() < INSTRUCTION_LIMIT
+            && !matches!(ec, EvidenceComputation::Computed(_))
+        {
+            ec = ec.advance_virtual(self);
+        }
+
+        self.state_hash_computation = Some(ec);
+
+        if let Some(EvidenceComputation::Computed(evidence)) = &self.state_hash_computation {
+            Some(evidence.clone())
+        } else {
+            None
         }
     }
 
