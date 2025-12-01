@@ -33,7 +33,7 @@ teardown() {
   dfx_start
 
   dfx_new hello
-  dfx deploy hello_backend --specified-id gt2iw-kiaaa-aaad7-qaaaa-cai
+  dfx deploy hello_backend --specified-id uqdr7-siaaa-aaaai-p777q-cai
 
   dfx_stop
 
