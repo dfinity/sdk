@@ -1,6 +1,6 @@
 use crate::AssetSyncProgressRenderer;
 use crate::asset::content::Content;
-use crate::asset::content_encoder::ContentEncoder::{Brotli, Gzip};
+use crate::asset::content_encoder::ContentEncoder::{self, Brotli, Gzip};
 use crate::batch_upload::operations::AssetDeletionReason::Obsolete;
 use crate::batch_upload::operations::assemble_batch_operations;
 use crate::batch_upload::plumbing::{ProjectAsset, make_project_assets};
@@ -15,8 +15,10 @@ use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
 use crate::error::ComputeEvidenceError;
 use crate::error::HashContentError;
 use crate::error::HashContentError::EncodeContentFailed;
+use crate::error::{SyncError, UploadContentError};
 use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
+use mime::Mime;
 use sha2::{Digest, Sha256};
 use slog::{Logger, info, trace};
 use std::collections::{BTreeMap, HashMap};
@@ -34,6 +36,8 @@ const TAG_UNSET_ASSET_CONTENT: [u8; 1] = [6];
 const TAG_DELETE_ASSET: [u8; 1] = [7];
 const TAG_CLEAR: [u8; 1] = [8];
 const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
+
+const MAX_CHUNK_SIZE: usize = 1_900_000;
 
 /// Compute the hash ("evidence") over the batch operations required to update the assets
 pub async fn compute_evidence(
@@ -90,6 +94,80 @@ pub async fn compute_evidence(
     Ok(hex::encode(evidence))
 }
 
+/// Locally computes the state hash of the asset canister if it were synchronized with the given directories.
+pub fn compute_state_hash(dirs: &[&Path], logger: &Logger) -> Result<[u8; 32], SyncError> {
+    let asset_descriptors = gather_asset_descriptors(dirs, logger)
+        .map_err(UploadContentError::GatherAssetDescriptorsFailed)
+        .map_err(SyncError::UploadContentFailed)?;
+    let mut sorted_asset_descriptors = asset_descriptors;
+    sorted_asset_descriptors.sort_by(|a, b| a.key.cmp(&b.key));
+
+    let mut hasher = Sha256::new();
+
+    for asset in sorted_asset_descriptors {
+        let content = Content::load(&asset.source).map_err(|e| {
+            SyncError::UploadContentFailed(UploadContentError::CreateProjectAssetError(
+                crate::error::CreateProjectAssetError::LoadContentFailed(e),
+            ))
+        })?;
+
+        let create_args = CreateAssetArguments {
+            key: asset.key.clone(),
+            content_type: content.media_type.to_string(),
+            max_age: asset.config.cache.as_ref().and_then(|c| c.max_age),
+            headers: asset.config.combined_headers(),
+            enable_aliasing: asset.config.enable_aliasing,
+            allow_raw_access: asset.config.allow_raw_access,
+        };
+        hash_create_asset(&mut hasher, &create_args);
+
+        let encoders = asset
+            .config
+            .encodings
+            .clone()
+            .unwrap_or_else(|| default_encoders(&content.media_type));
+        let force_encoding = !encoders.contains(&ContentEncoder::Identity);
+
+        let mut encodings = Vec::new();
+
+        for encoder in encoders {
+            if let Ok(encoded) = content.encode(&encoder) {
+                if encoder == ContentEncoder::Identity
+                    || force_encoding
+                    || encoded.data.len() < content.data.len()
+                {
+                    encodings.push((encoder, encoded));
+                }
+            }
+        }
+
+        encodings.sort_by(|a, b| a.0.to_string().cmp(&b.0.to_string()));
+
+        for (encoder, encoded_content) in encodings {
+            let sha256 = encoded_content.sha256();
+            let set_content_args = SetAssetContentArguments {
+                key: asset.key.clone(),
+                content_encoding: encoder.to_string(),
+                chunk_ids: vec![], // ignored by hash_set_asset_content
+                last_chunk: None,  // ignored by hash_set_asset_content
+                sha256: Some(sha256),
+            };
+            hash_set_asset_content_raw(&mut hasher, &set_content_args, &encoded_content.data);
+        }
+    }
+
+    Ok(hasher.finalize().into())
+}
+
+fn default_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
+    match (media_type.type_(), media_type.subtype()) {
+        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => {
+            vec![ContentEncoder::Identity, ContentEncoder::Gzip]
+        }
+        _ => vec![ContentEncoder::Identity],
+    }
+}
+
 fn hash_operation(
     hasher: &mut Sha256,
     op: &BatchOperationKind,
@@ -128,11 +206,6 @@ fn hash_set_asset_content(
     args: &SetAssetContentArguments,
     project_assets: &HashMap<String, ProjectAsset>,
 ) -> Result<(), HashContentError> {
-    hasher.update(TAG_SET_ASSET_CONTENT);
-    hasher.update(&args.key);
-    hasher.update(&args.content_encoding);
-    hash_opt_vec_u8(hasher, args.sha256.as_ref());
-
     let project_asset = project_assets.get(&args.key).unwrap();
     let ad = &project_asset.asset_descriptor;
 
@@ -149,8 +222,30 @@ fn hash_set_asset_content(
             _ => unreachable!("unhandled content encoder"),
         }
     };
-    hasher.update(&content.data);
+
+    hash_set_asset_content_raw(hasher, args, &content.data);
     Ok(())
+}
+
+fn hash_set_asset_content_raw(
+    hasher: &mut Sha256,
+    args: &SetAssetContentArguments,
+    content_data: &[u8],
+) {
+    hasher.update(TAG_SET_ASSET_CONTENT);
+    hasher.update(&args.key);
+    hasher.update(&args.content_encoding);
+    hash_opt_vec_u8(hasher, args.sha256.as_ref());
+
+    // When hashing for state hash, we iterate over chunks.
+    // Since content_data is the full content, updating with it is equivalent to updating with chunks sequentially.
+    if content_data.len() > MAX_CHUNK_SIZE {
+        for chunk in content_data.chunks(MAX_CHUNK_SIZE) {
+            hasher.update(chunk);
+        }
+    } else {
+        hasher.update(content_data);
+    }
 }
 
 fn hash_unset_asset_content(hasher: &mut Sha256, args: &UnsetAssetContentArguments) {
@@ -235,5 +330,41 @@ fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArgum
         hash_opt_bool(hasher, enable_aliasing);
     } else {
         hasher.update(TAG_NONE);
+    }
+}
+
+#[cfg(test)]
+mod test_compute_state_hash {
+    use super::*;
+    use std::collections::HashMap;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use tempfile::Builder;
+
+    fn create_temporary_assets_directory(files: HashMap<String, String>) -> tempfile::TempDir {
+        let assets_dir = Builder::new().prefix("assets").tempdir().unwrap();
+        for (name, content) in files {
+            let path = assets_dir.path().join(name);
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).unwrap();
+            }
+            let mut file = File::create(path).unwrap();
+            file.write_all(content.as_bytes()).unwrap();
+        }
+        assets_dir
+    }
+
+    #[test]
+    fn compute_hash_stability() {
+        let files = HashMap::from([
+            ("asset1.txt".to_string(), "content1".to_string()),
+            ("subdir/asset2.txt".to_string(), "content2".to_string()),
+        ]);
+        let temp_dir = create_temporary_assets_directory(files);
+        let logger = slog::Logger::root(slog::Discard, slog::o!());
+
+        let hash1 = compute_state_hash(&[temp_dir.path()], &logger).unwrap();
+        let hash2 = compute_state_hash(&[temp_dir.path()], &logger).unwrap();
+        assert_eq!(hash1, hash2);
     }
 }
