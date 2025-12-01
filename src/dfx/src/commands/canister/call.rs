@@ -303,14 +303,12 @@ pub async fn exec(
         {
             return Err(DiagnosedError::new(
                 format!(
-                    "{} can only be called by a canister, not by an external user.",
-                    method_name
+                    "{method_name} can only be called by a canister, not by an external user."
                 ),
                 format!(
-                    "The easiest way to call {} externally is to proxy this call through a wallet.
+                    "The easiest way to call {method_name} externally is to proxy this call through a wallet.
 Try calling this with 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.
-To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.",
-                    method_name
+To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'."
                 ),
             ))
             .context("Method only callable by a canister.");
@@ -332,7 +330,7 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
             Some(false) => {
                 if opts.query {
                     return Err(DiagnosedError::new(
-                        format!("{} is an update method, not a query method.", method_name),
+                        format!("{method_name} is an update method, not a query method."),
                         "Run the command without '--query'.".to_string(),
                     ))
                     .context("Not a query method.");

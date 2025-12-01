@@ -119,7 +119,7 @@ fn find_assets(sources: Sources) -> PathBuf {
 }
 
 fn add_asset_archive(fn_name: &str, f: &mut File, assets_path: &Path) {
-    let filename_tgz = format!("{}.tgz", fn_name);
+    let filename_tgz = format!("{fn_name}.tgz");
 
     let prebuilt_file = assets_path.join(&filename_tgz);
     println!("cargo:rerun-if-changed={}", prebuilt_file.display());
@@ -141,7 +141,7 @@ fn add_assets_from_directory(fn_name: &str, f: &mut File, path: &str) {
         println!("cargo:rerun-if-changed={}", file.path().display())
     }
     let out_dir = env::var("OUT_DIR").unwrap();
-    let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
+    let tgz_path = Path::new(&out_dir).join(format!("{fn_name}.tgz"));
 
     let tar_gz = File::create(tgz_path).unwrap();
     let enc = GzEncoder::new(tar_gz, Compression::default());
@@ -161,7 +161,6 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
             Ok(archive)
         }}
     ",
-            fn_name = fn_name,
         )
         .as_bytes(),
     )
@@ -183,7 +182,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         let output = Command::new("git")
             .arg("rev-list")
             .arg("--count")
-            .arg(format!("{}..HEAD", tag))
+            .arg(format!("{tag}..HEAD"))
             .arg(tag)
             .stdout(Stdio::piped())
             .spawn()?
@@ -242,7 +241,6 @@ fn add_assets(sources: Sources) {
     add_asset_archive("assetstorage_canister", &mut f, &dfx_assets);
     add_asset_archive("wallet_canister", &mut f, &dfx_assets);
     add_asset_archive("ui_canister", &mut f, &dfx_assets);
-    add_asset_archive("btc_canister", &mut f, &dfx_assets);
     add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
     add_assets_from_directory(
         "new_project_motoko_files",
@@ -338,18 +336,18 @@ fn define_dfx_version() {
     if let Ok(v) = std::env::var("DFX_VERSION") {
         // If the version is passed in the environment, use that.
         // Used by the release process in .github/workflows/publish.yml
-        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
+        println!("cargo:rustc-env=CARGO_PKG_VERSION={v}");
     } else if let Ok(git) = get_git_hash() {
         // If the version isn't passed in the environment, use the git describe version.
         // Used when building from source.
-        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
+        println!("cargo:rustc-env=CARGO_PKG_VERSION={git}");
     } else {
         // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
     }
 }
 
 fn define_replica_rev(replica_rev: &str) {
-    println!("cargo:rustc-env=DFX_ASSET_REPLICA_REV={}", replica_rev);
+    println!("cargo:rustc-env=DFX_ASSET_REPLICA_REV={replica_rev}");
 }
 
 fn main() {

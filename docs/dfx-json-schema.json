@@ -639,6 +639,16 @@
             }
           ]
         },
+        "dogecoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsDogecoin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "proxy": {
           "anyOf": [
             {
@@ -768,6 +778,29 @@
         }
       }
     },
+    "ConfigDefaultsDogecoin": {
+      "title": "Dogecoin Adapter Configuration",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Enable Dogecoin Adapter",
+          "default": false,
+          "type": "boolean"
+        },
+        "nodes": {
+          "title": "Available Nodes",
+          "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "ConfigDefaultsProxy": {
       "description": "Configuration for the HTTP gateway.",
       "type": "object",
@@ -858,6 +891,16 @@
           "anyOf": [
             {
               "$ref": "#/definitions/ConfigDefaultsCanisterHttp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dogecoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsDogecoin"
             },
             {
               "type": "null"

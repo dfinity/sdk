@@ -1,5 +1,5 @@
 {
-  "replica-rev": "bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6",
+  "replica-rev": "2e99e6c26c0eacd4f321e7c2604d118d645828ad",
   "x86_64-darwin": {
     "motoko": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.16.2/motoko-Darwin-x86_64-0.16.2.tar.gz",
@@ -7,9 +7,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6/binaries/x86_64-darwin/pocket-ic.gz",
-      "sha256": "d32b8a6ff8a6f8b5466c12480c6a5b2aa37a90e9b0bf2f50fe5cf68e7434bf06",
-      "rev": "bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6"
+      "url": "https://download.dfinity.systems/ic/2e99e6c26c0eacd4f321e7c2604d118d645828ad/binaries/x86_64-darwin/pocket-ic.gz",
+      "sha256": "7c2a45bce974fc6f12c16208e909a244486a2ffe88bfd0ffd37964761fd3166d",
+      "rev": "2e99e6c26c0eacd4f321e7c2604d118d645828ad"
     }
   },
   "arm64-darwin": {
@@ -19,9 +19,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6/binaries/arm64-darwin/pocket-ic.gz",
-      "sha256": "0227779da8936334d3529a82c02ecbca3a4131382878044d32ff320f11ba0c22",
-      "rev": "bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6"
+      "url": "https://download.dfinity.systems/ic/2e99e6c26c0eacd4f321e7c2604d118d645828ad/binaries/arm64-darwin/pocket-ic.gz",
+      "sha256": "603fc633a4ace9c074a0de167fbbb5fd33a92d9f5203aef61790af4f9ccade49",
+      "rev": "2e99e6c26c0eacd4f321e7c2604d118d645828ad"
     }
   },
   "x86_64-linux": {
@@ -31,9 +31,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6/binaries/x86_64-linux/pocket-ic.gz",
-      "sha256": "b90f48224fc00e6d66d244825529fac27008be977200f7fbbcfae88f9c74c9b1",
-      "rev": "bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6"
+      "url": "https://download.dfinity.systems/ic/2e99e6c26c0eacd4f321e7c2604d118d645828ad/binaries/x86_64-linux/pocket-ic.gz",
+      "sha256": "39a34c91241f9da664d4cb0cc25729ac8f48e66bb49b1074dc1b1d98e0c92a03",
+      "rev": "2e99e6c26c0eacd4f321e7c2604d118d645828ad"
     }
   },
   "arm64-linux": {
@@ -43,9 +43,9 @@
       "version": "0.16.2"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6/binaries/arm64-linux/pocket-ic.gz",
-      "sha256": "30352e1e7b7d8ed21988feb1556031797e893065ec0ef39a4ce61864185e7011",
-      "rev": "bf0d4d1b8cb6c0c19a5afa1454ada014847aa5c6"
+      "url": "https://download.dfinity.systems/ic/2e99e6c26c0eacd4f321e7c2604d118d645828ad/binaries/arm64-linux/pocket-ic.gz",
+      "sha256": "a1b1f558e3ddab93e010150c17a3a17e77e8318ba8579ad908a41bf889231f7d",
+      "rev": "2e99e6c26c0eacd4f321e7c2604d118d645828ad"
     }
   },
   "common": {
@@ -53,11 +53,6 @@
       "url": "https://github.com/dfinity/motoko/releases/download/0.16.2/motoko-base-library.tar.gz",
       "sha256": "c41db448cf9fd63d285aac5415e122d1970a94e13a870a381322584f3153c2b4",
       "version": "0.16.2"
-    },
-    "ic-btc-canister": {
-      "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2025-07-02/ic-btc-canister.wasm.gz",
-      "sha256": "42af59ae4fd5041f30f8ac12f324e3a93533de0cb89cd2278100c2389cbfff65",
-      "version": "release/2025-07-02"
     },
     "motoko-core": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.16.2/motoko-core.tar.gz",

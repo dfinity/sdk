@@ -190,7 +190,7 @@ fn duplicate_asset_key_dist_and_src(sync_error: &SyncError) -> bool {
             let project_dir = caps["project_dir"].to_string();
             let canister = caps["canister"].to_string();
             let rest = caps["rest"].to_string();
-            let transformed = format!("{}/src/{}/assets/{}", project_dir, canister, rest);
+            let transformed = format!("{project_dir}/src/{canister}/assets/{rest}");
             return transformed == path1;
         }
         false
@@ -280,7 +280,7 @@ fn diagnose_insufficient_cycles() -> DiagnosedError {
             if value == "local" {
                 "".to_string()
             } else {
-                format!(" --network {}", value)
+                format!(" --network {value}")
             }
         }
         Err(_) => "".to_string(),
@@ -289,8 +289,7 @@ fn diagnose_insufficient_cycles() -> DiagnosedError {
     let explanation = "Insufficient cycles balance to create the canister.";
     let suggestion = format!(
         "Please top up your cycles balance by converting ICP to cycles like below:
-'dfx cycles convert --amount=0.123{}'",
-        network
+'dfx cycles convert --amount=0.123{network}'"
     );
     DiagnosedError::new(explanation, suggestion)
 }

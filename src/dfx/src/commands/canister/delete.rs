@@ -115,7 +115,7 @@ async fn delete_canister(
                 Some(ref target_canister_id) => {
                     let canister_id =
                         Principal::from_text(target_canister_id).with_context(|| {
-                            format!("Failed to read canister id {:?}.", target_canister_id)
+                            format!("Failed to read canister id {target_canister_id:?}.")
                         })?;
                     WithdrawTarget::Canister { canister_id }
                 }
@@ -287,7 +287,7 @@ async fn delete_canister(
                         info!(log, "Successfully withdrew {} cycles.", cycles_to_withdraw);
                         break;
                     } else {
-                        let message = format!("{:?}", result);
+                        let message = format!("{result:?}");
                         if message.contains("Couldn't send message")
                             || message.contains("out of cycles")
                         {

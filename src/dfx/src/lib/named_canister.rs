@@ -91,10 +91,7 @@ pub fn get_ui_canister_url(env: &dyn Environment) -> DfxResult<Option<Url>> {
     let network_descriptor = env.get_network_descriptor();
 
     if network_descriptor.is_ic {
-        let url = format!(
-            "https://{}.raw.icp0.io",
-            MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL
-        );
+        let url = format!("https://{MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL}.raw.icp0.io");
         let url =
             Url::parse(&url).with_context(|| format!("Failed to parse Candid UI url {}.", &url))?;
         Ok(Some(url))
@@ -106,11 +103,11 @@ pub fn get_ui_canister_url(env: &dyn Environment) -> DfxResult<Option<Url>> {
             )
         })?;
         if let Some(Domain(domain)) = url.host() {
-            let host = format!("{}.{}", candid_ui_id, domain);
+            let host = format!("{candid_ui_id}.{domain}");
             url.set_host(Some(&host))
                 .with_context(|| format!("Failed to set host to {}", &host))?;
         } else {
-            let query = format!("canisterId={}", candid_ui_id);
+            let query = format!("canisterId={candid_ui_id}");
             url.set_query(Some(&query));
         }
         Ok(Some(url))

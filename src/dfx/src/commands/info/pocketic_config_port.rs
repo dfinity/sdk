@@ -19,7 +19,7 @@ pub(crate) fn get_pocketic_config_port(env: &dyn Environment) -> DfxResult<Strin
     }
     let logger = None;
     if let Some(port) = local.get_running_pocketic_port(logger)? {
-        Ok(format!("{}", port))
+        Ok(format!("{port}"))
     } else {
         bail!("No PocketIC port found");
     }

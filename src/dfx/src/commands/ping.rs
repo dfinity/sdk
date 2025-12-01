@@ -66,10 +66,10 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                         _ => false,
                     };
                     if healthy {
-                        println!("{}", status);
+                        println!("{status}");
                         break;
                     } else {
-                        eprintln!("{}", status);
+                        eprintln!("{status}");
                     }
                 }
                 if retries >= 60 {
@@ -83,7 +83,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 .status()
                 .await
                 .context("Failed while waiting for agent status.")?;
-            println!("{}", status);
+            println!("{status}");
         }
 
         Ok(())

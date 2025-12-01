@@ -41,7 +41,7 @@ const DECIMAL_POINT: char = '.';
 #[context("Failed to find available socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let listener = TcpListener::bind(SocketAddr::new(ip, port))
-        .with_context(|| format!("Failed to bind socket to {}:{}.", ip, port))?;
+        .with_context(|| format!("Failed to bind socket to {ip}:{port}."))?;
     listener
         .local_addr()
         .context("Failed to fetch local address.")
@@ -58,7 +58,7 @@ pub fn print_idl_blob(
     match output_type {
         "raw" => {
             let hex_string = hex::encode(blob);
-            println!("{}", hex_string);
+            println!("{hex_string}");
         }
         "idl" | "pp" | "json" => {
             let result = match method_type {
@@ -67,13 +67,13 @@ pub fn print_idl_blob(
             };
             if result.is_err() {
                 let hex_string = hex::encode(blob);
-                eprintln!("Error deserializing blob 0x{}", hex_string);
+                eprintln!("Error deserializing blob 0x{hex_string}");
             }
             if output_type == "idl" {
                 println!("{:?}", result?);
             } else if output_type == "json" {
                 let json = convert_all(&result?)?;
-                println!("{}", json);
+                println!("{json}");
             } else {
                 println!("{}", result?);
             }
@@ -236,7 +236,7 @@ pub fn blob_from_arguments(
                         let config = candid_parser::configs::Configs(table);
                         let args = candid_parser::random::any(&seed, config, env, &func.args, &None)
                             .context("Failed to create idl args.")?;
-                        eprintln!("Sending the following random argument:\n{}\n", args);
+                        eprintln!("Sending the following random argument:\n{args}\n");
                         args.to_bytes_with_types(env, &func.args)
                     } else if is_terminal {
                         use candid_parser::assist::{input_args, Context};
@@ -257,7 +257,7 @@ pub fn blob_from_arguments(
                                 eprintln!("This method requires arguments.");
                             }
                             let args = input_args(&ctx, &func.args)?;
-                            eprintln!("Sending the following argument:\n{}\n", args);
+                            eprintln!("Sending the following argument:\n{args}\n");
                             if is_init_arg {
                                 eprintln!("Do you want to initialize the canister with this argument? [y/N]");
                             } else {
@@ -372,7 +372,7 @@ pub fn pretty_thousand_separators(num: String) -> String {
                 && num.len() != idx + 1
             {
                 count += 1;
-                format!("{}{}", c, GROUP_DELIMITER)
+                format!("{c}{GROUP_DELIMITER}")
             } else if count == 0 {
                 c.to_string()
             } else {
@@ -440,7 +440,7 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
 pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserConsent> {
     with_suspend_all_spinners(env, || {
         eprintln!("WARNING!");
-        eprintln!("{}", message);
+        eprintln!("{message}");
         eprintln!("Do you want to proceed? yes/No");
         let mut input_string = String::new();
         stdin()

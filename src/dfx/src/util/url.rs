@@ -26,21 +26,21 @@ pub fn construct_frontend_url(
         || url.host() == Some(Ipv6(Ipv6Addr::LOCALHOST))
     {
         let mut subdomain_url = url.clone();
-        let localhost_with_subdomain = format!("{}.localhost", canister_id);
+        let localhost_with_subdomain = format!("{canister_id}.localhost");
         subdomain_url
             .set_host(Some(&localhost_with_subdomain))
-            .with_context(|| format!("Failed to set host to {}.", localhost_with_subdomain))?;
+            .with_context(|| format!("Failed to set host to {localhost_with_subdomain}."))?;
         Some(subdomain_url)
     } else {
         None
     };
 
     if let Some(Domain(domain)) = url.host() {
-        let host = format!("{}.{}", canister_id, domain);
+        let host = format!("{canister_id}.{domain}");
         url.set_host(Some(&host))
-            .with_context(|| format!("Failed to set host to {}.", host))?;
+            .with_context(|| format!("Failed to set host to {host}."))?;
     } else {
-        let query = format!("canisterId={}", canister_id);
+        let query = format!("canisterId={canister_id}");
         url.set_query(Some(&query));
     };
 

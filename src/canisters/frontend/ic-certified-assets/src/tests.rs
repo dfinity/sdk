@@ -103,13 +103,12 @@ pub fn verify_response(
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
     match verify_response(state, &request, &response) {
-        Err(err) => panic!(
-            "Response verification failed with error {:?}. Response: {:#?}",
-            err, response
-        ),
+        Err(err) => {
+            panic!("Response verification failed with error {err:?}. Response: {response:#?}")
+        }
         Ok(success) => {
             if !success {
-                panic!("Response verification failed. Response: {:?}", response)
+                panic!("Response verification failed. Response: {response:?}")
             }
         }
     }
@@ -402,9 +401,7 @@ fn can_create_assets_using_batch_api() {
     let expected = "batch not found";
     assert!(
         error_msg.contains(expected),
-        "expected '{}' error, got: {}",
-        expected,
-        error_msg
+        "expected '{expected}' error, got: {error_msg}"
     );
 }
 
@@ -572,7 +569,7 @@ fn serve_fallback_v2() {
             .build(),
     );
     let certificate_header = lookup_header(&identity_response, "IC-Certificate").unwrap();
-    println!("certificate_header: {}", certificate_header);
+    println!("certificate_header: {certificate_header}");
 
     assert_eq!(identity_response.status_code, 200);
     assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
@@ -687,9 +684,7 @@ fn can_create_assets_using_batch_proposal_api() {
     let expected = "batch not found";
     assert!(
         error_msg.contains(expected),
-        "expected '{}' error, got: {}",
-        expected,
-        error_msg
+        "expected '{expected}' error, got: {error_msg}"
     );
 }
 
@@ -724,7 +719,7 @@ fn batches_are_dropped_after_timeout() {
         &system_context,
     ) {
         Err(err) if err.contains("batch not found") => (),
-        other => panic!("expected 'batch not found' error, got: {:?}", other),
+        other => panic!("expected 'batch not found' error, got: {other:?}"),
     }
 }
 
@@ -742,12 +737,8 @@ fn can_propose_commit_batch_exactly_once() {
     assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
     match state.propose_commit_batch(args) {
         Err(err)
-            if err
-                == format!(
-                    "batch {} already has proposed CommitBatchArguments",
-                    batch_1,
-                ) => {}
-        other => panic!("expected batch already proposed error, got: {:?}", other),
+            if err == format!("batch {batch_1} already has proposed CommitBatchArguments",) => {}
+        other => panic!("expected batch already proposed error, got: {other:?}"),
     };
 }
 
@@ -772,8 +763,8 @@ fn cannot_create_chunk_in_proposed_batch_() {
         },
         &system_context,
     ) {
-        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
-        other => panic!("expected batch already proposed error, got: {:?}", other),
+        Err(err) if err == format!("batch {batch_1} has been proposed") => {}
+        other => panic!("expected batch already proposed error, got: {other:?}"),
     }
     match state.create_chunks(
         CreateChunksArg {
@@ -782,8 +773,8 @@ fn cannot_create_chunk_in_proposed_batch_() {
         },
         &system_context,
     ) {
-        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
-        other => panic!("expected batch already proposed error, got: {:?}", other),
+        Err(err) if err == format!("batch {batch_1} has been proposed") => {}
+        other => panic!("expected batch already proposed error, got: {other:?}"),
     }
 }
 
@@ -824,7 +815,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
         &system_context,
     ) {
         Err(err) if err.contains("batch not found") => (),
-        other => panic!("expected 'batch not found' error, got: {:?}", other),
+        other => panic!("expected 'batch not found' error, got: {other:?}"),
     }
 }
 
@@ -871,8 +862,8 @@ fn batches_with_evidence_do_not_expire() {
         },
         &system_context,
     ) {
-        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
-        other => panic!("expected batch already proposed error, got: {:?}", other),
+        Err(err) if err == format!("batch {batch_1} has been proposed") => {}
+        other => panic!("expected batch already proposed error, got: {other:?}"),
     }
 }
 
@@ -1032,8 +1023,7 @@ fn uses_streaming_for_multichunk_assets() {
     assert_eq!(streaming_response.body.as_ref(), INDEX_BODY_CHUNK_2);
     assert!(
         streaming_response.token.is_none(),
-        "Unexpected streaming response: {:?}",
-        streaming_response
+        "Unexpected streaming response: {streaming_response:?}"
     );
 }
 
@@ -1115,8 +1105,7 @@ fn supports_max_age_headers() {
     assert_eq!(response.body.as_ref(), BODY);
     assert!(
         lookup_header(&response, "Cache-Control").is_none(),
-        "Unexpected Cache-Control header in response: {:#?}",
-        response,
+        "Unexpected Cache-Control header in response: {response:#?}",
     );
 
     let response = certified_http_request(
@@ -1131,8 +1120,7 @@ fn supports_max_age_headers() {
     assert_eq!(
         lookup_header(&response, "Cache-Control"),
         Some("max-age=604800"),
-        "No matching Cache-Control header in response: {:#?}",
-        response,
+        "No matching Cache-Control header in response: {response:#?}",
     );
 }
 
@@ -1225,13 +1213,11 @@ fn supports_custom_http_headers() {
     assert_eq!(response.body.as_ref(), BODY);
     assert!(
         lookup_header(&response, "Access-Control-Allow-Origin").is_some(),
-        "Missing Access-Control-Allow-Origin header in response: {:#?}",
-        response,
+        "Missing Access-Control-Allow-Origin header in response: {response:#?}",
     );
     assert!(
         lookup_header(&response, "Access-Control-Allow-Origin") == Some("*"),
-        "Incorrect value for Access-Control-Allow-Origin header in response: {:#?}",
-        response,
+        "Incorrect value for Access-Control-Allow-Origin header in response: {response:#?}",
     );
 
     let response = certified_http_request(
@@ -1246,18 +1232,15 @@ fn supports_custom_http_headers() {
     assert_eq!(
         lookup_header(&response, "Cache-Control"),
         Some("max-age=604800"),
-        "No matching Cache-Control header in response: {:#?}",
-        response,
+        "No matching Cache-Control header in response: {response:#?}",
     );
     assert!(
         lookup_header(&response, "X-Content-Type-Options").is_some(),
-        "Missing X-Content-Type-Options header in response: {:#?}",
-        response,
+        "Missing X-Content-Type-Options header in response: {response:#?}",
     );
     assert!(
         lookup_header(&response, "X-Content-Type-Options") == Some("nosniff"),
-        "Incorrect value for X-Content-Type-Options header in response: {:#?}",
-        response,
+        "Incorrect value for X-Content-Type-Options header in response: {response:#?}",
     );
 }
 
@@ -2339,14 +2322,12 @@ mod certificate_expression {
 
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certifiedexpression header in response: {:#?}",
-            response,
+            "Missing ic-certifiedexpression header in response: {response:#?}",
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin", "Set-Cookie"]}}}})"#,
-            "Missing ic-certifiedexpression header in response: {:#?}",
-            response,
+            "Missing ic-certifiedexpression header in response: {response:#?}",
         );
     }
 
@@ -2378,14 +2359,12 @@ mod certificate_expression {
 
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certificateexpression header in response: {:#?}",
-            response,
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin", "Set-Cookie"]}}}})"#,
-            "Missing ic-certificateexpression header in response: {:#?}",
-            response,
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
 
         state
@@ -2409,14 +2388,12 @@ mod certificate_expression {
         );
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certificateexpression header in response: {:#?}",
-            response,
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "Set-Cookie", "custom-header"]}}}})"#,
-            "Missing ic-certifiedexpression header in response: {:#?}",
-            response,
+            "Missing ic-certifiedexpression header in response: {response:#?}",
         );
     }
 }
@@ -4060,7 +4037,7 @@ mod validate_commit_proposed_batch {
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("batch not found") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
 
         match state.commit_proposed_batch(
@@ -4071,7 +4048,7 @@ mod validate_commit_proposed_batch {
             &system_context,
         ) {
             Err(err) if err.contains("batch not found") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
     }
 
@@ -4086,7 +4063,7 @@ mod validate_commit_proposed_batch {
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
 
         match state.commit_proposed_batch(
@@ -4097,7 +4074,7 @@ mod validate_commit_proposed_batch {
             &system_context,
         ) {
             Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
     }
 
@@ -4121,7 +4098,7 @@ mod validate_commit_proposed_batch {
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("batch does not have computed evidence") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
         match state.commit_proposed_batch(
             CommitProposedBatchArguments {
@@ -4131,7 +4108,7 @@ mod validate_commit_proposed_batch {
             &system_context,
         ) {
             Err(err) if err.contains("batch does not have computed evidence") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
     }
 
@@ -4163,7 +4140,7 @@ mod validate_commit_proposed_batch {
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("does not match presented evidence") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
 
         match state.commit_proposed_batch(
@@ -4174,7 +4151,7 @@ mod validate_commit_proposed_batch {
             &system_context,
         ) {
             Err(err) if err.contains("does not match presented evidence") => (),
-            other => panic!("expected 'batch not found' error, got: {:?}", other),
+            other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
     }
 

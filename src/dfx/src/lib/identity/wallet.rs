@@ -122,6 +122,10 @@ pub async fn create_wallet(
         res => res.context("Failed while installing wasm.")?,
     }
 
+    mgr.start_canister(&canister_id)
+        .await
+        .context("Failed to start the wallet canister {canister_id}.")?;
+
     let wallet = build_wallet_canister(canister_id, agent).await?;
 
     wallet

@@ -2,6 +2,40 @@
 
 # UNRELEASED
 
+### feat: support dogecoin for the local dev environment
+
+You can now launch a network with `dfx network start --enable-dogeoin` to run the dogecoin
+integration locally.
+
+### feat: improved the canister snapshot download/upload feature
+
+Improved the canister snapshot download/upload feature by
+- adding progress bars to snapshot download/upload
+- streaming snapshot download/upload directly to/from disk.
+- supporting download/upload with resuming.
+- supporting download/upload with concurrency, default to 3 tasks in parallel.
+
+### fix: use `pocket-ic` to init BTC canisters
+
+The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
+By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
+
+### chore: Bump cdk to 0.19 in project template.
+
+## Dependencies
+
+### Replica
+
+Updated replica to commit 2e99e6c26c0eacd4f321e7c2604d118d645828ad
+This incorporates the following executed proposals:
+
+- [139317](https://dashboard.internetcomputer.org/proposal/139317)
+- [139192](https://dashboard.internetcomputer.org/proposal/139192)
+- [139079](https://dashboard.internetcomputer.org/proposal/139079)
+
+
+# 0.30.0
+
 ### feat: `dfx start --system-canisters` for bootstrapping system canisters
 
 This new flag utilizes the built-in system canisters bootstrapping capability provided by PocketIC v10.
@@ -25,7 +59,8 @@ Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic order
 Sets the `ic_env` cookie for html files, which contains the root key and the canister environment variables that are prefixed with `PUBLIC_`.
 Please note that this version of the frontend canister is only compatible with PocketIC **v10** and above.
 
-- Module hash: dad567d271e21c9834d2e2dc7508a8428697a3b5e3c8162ccd99eae68cd0eecc
+- Module hash: b312a16c3179cf8384afa852e468c1333b7439d4c5a39f26df69b12320f629f8
+- https://github.com/dfinity/sdk/pull/4400
 - https://github.com/dfinity/sdk/pull/4392
 - https://github.com/dfinity/sdk/pull/4387
 - https://github.com/dfinity/sdk/pull/4389
@@ -35,6 +70,32 @@ Please note that this version of the frontend canister is only compatible with P
 ### Candid
 
 Updated candid_parser to 0.2.2.
+
+### Replica
+
+Updated replica to elected commit 575bcd0954e9d00066fd465223b755bda645edd6.
+This incorporates the following executed proposals:
+
+- [139002](https://dashboard.internetcomputer.org/proposal/139002)
+- [138996](https://dashboard.internetcomputer.org/proposal/138996)
+- [138908](https://dashboard.internetcomputer.org/proposal/138908)
+- [138814](https://dashboard.internetcomputer.org/proposal/138814)
+- [138708](https://dashboard.internetcomputer.org/proposal/138708)
+- [138597](https://dashboard.internetcomputer.org/proposal/138597)
+- [138478](https://dashboard.internetcomputer.org/proposal/138478)
+- [138476](https://dashboard.internetcomputer.org/proposal/138476)
+- [138477](https://dashboard.internetcomputer.org/proposal/138477)
+- [138363](https://dashboard.internetcomputer.org/proposal/138363)
+- [138362](https://dashboard.internetcomputer.org/proposal/138362)
+- [138361](https://dashboard.internetcomputer.org/proposal/138361)
+- [138268](https://dashboard.internetcomputer.org/proposal/138268)
+- [138266](https://dashboard.internetcomputer.org/proposal/138266)
+- [138128](https://dashboard.internetcomputer.org/proposal/138128)
+- [138129](https://dashboard.internetcomputer.org/proposal/138129)
+- [137921](https://dashboard.internetcomputer.org/proposal/137921)
+- [137795](https://dashboard.internetcomputer.org/proposal/137795)
+- [137678](https://dashboard.internetcomputer.org/proposal/137678)
+
 
 # 0.29.2
 

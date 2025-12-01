@@ -52,13 +52,12 @@ impl fmt::Display for TransferError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BadFee { expected_fee } => {
-                write!(f, "transaction fee should be {}", expected_fee)
+                write!(f, "transaction fee should be {expected_fee}")
             }
             Self::InsufficientFunds { balance } => {
                 write!(
                     f,
-                    "the debit account doesn't have enough funds to complete the transaction, current balance: {}",
-                    balance
+                    "the debit account doesn't have enough funds to complete the transaction, current balance: {balance}"
                 )
             }
             Self::TxTooOld {
@@ -71,8 +70,7 @@ impl fmt::Display for TransferError {
             Self::TxCreatedInFuture => write!(f, "transaction's created_at_time is in future"),
             Self::TxDuplicate { duplicate_of } => write!(
                 f,
-                "transaction is a duplicate of another transaction in block {}",
-                duplicate_of
+                "transaction is a duplicate of another transaction in block {duplicate_of}"
             ),
         }
     }

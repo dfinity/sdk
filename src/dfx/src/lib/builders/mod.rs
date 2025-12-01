@@ -258,7 +258,7 @@ fn compile_handlebars_files(
             .path()
             .context("Failed to read language bindings entry path name.")?
             .to_path_buf();
-        let file_extension = format!("{}.hbs", lang);
+        let file_extension = format!("{lang}.hbs");
         let is_template = pathname
             .to_str()
             .is_some_and(|name| name.ends_with(&file_extension));
@@ -442,7 +442,7 @@ pub fn get_and_write_environment_variables<'a>(
         ));
     }
     if let Ok(id) = info.get_canister_id() {
-        vars.push((Borrowed("CANISTER_ID"), Owned(format!("{}", id).into())));
+        vars.push((Borrowed("CANISTER_ID"), Owned(format!("{id}").into())));
     }
     vars.push((
         Borrowed("CANISTER_CANDID_PATH"),

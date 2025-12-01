@@ -60,7 +60,7 @@ pub trait Environment: Send + Sync {
     fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>); // box needed for dyn Environment
-    fn new_progress(&self, message: &str) -> ProgressBar;
+    fn new_progress(&self, total_size: u64) -> ProgressBar;
 
     fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
         IdentityManager::new(
@@ -294,8 +294,13 @@ impl Environment for EnvironmentImpl {
         self.spinners.suspend(f);
     }
 
-    fn new_progress(&self, _message: &str) -> ProgressBar {
-        ProgressBar::discard()
+    fn new_progress(&self, total_size: u64) -> ProgressBar {
+        // Only show the progress bar if the level is INFO or more.
+        if self.verbose_level >= 0 {
+            ProgressBar::new_progress(total_size, &self.spinners)
+        } else {
+            ProgressBar::discard()
+        }
     }
 
     fn get_selected_identity(&self) -> Option<&String> {
@@ -380,7 +385,7 @@ impl<'a> AgentEnvironment<'a> {
                     Some(port) => {
                         let mut socket_addr = local_server_descriptor.bind_address;
                         socket_addr.set_port(port);
-                        let url = format!("http://{}", socket_addr);
+                        let url = format!("http://{socket_addr}");
                         let url = Url::parse(&url)
                             .map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
                         Some(create_pocketic(&url))
@@ -481,8 +486,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.with_suspend_all_spinners(f);
     }
 
-    fn new_progress(&self, message: &str) -> ProgressBar {
-        self.backend.new_progress(message)
+    fn new_progress(&self, total_size: u64) -> ProgressBar {
+        self.backend.new_progress(total_size)
     }
 
     fn get_selected_identity(&self) -> Option<&String> {
@@ -604,7 +609,7 @@ pub mod test_env {
         fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
             unimplemented!()
         }
-        fn new_progress(&self, _message: &str) -> ProgressBar {
+        fn new_progress(&self, _total_size: u64) -> ProgressBar {
             ProgressBar::discard()
         }
         fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {

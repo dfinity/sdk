@@ -149,7 +149,7 @@ impl NetworkDescriptor {
             if let Some(port) = local_server_descriptor.get_running_pocketic_port(logger)? {
                 let mut socket_addr = local_server_descriptor.bind_address;
                 socket_addr.set_port(port);
-                let url = format!("http://{}", socket_addr);
+                let url = format!("http://{socket_addr}");
                 let url =
                     Url::parse(&url).map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
                 return Ok(vec![url]);

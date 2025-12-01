@@ -439,7 +439,7 @@ mod tests {
                     // local replica isn't running, so this is expected,
                     // but we can't check anything else
                 }
-                Err(e) => panic!("unexpected error: {:?}", e),
+                Err(e) => panic!("unexpected error: {e:?}"),
             }
         })
         .await;

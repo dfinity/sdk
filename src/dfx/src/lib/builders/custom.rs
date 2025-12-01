@@ -124,7 +124,7 @@ impl CanisterBuilder for CustomBuilder {
             );
 
             super::run_command(env, &command, &vars, info.get_workspace_root())
-                .with_context(|| format!("Failed to run {}.", command))?;
+                .with_context(|| format!("Failed to run {command}."))?;
         }
 
         Ok(BuildOutput {

@@ -55,7 +55,7 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     spinner.finish_and_clear();
     let logger = env.get_logger();
     let install_as = if let Some(install_as) = &opts.install_as {
-        format!(", and is available as '{}'", install_as)
+        format!(", and is available as '{install_as}'")
     } else {
         "".to_string()
     };
