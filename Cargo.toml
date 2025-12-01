@@ -26,11 +26,11 @@ future_not_send = "warn"
 candid = "0.10.18"
 candid_parser = "0.2.2"
 dfx-core = { path = "src/dfx-core", version = "0.2.0" }
-ic-agent = { git = "https://github.com/dfinity/agent-rs", rev = "7c597b0120d874ee59dca09a778779974d7dd0dd" }
+ic-agent = { git = "https://github.com/dfinity/agent-rs", rev = "57befac12a96a90868744f48660f31aff3835739" }
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.25.0" }
 ic-cdk = "0.19.0-beta.2"
-ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs", rev = "7c597b0120d874ee59dca09a778779974d7dd0dd" }
-ic-utils = { git = "https://github.com/dfinity/agent-rs", rev = "7c597b0120d874ee59dca09a778779974d7dd0dd" }
+ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs", rev = "57befac12a96a90868744f48660f31aff3835739" }
+ic-utils = { git = "https://github.com/dfinity/agent-rs", rev = "57befac12a96a90868744f48660f31aff3835739" }
 ic-management-canister-types = "0.5.0"
 
 aes-gcm = { version = "0.10.3", features = ["std"] }
