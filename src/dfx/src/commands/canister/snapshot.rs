@@ -506,7 +506,11 @@ async fn upload(
             canister_id,
             replace_snapshot: replace.as_ref().map(|x| x.0.clone()),
             wasm_module_size: metadata.wasm_module_size,
-            globals: metadata.globals,
+            globals: metadata
+                .globals
+                .into_iter()
+                .map(|x| x.ok_or(anyhow!("Could not parse global in snapshot metadata")))
+                .collect::<Result<Vec<_>, _>>()?,
             wasm_memory_size: metadata.wasm_memory_size,
             stable_memory_size: metadata.stable_memory_size,
             certified_data: metadata.certified_data,
