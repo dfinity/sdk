@@ -22,7 +22,7 @@ Asset info now contains the fields `max_age: opt nat64;`, `headers: opt vec Head
 
 The function `compute_state_hash` works similar to `compute_evidence`, but instead of computing a hash over a batch of changes, it computes a hash over the full asset canister content. This can be used to verify the integrity of assets e.g. between a live and a local deployment. (This will only work if builds are deterministic. If there are e.g. timestamps hidden in filenames then hashes will not match.)
 
-- Module hash: 13ec51b257786669fa8a4114bfc4660a1dc835757886e0b520d13b4e14cbe9c3 
+- Module hash: 51e80aa7ecbb94ba477bbc910c934794db674d9c441c3f013b8e09390facb389
 - https://github.com/dfinity/sdk/pull/4428
 
 # 0.30.1
