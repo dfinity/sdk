@@ -4759,7 +4759,7 @@ mod list_assets {
         // Create 10 assets
         let assets: Vec<_> = (0..10)
             .map(|i| {
-                AssetBuilder::new(format!("/asset{:02}.txt", i), "text/plain")
+                AssetBuilder::new(format!("/asset{i:02}.txt"), "text/plain")
                     .with_encoding("identity", vec![BODY])
             })
             .collect();
@@ -4792,7 +4792,7 @@ mod list_assets {
         // Create 20 assets
         let assets: Vec<_> = (0..20)
             .map(|i| {
-                AssetBuilder::new(format!("/asset{:02}.txt", i), "text/plain")
+                AssetBuilder::new(format!("/asset{i:02}.txt"), "text/plain")
                     .with_encoding("identity", vec![BODY])
             })
             .collect();
@@ -4842,7 +4842,7 @@ mod list_assets {
         // Create 150 assets
         let assets: Vec<_> = (0..150)
             .map(|i| {
-                AssetBuilder::new(format!("/asset{:03}.txt", i), "text/plain")
+                AssetBuilder::new(format!("/asset{i:03}.txt"), "text/plain")
                     .with_encoding("identity", vec![BODY])
             })
             .collect();

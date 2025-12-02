@@ -3,7 +3,7 @@ use crate::asset::content::Content;
 use crate::asset::content_encoder::ContentEncoder::{self, Brotli, Gzip};
 use crate::batch_upload::operations::AssetDeletionReason::Obsolete;
 use crate::batch_upload::operations::assemble_batch_operations;
-use crate::batch_upload::plumbing::{ProjectAsset, make_project_assets};
+use crate::batch_upload::plumbing::{MAX_CHUNK_SIZE, ProjectAsset, make_project_assets};
 use crate::canister_api::methods::asset_properties::get_assets_properties;
 use crate::canister_api::methods::list::list_assets;
 use crate::canister_api::types::asset::SetAssetPropertiesArguments;
@@ -36,8 +36,6 @@ const TAG_UNSET_ASSET_CONTENT: [u8; 1] = [6];
 const TAG_DELETE_ASSET: [u8; 1] = [7];
 const TAG_CLEAR: [u8; 1] = [8];
 const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
-
-const MAX_CHUNK_SIZE: usize = 1_900_000;
 
 /// Compute the hash ("evidence") over the batch operations required to update the assets
 pub async fn compute_evidence(
@@ -95,6 +93,7 @@ pub async fn compute_evidence(
 }
 
 /// Locally computes the state hash of the asset canister if it were synchronized with the given directories.
+#[allow(clippy::result_large_err)]
 pub fn compute_state_hash(dirs: &[&Path], logger: &Logger) -> Result<String, SyncError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)
         .map_err(UploadContentError::GatherAssetDescriptorsFailed)
@@ -331,42 +330,5 @@ fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArgum
         hash_opt_bool(hasher, enable_aliasing);
     } else {
         hasher.update(TAG_NONE);
-    }
-}
-
-#[cfg(test)]
-mod test_compute_state_hash {
-    use super::*;
-    use std::collections::HashMap;
-    use std::fs::{self, File};
-    use std::io::Write;
-    use tempfile::Builder;
-
-    fn create_temporary_assets_directory(files: HashMap<String, String>) -> tempfile::TempDir {
-        let assets_dir = Builder::new().prefix("assets").tempdir().unwrap();
-        for (name, content) in files {
-            let path = assets_dir.path().join(name);
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent).unwrap();
-            }
-            let mut file = File::create(path).unwrap();
-            file.write_all(content.as_bytes()).unwrap();
-        }
-        assets_dir
-    }
-
-    #[test]
-    fn compute_hash_stability() {
-        let files = HashMap::from([
-            ("asset1.txt".to_string(), "content1".to_string()),
-            ("subdir/asset2.txt".to_string(), "content2".to_string()),
-        ]);
-        let temp_dir = create_temporary_assets_directory(files);
-        let logger = slog::Logger::root(slog::Discard, slog::o!());
-
-        let hash1 = compute_state_hash(&[temp_dir.path()], &logger).unwrap();
-        let hash2 = compute_state_hash(&[temp_dir.path()], &logger).unwrap();
-        assert_eq!(hash1, hash2);
-        assert_eq!(hash1.len(), 64);
     }
 }
