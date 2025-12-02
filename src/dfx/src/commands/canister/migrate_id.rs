@@ -77,15 +77,10 @@ pub async fn exec(
     ensure_canister_stopped(source_status.status, source_canister)?;
     ensure_canister_stopped(target_status.status, target_canister)?;
 
-    // Check that the two canisters are ready for migration.
+    // Check that the canister is ready for migration.
     if !source_status.ready_for_migration {
         bail!(
             "Canister '{source_canister}' is not ready for migration. Wait a few seconds and try again"
-        );
-    }
-    if !target_status.ready_for_migration {
-        bail!(
-            "Canister '{target_canister}' is not ready for migration. Wait a few seconds and try again"
         );
     }
 
