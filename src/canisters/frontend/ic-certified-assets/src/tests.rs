@@ -5281,7 +5281,8 @@ mod compute_state_hash {
         let state_hash = state.compute_state_hash(&system_context).unwrap();
 
         assert_eq!(
-            evidence, state_hash,
+            hex::encode(evidence.as_slice()),
+            state_hash,
             "State hash should match evidence computed from batch when starting with an empty asset canister"
         );
     }
