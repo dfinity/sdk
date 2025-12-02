@@ -171,7 +171,7 @@ pub async fn exec(
                 None => (),
             },
             Err(e) => {
-                spinner.set_message(format!("Could not fetch migration status: {}", e).into());
+                spinner.set_message(format!("Could not fetch migration status: {e}").into());
             }
         };
 
