@@ -95,7 +95,7 @@ pub async fn compute_evidence(
 }
 
 /// Locally computes the state hash of the asset canister if it were synchronized with the given directories.
-pub fn compute_state_hash(dirs: &[&Path], logger: &Logger) -> Result<[u8; 32], SyncError> {
+pub fn compute_state_hash(dirs: &[&Path], logger: &Logger) -> Result<String, SyncError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)
         .map_err(UploadContentError::GatherAssetDescriptorsFailed)
         .map_err(SyncError::UploadContentFailed)?;
@@ -156,7 +156,8 @@ pub fn compute_state_hash(dirs: &[&Path], logger: &Logger) -> Result<[u8; 32], S
         }
     }
 
-    Ok(hasher.finalize().into())
+    let hash: [u8; 32] = hasher.finalize().into();
+    Ok(hex::encode(hash))
 }
 
 fn default_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
@@ -366,5 +367,6 @@ mod test_compute_state_hash {
         let hash1 = compute_state_hash(&[temp_dir.path()], &logger).unwrap();
         let hash2 = compute_state_hash(&[temp_dir.path()], &logger).unwrap();
         assert_eq!(hash1, hash2);
+        assert_eq!(hash1.len(), 64);
     }
 }

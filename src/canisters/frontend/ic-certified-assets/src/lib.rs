@@ -230,7 +230,7 @@ pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_as
     })
 }
 
-pub fn compute_state_hash() -> Option<ic_certified_assets_ByteBuf> {
+pub fn compute_state_hash() -> Option<String> {
     let system_context = SystemContext::new();
 
     with_state_mut(|s| s.compute_state_hash(&system_context))
@@ -652,7 +652,7 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_update]
         #[$crate::ic_certified_assets_candid_method(update)]
-        fn compute_state_hash() -> Option<ic_certified_assets_ByteBuf> {
+        fn compute_state_hash() -> Option<String> {
             $crate::compute_state_hash()
         }
 

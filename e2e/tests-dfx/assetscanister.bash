@@ -2244,3 +2244,53 @@ EOF
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
   assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2"
 }
+
+@test "local state hash matches canister state hash" {
+  install_asset assetscanister
+  dfx_start
+  
+  # Create some test assets
+  echo "test file 1" > src/e2e_project_frontend/assets/test1.txt
+  echo "test file 2" > src/e2e_project_frontend/assets/test2.txt
+  mkdir -p src/e2e_project_frontend/assets/subdir
+  echo "nested file" > src/e2e_project_frontend/assets/subdir/nested.txt
+  
+  # Deploy with debug logging to capture local state hash
+  assert_command dfx deploy --verbose
+  LOCAL_HASH=$(echo "$stderr" | grep "Computed state hash of assets:" | sed 's/.*Computed state hash of assets: //')
+  
+  # Call the canister's compute_state_hash method
+  assert_command dfx canister call e2e_project_frontend compute_state_hash '()'
+  CANISTER_HASH=$(echo "$stdout" | grep -o '"[0-9a-f]*"' | tr -d '"')
+  
+  # Verify hashes
+  echo "Local hash: $LOCAL_HASH"
+  echo "Canister hash: $CANISTER_HASH"
+  assert_eq "${#LOCAL_HASH}" "64"
+  assert_eq "${#CANISTER_HASH}" "64"
+  assert_eq "$LOCAL_HASH" "$CANISTER_HASH"
+  
+  # Now modify an existing asset and add a new one
+  echo "modified test file 1" > src/e2e_project_frontend/assets/test1.txt
+  echo "brand new file" > src/e2e_project_frontend/assets/test3.txt
+  mkdir -p src/e2e_project_frontend/assets/another
+  echo "another nested file" > src/e2e_project_frontend/assets/another/deep.txt
+  
+  # Redeploy with the changes
+  assert_command dfx deploy --verbose
+  LOCAL_HASH_2=$(echo "$stderr" | grep "Computed state hash of assets:" | sed 's/.*Computed state hash of assets: //')
+  
+  # Call the canister's compute_state_hash method again
+  assert_command dfx canister call e2e_project_frontend compute_state_hash '()'
+  CANISTER_HASH_2=$(echo "$stdout" | grep -o '"[0-9a-f]*"' | tr -d '"')
+  
+  # Verify new hashes
+  echo "Local hash after changes: $LOCAL_HASH_2"
+  echo "Canister hash after changes: $CANISTER_HASH_2"
+  assert_eq "${#LOCAL_HASH_2}" "64"
+  assert_eq "${#CANISTER_HASH_2}" "64"
+  assert_eq "$LOCAL_HASH_2" "$CANISTER_HASH_2"
+  
+  # Verify the hash changed after modifications
+  assert_neq "$LOCAL_HASH" "$LOCAL_HASH_2"
+}

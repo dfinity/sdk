@@ -876,7 +876,7 @@ impl State {
         }
     }
 
-    pub fn compute_state_hash(&mut self, system_context: &SystemContext) -> Option<ByteBuf> {
+    pub fn compute_state_hash(&mut self, system_context: &SystemContext) -> Option<String> {
         if self.last_state_hash_timestamp != self.last_state_update_timestamp_ns {
             self.state_hash_computation = None;
             self.last_state_hash_timestamp = self.last_state_update_timestamp_ns;
@@ -905,7 +905,7 @@ impl State {
         self.state_hash_computation = Some(ec);
 
         if let Some(EvidenceComputation::Computed(evidence)) = &self.state_hash_computation {
-            Some(evidence.clone())
+            Some(hex::encode(evidence.as_slice()))
         } else {
             None
         }

@@ -222,7 +222,7 @@ service: (asset_canister_args: opt AssetCanisterArgs) -> {
   compute_evidence: (ComputeEvidenceArguments) -> (opt blob);
 
   // Compute a hash over the entire state.  Call until it returns Some(hash).
-  compute_state_hash: () -> (opt blob);
+  compute_state_hash: () -> (opt text);
 
   // Delete a batch that has been created, or proposed for commit, but not yet committed
   delete_batch: (DeleteBatchArguments) -> ();
