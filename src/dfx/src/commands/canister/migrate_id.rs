@@ -153,23 +153,27 @@ pub async fn exec(
     // Wait for migration to complete.
     let spinner = env.new_spinner("Waiting for migration to complete...".into());
     loop {
-        let statuses = migration_status(agent, source_canister_id, target_canister_id).await?;
-        match statuses.first() {
-            Some(MigrationStatus::InProgress { status }) => {
-                spinner.set_message(format!("Migration in progress: {status}").into());
+        match migration_status(agent, source_canister_id, target_canister_id).await {
+            Ok(statuses) => match statuses.first() {
+                Some(MigrationStatus::InProgress { status }) => {
+                    spinner.set_message(format!("Migration in progress: {status}").into());
+                }
+                Some(MigrationStatus::Succeeded { time }) => {
+                    spinner.finish_and_clear();
+                    info!(log, "Migration succeeded at {}", format_time(time));
+                    break;
+                }
+                Some(MigrationStatus::Failed { reason, time }) => {
+                    spinner.finish_and_clear();
+                    error!(log, "Migration failed at {}: {}", format_time(time), reason);
+                    break;
+                }
+                None => (),
+            },
+            Err(e) => {
+                spinner.set_message(format!("Could not fetch migration status: {}", e).into());
             }
-            Some(MigrationStatus::Succeeded { time }) => {
-                spinner.finish_and_clear();
-                info!(log, "Migration succeeded at {}", format_time(time));
-                break;
-            }
-            Some(MigrationStatus::Failed { reason, time }) => {
-                spinner.finish_and_clear();
-                error!(log, "Migration failed at {}: {}", format_time(time), reason);
-                break;
-            }
-            None => (),
-        }
+        };
 
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
