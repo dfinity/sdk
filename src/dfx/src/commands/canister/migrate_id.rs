@@ -73,8 +73,21 @@ pub async fn exec(
         .await
         .with_context(|| format!("Could not retrieve status of canister {target_canister}"))?;
 
+    // Check that the two canisters are stopped.
     ensure_canister_stopped(source_status.status, source_canister)?;
     ensure_canister_stopped(target_status.status, target_canister)?;
+
+    // Check that the two canisters are ready for migration.
+    if !source_status.ready_for_migration {
+        bail!(
+            "Canister '{source_canister}' is not ready for migration. Wait a few seconds and try again"
+        );
+    }
+    if !target_status.ready_for_migration {
+        bail!(
+            "Canister '{target_canister}' is not ready for migration. Wait a few seconds and try again"
+        );
+    }
 
     // Check the cycles balance of source_canister.
     let cycles = source_status
