@@ -182,6 +182,10 @@ pub struct AssetDetails {
     pub key: String,
     pub content_type: String,
     pub encodings: Vec<AssetEncodingDetails>,
+    pub max_age: Option<u64>,
+    pub headers: Option<BTreeMap<String, String>>,
+    pub allow_raw_access: Option<bool>,
+    pub is_aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -219,7 +223,7 @@ pub struct Configuration {
 
 #[derive(Default)]
 pub struct State {
-    assets: HashMap<AssetKey, Asset>,
+    pub(crate) assets: HashMap<AssetKey, Asset>,
     configuration: Configuration,
 
     chunks: HashMap<ChunkId, Chunk>,
@@ -236,6 +240,10 @@ pub struct State {
     asset_hashes: CertifiedResponses,
 
     encoded_canister_env: String,
+
+    state_hash_computation: Option<EvidenceComputation>,
+    last_state_update_timestamp_ns: u64,
+    last_state_hash_timestamp: u64,
 }
 
 impl Asset {
@@ -356,6 +364,10 @@ impl State {
         self.asset_hashes.root_hash()
     }
 
+    pub fn last_state_update_timestamp_ns(&self) -> u64 {
+        self.last_state_update_timestamp_ns
+    }
+
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
         if self.assets.contains_key(&arg.key) {
             return Err("asset already exists".to_string());
@@ -401,19 +413,21 @@ impl State {
             content_chunks.push(encoding_content.into());
         }
 
-        let sha256: [u8; 32] = match arg.sha256 {
-            Some(bytes) => bytes
+        let mut hasher = sha2::Sha256::new();
+        for chunk in content_chunks.iter() {
+            hasher.update(chunk);
+        }
+        let sha256: [u8; 32] = hasher.finalize().into();
+
+        if let Some(provided_hash) = arg.sha256 {
+            let provided_hash: [u8; 32] = provided_hash
                 .into_vec()
                 .try_into()
-                .map_err(|_| "invalid SHA-256".to_string())?,
-            None => {
-                let mut hasher = sha2::Sha256::new();
-                for chunk in content_chunks.iter() {
-                    hasher.update(chunk);
-                }
-                hasher.finalize().into()
+                .map_err(|_| "invalid SHA-256".to_string())?;
+            if sha256 != provided_hash {
+                return Err("sha256 mismatch".to_string());
             }
-        };
+        }
 
         let total_length: usize = content_chunks.iter().map(|c| c.len()).sum();
         let enc = AssetEncoding {
@@ -557,6 +571,8 @@ impl State {
             dependent_keys,
             Some(&self.encoded_canister_env),
         );
+        self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
+
         Ok(())
     }
 
@@ -738,6 +754,7 @@ impl State {
         self.certify_404_if_required();
 
         self.update_ic_env_cookie_in_html_files();
+        self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
 
         Ok(())
     }
@@ -859,6 +876,41 @@ impl State {
         }
     }
 
+    pub fn compute_state_hash(&mut self, system_context: &SystemContext) -> Option<String> {
+        if self.last_state_hash_timestamp != self.last_state_update_timestamp_ns {
+            self.state_hash_computation = None;
+            self.last_state_hash_timestamp = self.last_state_update_timestamp_ns;
+        }
+
+        let mut ec = self.state_hash_computation.take().unwrap_or_else(|| {
+            let mut sorted_keys: Vec<_> = self.assets.keys().cloned().collect();
+            sorted_keys.sort();
+            EvidenceComputation::Virtual {
+                sorted_keys,
+                current_key_index: 0,
+                state: crate::evidence::VirtualState::CreateAsset,
+                hasher: sha2::Sha256::new(),
+            }
+        });
+
+        // 38 billion instructions
+        const INSTRUCTION_LIMIT: u64 = 38_000_000_000;
+
+        while system_context.instruction_counter() < INSTRUCTION_LIMIT
+            && !matches!(ec, EvidenceComputation::Computed(_))
+        {
+            ec = ec.advance_virtual(self);
+        }
+
+        self.state_hash_computation = Some(ec);
+
+        if let Some(EvidenceComputation::Computed(evidence)) = &self.state_hash_computation {
+            Some(hex::encode(evidence.as_slice()))
+        } else {
+            None
+        }
+    }
+
     pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
         if self.batches.remove(&arg.batch_id).is_none() {
             return Err("batch not found".to_string());
@@ -867,29 +919,59 @@ impl State {
         Ok(())
     }
 
-    pub fn list_assets(&self) -> Vec<AssetDetails> {
-        self.assets
-            .iter()
-            .map(|(key, asset)| {
-                let mut encodings: Vec<_> = asset
-                    .encodings
-                    .iter()
-                    .map(|(enc_name, enc)| AssetEncodingDetails {
-                        content_encoding: enc_name.clone(),
-                        sha256: Some(ByteBuf::from(enc.sha256)),
-                        length: Nat::from(enc.total_length),
-                        modified: enc.modified.clone(),
-                    })
-                    .collect();
-                encodings.sort_by(|l, r| l.content_encoding.cmp(&r.content_encoding));
+    pub fn list_assets(&self, request: ListRequest) -> Vec<AssetDetails> {
+        const PAGE_SIZE: usize = 100;
 
-                AssetDetails {
-                    key: key.clone(),
-                    content_type: asset.content_type.clone(),
-                    encodings,
-                }
+        let start_idx = request
+            .start
+            .and_then(|n| {
+                let n_u64: u64 = n.0.try_into().ok()?;
+                usize::try_from(n_u64).ok()
             })
-            .collect::<Vec<_>>()
+            .unwrap_or(0);
+
+        let page_size = request
+            .length
+            .and_then(|n| {
+                let n_u64: u64 = n.0.try_into().ok()?;
+                let n_usize = usize::try_from(n_u64).ok()?;
+                Some(PAGE_SIZE.min(n_usize))
+            })
+            .unwrap_or(PAGE_SIZE);
+
+        let mut sorted_keys: Vec<_> = self.assets.keys().collect();
+        sorted_keys.sort();
+
+        sorted_keys
+            .into_iter()
+            .skip(start_idx)
+            .take(page_size)
+            .filter_map(|key| {
+                self.assets.get(key).map(|asset| {
+                    let mut encodings: Vec<_> = asset
+                        .encodings
+                        .iter()
+                        .map(|(enc_name, enc)| AssetEncodingDetails {
+                            content_encoding: enc_name.clone(),
+                            sha256: Some(ByteBuf::from(enc.sha256)),
+                            length: Nat::from(enc.total_length),
+                            modified: enc.modified.clone(),
+                        })
+                        .collect();
+                    encodings.sort_by(|l, r| l.content_encoding.cmp(&r.content_encoding));
+
+                    AssetDetails {
+                        key: key.clone(),
+                        content_type: asset.content_type.clone(),
+                        encodings,
+                        max_age: asset.max_age,
+                        headers: asset.headers.clone(),
+                        allow_raw_access: asset.allow_raw_access,
+                        is_aliased: asset.is_aliased,
+                    }
+                })
+            })
+            .collect()
     }
 
     pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
@@ -1222,6 +1304,7 @@ impl From<StableStateV2> for State {
                 .configuration
                 .map(Into::into)
                 .unwrap_or_default(),
+            last_state_update_timestamp_ns: stable_state.last_state_update_timestamp.unwrap_or(0),
             ..Self::default()
         };
 

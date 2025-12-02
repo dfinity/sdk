@@ -2,6 +2,8 @@ result*
 e2e/assets/installed/
 e2e/tests-dfx/.bats/
 
+.cursor
+
 # Building
 build/
 target/
