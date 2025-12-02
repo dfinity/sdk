@@ -271,7 +271,7 @@ pub fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
     })
 }
 
-pub fn list(request: Option<ListRequest>) -> Vec<AssetDetails> {
+pub fn list(request: ListRequest) -> Vec<AssetDetails> {
     with_state(|s| s.list_assets(request))
 }
 
@@ -473,7 +473,7 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_query]
         #[$crate::ic_certified_assets_candid_method(query)]
-        fn list(request: Option<types::ListRequest>) -> Vec<state_machine::AssetDetails> {
+        fn list(request: types::ListRequest) -> Vec<state_machine::AssetDetails> {
             $crate::list(request)
         }
 

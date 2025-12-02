@@ -198,7 +198,7 @@ pub struct ListPermittedArguments {
     pub permission: Permission,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, Default, CandidType, Deserialize)]
 pub struct ListRequest {
     pub start: Option<Nat>,
     pub length: Option<Nat>,

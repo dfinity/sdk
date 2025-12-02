@@ -4767,14 +4767,14 @@ mod list_assets {
         create_assets(&mut state, &system_context, assets);
 
         // List with None should start from beginning
-        let list = state.list_assets(None);
+        let list = state.list_assets(ListRequest::default());
         assert_eq!(list.len(), 10);
 
         // List with Some(0) should be the same
-        let list_from_zero = state.list_assets(Some(ListRequest {
+        let list_from_zero = state.list_assets(ListRequest {
             start: Some(Nat::from(0u8)),
             length: None,
-        }));
+        });
         assert_eq!(list_from_zero.len(), 10);
 
         // Results should be sorted by key
@@ -4801,14 +4801,14 @@ mod list_assets {
         create_assets(&mut state, &system_context, assets);
 
         // Get first page
-        let first_page = state.list_assets(None);
+        let first_page = state.list_assets(ListRequest::default());
         assert_eq!(first_page.len(), 20);
 
         // Get second page starting at index 10
-        let second_page = state.list_assets(Some(ListRequest {
+        let second_page = state.list_assets(ListRequest {
             start: Some(Nat::from(10u8)),
             length: None,
-        }));
+        });
         assert_eq!(second_page.len(), 10);
 
         // Verify no overlap
@@ -4852,28 +4852,28 @@ mod list_assets {
         create_assets(&mut state, &system_context, assets);
 
         // First page should have exactly 100 assets
-        let first_page = state.list_assets(None);
+        let first_page = state.list_assets(ListRequest::default());
         assert_eq!(first_page.len(), 100);
 
         // Second page starting at 100 should have 50 assets
-        let second_page = state.list_assets(Some(ListRequest {
+        let second_page = state.list_assets(ListRequest {
             start: Some(Nat::from(100u8)),
             length: None,
-        }));
+        });
         assert_eq!(second_page.len(), 50);
 
         // Third page starting at 150 should be empty
-        let third_page = state.list_assets(Some(ListRequest {
+        let third_page = state.list_assets(ListRequest {
             start: Some(Nat::from(150u8)),
             length: None,
-        }));
+        });
         assert_eq!(third_page.len(), 0);
     }
 
     #[test]
     fn list_returns_empty_for_no_assets() {
         let state = State::default();
-        let list = state.list_assets(None);
+        let list = state.list_assets(ListRequest::default());
         assert_eq!(list.len(), 0);
     }
 
@@ -4895,24 +4895,24 @@ mod list_assets {
         create_assets(&mut state, &system_context, assets);
 
         // Request only 5 assets
-        let list = state.list_assets(Some(ListRequest {
+        let list = state.list_assets(ListRequest {
             start: None,
             length: Some(Nat::from(5u8)),
-        }));
+        });
         assert_eq!(list.len(), 5);
 
         // Request 20 assets starting at index 10
-        let list = state.list_assets(Some(ListRequest {
+        let list = state.list_assets(ListRequest {
             start: Some(Nat::from(10u8)),
             length: Some(Nat::from(20u8)),
-        }));
+        });
         assert_eq!(list.len(), 20);
 
         // Request more than available (should return all remaining)
-        let list = state.list_assets(Some(ListRequest {
+        let list = state.list_assets(ListRequest {
             start: Some(Nat::from(45u8)),
             length: Some(Nat::from(20u8)),
-        }));
+        });
         assert_eq!(list.len(), 5);
     }
 
@@ -4934,17 +4934,17 @@ mod list_assets {
         create_assets(&mut state, &system_context, assets);
 
         // Request 150 assets, but should be capped at PAGE_SIZE (100)
-        let list = state.list_assets(Some(ListRequest {
+        let list = state.list_assets(ListRequest {
             start: None,
             length: Some(Nat::from(150u8)),
-        }));
+        });
         assert_eq!(list.len(), 100);
 
         // Request with length smaller than PAGE_SIZE should be respected
-        let list = state.list_assets(Some(ListRequest {
+        let list = state.list_assets(ListRequest {
             start: None,
             length: Some(Nat::from(50u8)),
-        }));
+        });
         assert_eq!(list.len(), 50);
     }
 }

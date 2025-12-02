@@ -919,30 +919,25 @@ impl State {
         Ok(())
     }
 
-    pub fn list_assets(&self, request: Option<ListRequest>) -> Vec<AssetDetails> {
+    pub fn list_assets(&self, request: ListRequest) -> Vec<AssetDetails> {
         const PAGE_SIZE: usize = 100;
 
-        let (start_idx, page_size) = request
-            .map(|r| {
-                let start = r
-                    .start
-                    .and_then(|n| {
-                        let n_u64: u64 = n.0.try_into().ok()?;
-                        usize::try_from(n_u64).ok()
-                    })
-                    .unwrap_or(0);
-
-                let length = r
-                    .length
-                    .and_then(|n| {
-                        let n_u64: u64 = n.0.try_into().ok()?;
-                        usize::try_from(n_u64).ok()
-                    })
-                    .unwrap_or(PAGE_SIZE);
-
-                (start, PAGE_SIZE.min(length))
+        let start_idx = request
+            .start
+            .and_then(|n| {
+                let n_u64: u64 = n.0.try_into().ok()?;
+                usize::try_from(n_u64).ok()
             })
-            .unwrap_or((0, PAGE_SIZE));
+            .unwrap_or(0);
+
+        let page_size = request
+            .length
+            .and_then(|n| {
+                let n_u64: u64 = n.0.try_into().ok()?;
+                let n_usize = usize::try_from(n_u64).ok()?;
+                Some(PAGE_SIZE.min(n_usize))
+            })
+            .unwrap_or(PAGE_SIZE);
 
         let mut sorted_keys: Vec<_> = self.assets.keys().collect();
         sorted_keys.sort();

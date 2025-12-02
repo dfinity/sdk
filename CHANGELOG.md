@@ -16,7 +16,7 @@ Asset info now contains the fields `max_age: opt nat64;`, `headers: opt vec Head
 
 #### feat!: `list` is now paginated
 
-`list` now returns info about up to 100 assets instead of all assets in the canister. `start` allows specifying the offset at which the list of assets should start. `length` allows specifying a smaller limit if e.g. headers are too large to return the default number of assets. The full argument to `list` is now `(opt record { start: opt nat; length: opt nat })`.
+`list` now returns info about up to 100 assets instead of all assets in the canister. `start` allows specifying the offset at which the list of assets should start. `length` allows specifying a smaller limit if e.g. headers are too large to return the default number of assets. The full argument to `list` is now `(record { start: opt nat; length: opt nat })`.
 
 #### feat: `compute_state_hash`
 
