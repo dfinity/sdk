@@ -4680,7 +4680,7 @@ mod last_state_update_timestamp {
         assert_eq!(state.last_state_update_timestamp_ns(), initial_time);
 
         // Second operation at time T2 (advanced)
-        system_context.current_timestamp_ns += 1_000_000_000; // +1 second
+        system_context.current_timestamp_ns += 1_000_000_000;
         let updated_time = system_context.current_timestamp_ns;
 
         let batch_id = state.create_batch(&system_context).unwrap();
@@ -4773,6 +4773,7 @@ mod list_assets {
         // List with Some(0) should be the same
         let list_from_zero = state.list_assets(Some(ListRequest {
             start: Some(Nat::from(0u8)),
+            length: None,
         }));
         assert_eq!(list_from_zero.len(), 10);
 
@@ -4806,6 +4807,7 @@ mod list_assets {
         // Get second page starting at index 10
         let second_page = state.list_assets(Some(ListRequest {
             start: Some(Nat::from(10u8)),
+            length: None,
         }));
         assert_eq!(second_page.len(), 10);
 
@@ -4856,12 +4858,14 @@ mod list_assets {
         // Second page starting at 100 should have 50 assets
         let second_page = state.list_assets(Some(ListRequest {
             start: Some(Nat::from(100u8)),
+            length: None,
         }));
         assert_eq!(second_page.len(), 50);
 
         // Third page starting at 150 should be empty
         let third_page = state.list_assets(Some(ListRequest {
             start: Some(Nat::from(150u8)),
+            length: None,
         }));
         assert_eq!(third_page.len(), 0);
     }
@@ -4871,6 +4875,77 @@ mod list_assets {
         let state = State::default();
         let list = state.list_assets(None);
         assert_eq!(list.len(), 0);
+    }
+
+    #[test]
+    fn list_respects_custom_length_limit() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const BODY: &[u8] = b"content";
+
+        // Create 50 assets
+        let assets: Vec<_> = (0..50)
+            .map(|i| {
+                AssetBuilder::new(format!("/asset{i:02}.txt"), "text/plain")
+                    .with_encoding("identity", vec![BODY])
+            })
+            .collect();
+
+        create_assets(&mut state, &system_context, assets);
+
+        // Request only 5 assets
+        let list = state.list_assets(Some(ListRequest {
+            start: None,
+            length: Some(Nat::from(5u8)),
+        }));
+        assert_eq!(list.len(), 5);
+
+        // Request 20 assets starting at index 10
+        let list = state.list_assets(Some(ListRequest {
+            start: Some(Nat::from(10u8)),
+            length: Some(Nat::from(20u8)),
+        }));
+        assert_eq!(list.len(), 20);
+
+        // Request more than available (should return all remaining)
+        let list = state.list_assets(Some(ListRequest {
+            start: Some(Nat::from(45u8)),
+            length: Some(Nat::from(20u8)),
+        }));
+        assert_eq!(list.len(), 5);
+    }
+
+    #[test]
+    fn list_length_limit_capped_at_page_size() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const BODY: &[u8] = b"content";
+
+        // Create 150 assets
+        let assets: Vec<_> = (0..150)
+            .map(|i| {
+                AssetBuilder::new(format!("/asset{i:03}.txt"), "text/plain")
+                    .with_encoding("identity", vec![BODY])
+            })
+            .collect();
+
+        create_assets(&mut state, &system_context, assets);
+
+        // Request 150 assets, but should be capped at PAGE_SIZE (100)
+        let list = state.list_assets(Some(ListRequest {
+            start: None,
+            length: Some(Nat::from(150u8)),
+        }));
+        assert_eq!(list.len(), 100);
+
+        // Request with length smaller than PAGE_SIZE should be respected
+        let list = state.list_assets(Some(ListRequest {
+            start: None,
+            length: Some(Nat::from(50u8)),
+        }));
+        assert_eq!(list.len(), 50);
     }
 }
 

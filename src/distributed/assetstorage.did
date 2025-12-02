@@ -184,7 +184,7 @@ service: (asset_canister_args: opt AssetCanisterArgs) -> {
     sha256: opt blob;  // sha256 of entire asset encoding, calculated by dfx and passed in SetAssetContentArguments
   }) -> (record { content: blob }) query;
 
-  list : (opt record { start: opt nat }) -> (vec record {
+  list : (opt record { start: opt nat; length: opt nat }) -> (vec record {
     key: Key;
     content_type: text;
     encodings: vec record {

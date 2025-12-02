@@ -201,6 +201,7 @@ pub struct ListPermittedArguments {
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct ListRequest {
     pub start: Option<Nat>,
+    pub length: Option<Nat>,
 }
 
 /// The argument to `init` and `post_upgrade` needs to have the same argument type by definition.
