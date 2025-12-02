@@ -57,9 +57,17 @@ pub struct StartOpts {
     #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
-    /// enable bitcoin integration
+    /// enable bitcoin integration. If --bitcoin_node is not passed, defaults to 127.0.0.1:18444
     #[arg(long)]
     enable_bitcoin: bool,
+
+    /// Address of dogecoind node.  Implies --enable-dogecoin.
+    #[arg(long, action = ArgAction::Append)]
+    dogecoin_node: Vec<SocketAddr>,
+
+    /// enable dogecoin integration. If --dogecoin_node is not passed, defaults to 127.0.0.1:18444
+    #[arg(long)]
+    enable_dogecoin: bool,
 
     /// enable canister http requests (on by default)
     #[arg(long)]
@@ -148,6 +156,8 @@ pub fn exec(
         force,
         bitcoin_node,
         enable_bitcoin,
+        dogecoin_node,
+        enable_dogecoin,
         enable_canister_http,
         artificial_delay,
         domain,
@@ -186,6 +196,8 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         host,
         enable_bitcoin,
         bitcoin_node,
+        enable_dogecoin,
+        dogecoin_node,
         enable_canister_http,
         domain,
         artificial_delay,
@@ -382,6 +394,8 @@ pub fn apply_command_line_parameters(
     host: Option<String>,
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
+    enable_dogecoin: bool,
+    dogecoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
     domain: Vec<String>,
     artificial_delay: u32,
@@ -412,6 +426,14 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
+    }
+
+    if enable_dogecoin || !dogecoin_nodes.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_dogecoin_enabled();
+    }
+
+    if !dogecoin_nodes.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_dogecoin_nodes(dogecoin_nodes)
     }
 
     if !domain.is_empty() {

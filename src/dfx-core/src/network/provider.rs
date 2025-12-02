@@ -94,6 +94,11 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.bitcoin.clone()))
                 .unwrap_or_default();
+            let dogecoin = local_provider
+                .dogecoin
+                .clone()
+                .or_else(|| project_defaults.and_then(|x| x.dogecoin.clone()))
+                .unwrap_or_default();
             let canister_http = local_provider
                 .canister_http
                 .clone()
@@ -128,6 +133,7 @@ fn config_network_to_network_descriptor(
                 data_directory,
                 bind_address,
                 bitcoin,
+                dogecoin,
                 canister_http,
                 proxy,
                 replica,
@@ -244,6 +250,7 @@ fn create_shared_network_descriptor(
                 bind: Some(String::from(DEFAULT_SHARED_LOCAL_BIND)),
                 r#type: NetworkType::Ephemeral,
                 bitcoin: None,
+                dogecoin: None,
                 bootstrap: None,
                 canister_http: None,
                 replica: None,
