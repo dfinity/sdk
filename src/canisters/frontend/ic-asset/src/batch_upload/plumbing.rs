@@ -30,7 +30,7 @@ const CONTENT_ENCODING_IDENTITY: &str = "identity";
 // Any file counts as at least 1 mb.
 const MAX_COST_SINGLE_FILE_MB: usize = 45;
 
-const MAX_CHUNK_SIZE: usize = 1_900_000;
+pub(crate) const MAX_CHUNK_SIZE: usize = 1_900_000;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AssetDescriptor {

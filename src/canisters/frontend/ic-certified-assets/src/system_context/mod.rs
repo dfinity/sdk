@@ -62,6 +62,19 @@ impl SystemContext {
             opt.as_ref().expect("CanisterEnv should be initialized")
         })
     }
+
+    pub fn instruction_counter(&self) -> u64 {
+        #[cfg(target_arch = "wasm32")]
+        {
+            ic_cdk::api::performance_counter(0)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // For tests/non-wasm, return 0 or a mock value if needed.
+            // Since we don't have a mock setup here yet, 0 is safe as it won't trigger limits.
+            0
+        }
+    }
 }
 
 impl Default for SystemContext {
