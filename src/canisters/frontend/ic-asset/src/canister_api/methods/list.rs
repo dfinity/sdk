@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub async fn list_assets(
     canister: &Canister<'_>,
 ) -> Result<HashMap<String, AssetDetails>, AgentError> {
-    let mut all_entries = Vec::new();
+    let mut all_entries: Vec<AssetDetails> = Vec::new();
     let mut start = 0u64;
     let mut prev_page_size: Option<usize> = None;
 
@@ -28,6 +28,12 @@ pub async fn list_assets(
 
         let num_entries = entries.len();
         if num_entries == 0 {
+            break;
+        }
+
+        // If we're on a subsequent page but got the same data as the first page,
+        // the canister doesn't support pagination and is returning all entries every time
+        if start > 0 && entries == all_entries {
             break;
         }
 

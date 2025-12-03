@@ -7,7 +7,7 @@ use slog::{Logger, info};
 use time::{OffsetDateTime, format_description};
 
 pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()> {
-    #[derive(CandidType, Deserialize)]
+    #[derive(CandidType, Deserialize, PartialEq, Eq)]
     struct Encoding {
         modified: Int,
         content_encoding: String,
@@ -15,7 +15,7 @@ pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()
         length: Nat,
     }
 
-    #[derive(CandidType, Deserialize)]
+    #[derive(CandidType, Deserialize, PartialEq, Eq)]
     struct ListEntry {
         key: String,
         content_type: String,
@@ -28,7 +28,7 @@ pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()
         length: Option<Nat>,
     }
 
-    let mut all_entries = Vec::new();
+    let mut all_entries: Vec<ListEntry> = Vec::new();
     let mut start = 0u64;
     let mut prev_page_size: Option<usize> = None;
 
@@ -46,6 +46,12 @@ pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()
 
         let num_entries = entries.len();
         if num_entries == 0 {
+            break;
+        }
+
+        // If we're on a subsequent page but got the same data as the first page,
+        // the canister doesn't support pagination and is returning all entries every time
+        if start > 0 && entries == all_entries {
             break;
         }
 

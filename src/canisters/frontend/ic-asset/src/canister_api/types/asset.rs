@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 
 /// Information about a content encoding stored for an asset.
-#[derive(CandidType, Debug, Deserialize)]
+#[derive(CandidType, Debug, Deserialize, PartialEq, Eq)]
 pub struct AssetEncodingDetails {
     /// A content encoding, such as "gzip".
     pub content_encoding: String,
@@ -14,7 +14,7 @@ pub struct AssetEncodingDetails {
 }
 
 /// Information about an asset stored in the canister.
-#[derive(CandidType, Debug, Deserialize)]
+#[derive(CandidType, Debug, Deserialize, PartialEq, Eq)]
 pub struct AssetDetails {
     /// The key identifies the asset.
     pub key: String,
