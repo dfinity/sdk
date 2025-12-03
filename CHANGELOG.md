@@ -2,30 +2,11 @@
 
 # UNRELEASED
 
+# 0.30.1
+
 ### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
 
 If an asset canister is updated and `--verbose` is enabled, `dfx` will now print the state hash of the local assets before syncing. Calling `compute_state_hash` on the asset canister after syncing will eventually return the same hash.
-
-## Dependencies
-
-### Frontend canister
-
-#### feat: `list` returns more info about assets
-
-Asset info now contains the fields `max_age: opt nat64;`, `headers: opt vec HeaderField;`, `allow_raw_access: opt bool;`, and ``is_aliased: opt bool;` in addition to the previously returned ones.
-
-#### feat!: `list` is now paginated
-
-`list` now returns info about up to 100 assets instead of all assets in the canister. `start` allows specifying the offset at which the list of assets should start. `length` allows specifying a smaller limit if e.g. headers are too large to return the default number of assets. The full argument to `list` is now `(record { start: opt nat; length: opt nat })`.
-
-#### feat: `compute_state_hash`
-
-The function `compute_state_hash` works similar to `compute_evidence`, but instead of computing a hash over a batch of changes, it computes a hash over the full asset canister content. This can be used to verify the integrity of assets e.g. between a live and a local deployment. (This will only work if builds are deterministic. If there are e.g. timestamps hidden in filenames then hashes will not match.)
-
-- Module hash: 51e80aa7ecbb94ba477bbc910c934794db674d9c441c3f013b8e09390facb389
-- https://github.com/dfinity/sdk/pull/4428
-
-# 0.30.1
 
 ### feat: support dogecoin for the local dev environment
 
@@ -63,6 +44,22 @@ This incorporates the following executed proposals:
 - [139192](https://dashboard.internetcomputer.org/proposal/139192)
 - [139079](https://dashboard.internetcomputer.org/proposal/139079)
 
+### Frontend canister
+
+#### feat: `list` returns more info about assets
+
+Asset info now contains the fields `max_age: opt nat64;`, `headers: opt vec HeaderField;`, `allow_raw_access: opt bool;`, and ``is_aliased: opt bool;` in addition to the previously returned ones.
+
+#### feat!: `list` is now paginated
+
+`list` now returns info about up to 100 assets instead of all assets in the canister. `start` allows specifying the offset at which the list of assets should start. `length` allows specifying a smaller limit if e.g. headers are too large to return the default number of assets. The full argument to `list` is now `(record { start: opt nat; length: opt nat })`.
+
+#### feat: `compute_state_hash`
+
+The function `compute_state_hash` works similar to `compute_evidence`, but instead of computing a hash over a batch of changes, it computes a hash over the full asset canister content. This can be used to verify the integrity of assets e.g. between a live and a local deployment. (This will only work if builds are deterministic. If there are e.g. timestamps hidden in filenames then hashes will not match.)
+
+- Module hash: 51e80aa7ecbb94ba477bbc910c934794db674d9c441c3f013b8e09390facb389
+- https://github.com/dfinity/sdk/pull/4428
 
 # 0.30.0
 
