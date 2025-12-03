@@ -66,7 +66,7 @@ icx_asset_upload() {
 @test "lists all assets when more than 100" {
   # Create 150 assets to test pagination
   for i in $(seq 1 150); do
-    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" $i).txt"
+    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" "$i").txt"
   done
   icx_asset_sync
 
@@ -83,6 +83,7 @@ icx_asset_upload() {
   assert_match "test150.txt.*text/plain.*identity"
 
   # Count total number of test*.txt assets listed
+  # shellcheck disable=SC2154
   TEST_COUNT=$(echo "$stderr" | grep -c "test[0-9][0-9][0-9].txt")
   assert_eq "150" "$TEST_COUNT"
 }

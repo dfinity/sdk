@@ -1073,7 +1073,7 @@ CHERRIES" "$stdout"
 
   # Create 150 assets to test that pagination works correctly during sync
   for i in $(seq 1 150); do
-    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" $i).txt"
+    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" "$i").txt"
   done
 
   # Initial deploy should sync all 150 assets
