@@ -23,6 +23,7 @@ pub struct StableStateV2 {
 
     pub(super) next_batch_id: Option<u64>,
     pub(super) configuration: Option<StableConfigurationV2>,
+    pub(super) last_state_update_timestamp: Option<u64>,
 }
 
 impl From<StableStateV1> for StableStateV2 {
@@ -37,6 +38,7 @@ impl From<StableStateV1> for StableStateV2 {
                 .collect(),
             next_batch_id: stable_state.next_batch_id.map(batch_id_to_u64),
             configuration: stable_state.configuration.map(Into::into),
+            last_state_update_timestamp: None,
         }
     }
 }
@@ -58,6 +60,7 @@ impl From<super::State> for StableStateV2 {
                 .collect(),
             next_batch_id: Some(batch_id_to_u64(state.next_batch_id)),
             configuration: Some(state.configuration.into()),
+            last_state_update_timestamp: Some(state.last_state_update_timestamp_ns),
         }
     }
 }

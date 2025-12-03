@@ -1063,6 +1063,53 @@ CHERRIES" "$stdout"
   assert_match 'length = 24'
 }
 
+@test "asset sync works with more than 100 assets" {
+  install_asset assetscanister
+
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_frontend
+
+  # Create 150 assets to test that pagination works correctly during sync
+  for i in $(seq 1 150); do
+    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" "$i").txt"
+  done
+
+  # Initial deploy should sync all 150 assets
+  assert_command dfx deploy -v
+  assert_match 'test001.txt.*1/1'
+  assert_match 'test100.txt.*1/1'
+  assert_match 'test150.txt.*1/1'
+
+  # Verify all assets were uploaded by checking a few across the range
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test001.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 1"
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test100.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 100"
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test150.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 150"
+
+  # Modify only one asset
+  echo "modified content 075" > "src/e2e_project_frontend/assets/test075.txt"
+
+  # Redeploy - should only sync the modified asset
+  assert_command dfx deploy -v
+  assert_match 'test075.txt.*1/1'
+  assert_match 'test001.txt.*is already installed'
+  assert_match 'test150.txt.*is already installed'
+
+  # Verify the modified asset was updated
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test075.txt";accept_encodings=vec{"identity"}})'
+  assert_match "modified content 075"
+
+  # Verify other assets remain unchanged
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test074.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 74"
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test076.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 76"
+}
+
 @test "identifies content type" {
   install_asset assetscanister
 
@@ -2243,4 +2290,54 @@ EOF
 
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
   assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2"
+}
+
+@test "local state hash matches canister state hash" {
+  install_asset assetscanister
+  dfx_start
+  
+  # Create some test assets
+  echo "test file 1" > src/e2e_project_frontend/assets/test1.txt
+  echo "test file 2" > src/e2e_project_frontend/assets/test2.txt
+  mkdir -p src/e2e_project_frontend/assets/subdir
+  echo "nested file" > src/e2e_project_frontend/assets/subdir/nested.txt
+  
+  # Deploy with debug logging to capture local state hash
+  assert_command dfx deploy --verbose
+  LOCAL_HASH=$(echo "$stderr" | grep "Computed state hash of assets:" | sed 's/.*Computed state hash of assets: //')
+  
+  # Call the canister's compute_state_hash method
+  assert_command dfx canister call e2e_project_frontend compute_state_hash '()'
+  CANISTER_HASH=$(echo "$stdout" | grep -o '"[0-9a-f]*"' | tr -d '"')
+  
+  # Verify hashes
+  echo "Local hash: $LOCAL_HASH"
+  echo "Canister hash: $CANISTER_HASH"
+  assert_eq "${#LOCAL_HASH}" "64"
+  assert_eq "${#CANISTER_HASH}" "64"
+  assert_eq "$LOCAL_HASH" "$CANISTER_HASH"
+  
+  # Now modify an existing asset and add a new one
+  echo "modified test file 1" > src/e2e_project_frontend/assets/test1.txt
+  echo "brand new file" > src/e2e_project_frontend/assets/test3.txt
+  mkdir -p src/e2e_project_frontend/assets/another
+  echo "another nested file" > src/e2e_project_frontend/assets/another/deep.txt
+  
+  # Redeploy with the changes
+  assert_command dfx deploy --verbose
+  LOCAL_HASH_2=$(echo "$stderr" | grep "Computed state hash of assets:" | sed 's/.*Computed state hash of assets: //')
+  
+  # Call the canister's compute_state_hash method again
+  assert_command dfx canister call e2e_project_frontend compute_state_hash '()'
+  CANISTER_HASH_2=$(echo "$stdout" | grep -o '"[0-9a-f]*"' | tr -d '"')
+  
+  # Verify new hashes
+  echo "Local hash after changes: $LOCAL_HASH_2"
+  echo "Canister hash after changes: $CANISTER_HASH_2"
+  assert_eq "${#LOCAL_HASH_2}" "64"
+  assert_eq "${#CANISTER_HASH_2}" "64"
+  assert_eq "$LOCAL_HASH_2" "$CANISTER_HASH_2"
+  
+  # Verify the hash changed after modifications
+  assert_neq "$LOCAL_HASH" "$LOCAL_HASH_2"
 }

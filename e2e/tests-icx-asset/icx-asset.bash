@@ -63,6 +63,31 @@ icx_asset_upload() {
   assert_match "notreally.js.*text/javascript.*identity"
 }
 
+@test "lists all assets when more than 100" {
+  # Create 150 assets to test pagination
+  for i in $(seq 1 150); do
+    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" "$i").txt"
+  done
+  icx_asset_sync
+
+  icx_asset_list
+
+  # Verify we get assets from the first page
+  assert_match "test001.txt.*text/plain.*identity"
+  assert_match "test050.txt.*text/plain.*identity"
+  assert_match "test100.txt.*text/plain.*identity"
+  
+  # Verify we get assets from the second page (beyond first 100)
+  assert_match "test101.txt.*text/plain.*identity"
+  assert_match "test125.txt.*text/plain.*identity"
+  assert_match "test150.txt.*text/plain.*identity"
+
+  # Count total number of test*.txt assets listed
+  # shellcheck disable=SC2154
+  TEST_COUNT=$(echo "$stderr" | grep -c "test[0-9][0-9][0-9].txt")
+  assert_eq "150" "$TEST_COUNT"
+}
+
 @test "creates new files" {
   echo "new file content" >src/e2e_project_frontend/assets/new-asset.txt
   icx_asset_sync
