@@ -1063,6 +1063,53 @@ CHERRIES" "$stdout"
   assert_match 'length = 24'
 }
 
+@test "asset sync works with more than 100 assets" {
+  install_asset assetscanister
+
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_frontend
+
+  # Create 150 assets to test that pagination works correctly during sync
+  for i in $(seq 1 150); do
+    echo "test content $i" > "src/e2e_project_frontend/assets/test$(printf "%03d" "$i").txt"
+  done
+
+  # Initial deploy should sync all 150 assets
+  assert_command dfx deploy -v
+  assert_match 'test001.txt.*1/1'
+  assert_match 'test100.txt.*1/1'
+  assert_match 'test150.txt.*1/1'
+
+  # Verify all assets were uploaded by checking a few across the range
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test001.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 1"
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test100.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 100"
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test150.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 150"
+
+  # Modify only one asset
+  echo "modified content 075" > "src/e2e_project_frontend/assets/test075.txt"
+
+  # Redeploy - should only sync the modified asset
+  assert_command dfx deploy -v
+  assert_match 'test075.txt.*1/1'
+  assert_match 'test001.txt.*is already installed'
+  assert_match 'test150.txt.*is already installed'
+
+  # Verify the modified asset was updated
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test075.txt";accept_encodings=vec{"identity"}})'
+  assert_match "modified content 075"
+
+  # Verify other assets remain unchanged
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test074.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 74"
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test076.txt";accept_encodings=vec{"identity"}})'
+  assert_match "test content 76"
+}
+
 @test "identifies content type" {
   install_asset assetscanister
 
