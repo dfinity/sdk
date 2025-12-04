@@ -34,6 +34,8 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.                                                                                                                  |
 | [`logs`](#dfx-canister-logs)                       | Returns the logs from a canister.                                                                                                                      |
 | [`metadata`](#dfx-canister-metadata)               | Displays metadata of a canister.                                                                                                                       |
+| [`migrate-id`](#dfx-canister-migrate-id)           | Performs canister ID migration.                                                                                                                        |
+| [`migration-status`](#dfx-canister-migration-status) | Displays the current status for a canister ID migration.                                                                                             |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                           |
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.                                                                                                                      |
 | [`set-id`](#dfx-canister-id)                       | Sets the identifier of a canister.                                                                                                                     |
@@ -716,6 +718,88 @@ The command displays output similar to the following:
 service : {
   greet: (text) -> (text);
 }
+```
+
+## dfx canister migrate-id
+
+Use the `dfx canister migrate-id` command to perform canister ID migration
+of a canister on one subnet (called the "migrated" canister)
+to another subnet replacing the canister ID of a canister on that other subnet.
+
+### Basic usage
+
+``` bash
+dfx canister migrate-id <canister> --replace <replace>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister migrate-id` command.
+
+| Argument        | Description                                                                                              |
+|-----------------|----------------------------------------------------------------------------------------------------------|
+| `canister`      | Specifies the name or id of the canister whose canister ID you want to migrate.                          |
+| `replace`       | Specifies the name or id of the canister whose canister ID will be replaced by the migrated canister ID. |
+
+### Examples
+
+To migrate the canister ID of the canister called `migrated` and
+replace the canister ID of the canister called `replaced`,
+you can run the following command:
+
+```bash
+$ dfx canister migrate-id migrated --replace replaced
+```
+
+The command displays output similar to the following:
+
+```
+WARNING!
+Canister 'migrated' will be removed from its own subnet. Continue?
+Do you want to proceed? yes/No
+yes
+Migration succeeded at 2025-11-26 08:57:41 UTC
+```
+
+## dfx canister migration-status
+
+Use the `dfx canister migration-status` command to display the current status
+for a canister ID migration (triggered by a separate command [`migrate-id`](#dfx-canister-migrate-id))
+of a canister on one subnet (called the "migrated" canister)
+to another subnet replacing the canister ID of a canister on that other subnet.
+
+### Basic usage
+
+``` bash
+dfx canister migration-status <canister> --replace <replace>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister migration-status` command.
+
+| Argument        | Description                                                                                              |
+|-----------------|----------------------------------------------------------------------------------------------------------|
+| `canister`      | Specifies the name or id of the canister whose canister ID you want to migrate.                          |
+| `replace`       | Specifies the name or id of the canister whose canister ID will be replaced by the migrated canister ID. |
+
+### Examples
+
+To display the current status for a canister ID migration
+of the canister called `migrated` and
+replacing the canister ID of the canister called `replaced`,
+you can run the following command:
+
+```bash
+$ dfx canister migration-status migrated --replace replaced
+```
+
+The command displays output similar to the following:
+
+```
+| Canister                    | Canister To Be Replaced     | Migration Status           |
+| --------------------------- | --------------------------- | -------------------------- |
+| uqqxf-5h777-77774-qaaaa-cai | ahree-maaaa-aaaar-q777q-cai | In progress: SourceDeleted |
 ```
 
 ## dfx canister request-status

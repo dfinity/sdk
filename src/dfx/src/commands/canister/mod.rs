@@ -15,6 +15,8 @@ mod info;
 mod install;
 mod logs;
 mod metadata;
+mod migrate_id;
+mod migration_status;
 mod request_status;
 mod send;
 mod set_id;
@@ -53,6 +55,8 @@ pub enum SubCommand {
     Info(info::InfoOpts),
     Install(install::CanisterInstallOpts),
     Metadata(metadata::CanisterMetadataOpts),
+    MigrateId(migrate_id::CanisterMigrateIdOpts),
+    MigrationStatus(migration_status::CanisterMigrationStatusOpts),
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
     SetId(set_id::CanisterSetIdOpts),
@@ -88,6 +92,8 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Install(v) => install::exec(env, v, &call_sender()?).await,
             SubCommand::Info(v) => info::exec(env, v).await,
             SubCommand::Metadata(v) => metadata::exec(env, v).await,
+            SubCommand::MigrateId(v) => migrate_id::exec(env, v, &call_sender()?).await,
+            SubCommand::MigrationStatus(v) => migration_status::exec(env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
             SubCommand::Send(v) => send::exec(env, v, &call_sender()?).await,
             SubCommand::SetId(v) => set_id::exec(env, v).await,
