@@ -911,6 +911,19 @@ impl State {
         }
     }
 
+    pub fn get_state_info(&self) -> StateInfo {
+        let state_hash =
+            if let Some(EvidenceComputation::Computed(evidence)) = &self.state_hash_computation {
+                Some(hex::encode(evidence.as_slice()))
+            } else {
+                None
+            };
+        StateInfo {
+            last_state_update_timestamp: self.last_state_update_timestamp_ns,
+            state_hash,
+        }
+    }
+
     pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
         if self.batches.remove(&arg.batch_id).is_none() {
             return Err("batch not found".to_string());

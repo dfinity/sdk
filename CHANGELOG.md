@@ -2,6 +2,15 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Frontend canister
+
+#### feat: `get_state_info` returns last asset change timestamp and state hash
+
+- Module hash: 15a6366a4823baf994f314a55ddbdda333dff11cbcc5114caebfe444e5eae3b6
+- https://github.com/dfinity/sdk/pull/4434
+
 # 0.30.1
 
 ### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
