@@ -115,20 +115,24 @@ pub async fn migrate_canister(
         replace_canister_id: to_canister,
     };
 
-    let _: () = canister
+    let (result,): (Result<(), Option<ValidationError>>,) = canister
         .update(MIGRATE_CANISTER_METHOD)
         .with_arg(arg)
         .build()
         .await?;
 
-    Ok(())
+    match result {
+        Ok(()) => Ok(()),
+        Err(None) => Err(anyhow::anyhow!("Validation failed with an unknown error.")),
+        Err(Some(err)) => Err(anyhow::anyhow!("Validation failed: {err}")),
+    }
 }
 
 pub async fn migration_status(
     agent: &Agent,
     from_canister: Principal,
     to_canister: Principal,
-) -> DfxResult<Vec<MigrationStatus>> {
+) -> DfxResult<Option<MigrationStatus>> {
     let canister = Canister::builder()
         .with_agent(agent)
         .with_canister_id(NNS_MIGRATION_CANISTER_ID)
@@ -139,7 +143,7 @@ pub async fn migration_status(
         replace_canister_id: to_canister,
     };
 
-    let (result,): (Vec<MigrationStatus>,) = canister
+    let (result,): (Option<MigrationStatus>,) = canister
         .query(MIGRATION_STATUS_METHOD)
         .with_arg(arg)
         .build()

@@ -47,20 +47,19 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMigrationStatusOpts) -> D
             )
         })?;
 
-    let statuses = migration_status(agent, source_canister_id, target_canister_id).await?;
-
-    if statuses.is_empty() {
+    let Some(status) = migration_status(agent, source_canister_id, target_canister_id).await?
+    else {
         info!(
             log,
             "No migration status found for canister '{source_canister}' to '{target_canister}'"
         );
         return Ok(());
-    }
+    };
 
     // Print the statuses in a table with aligned columns.
     let source_text = source_canister_id.to_text();
     let target_text = target_canister_id.to_text();
-    let status_strings: Vec<String> = statuses.iter().map(format_status).collect();
+    let status_strings: Vec<String> = vec![format_status(&status)];
 
     let header_source = "Canister";
     let header_target = "Canister To Be Replaced";
