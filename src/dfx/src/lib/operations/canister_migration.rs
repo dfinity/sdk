@@ -37,38 +37,54 @@ pub enum ValidationError {
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidationError::MigrationsDisabled(Reserved) => write!(f, "MigrationsDisabled"),
-            ValidationError::RateLimited(Reserved) => write!(f, "RateLimited"),
+            ValidationError::MigrationsDisabled(Reserved) => {
+                write!(f, "Canister migrations are disabled at the moment.")
+            }
+            ValidationError::RateLimited(Reserved) => write!(
+                f,
+                "Canister migration has been rate-limited. Try again later."
+            ),
             ValidationError::ValidationInProgress { canister } => write!(
                 f,
-                "ValidationError::ValidationInProgress {{ canister: {canister} }}",
+                "Validation for canister {canister} is already in progress."
             ),
             ValidationError::MigrationInProgress { canister } => write!(
                 f,
-                "ValidationError::MigrationInProgress {{ canister: {canister} }}",
+                "Canister migration for canister {canister} is already in progress."
             ),
-            ValidationError::CanisterNotFound { canister } => write!(
-                f,
-                "ValidationError::CanisterNotFound {{ canister: {canister} }}",
-            ),
-            ValidationError::SameSubnet(Reserved) => write!(f, "SameSubnet"),
+            ValidationError::CanisterNotFound { canister } => {
+                write!(f, "The canister {canister} does not exist.")
+            }
+            ValidationError::SameSubnet(Reserved) => {
+                write!(f, "Both canisters are on the same subnet.")
+            }
             ValidationError::CallerNotController { canister } => write!(
                 f,
-                "ValidationError::CallerNotController {{ canister: {canister} }}",
+                "The canister {canister} is not controlled by the calling identity."
             ),
             ValidationError::NotController { canister } => write!(
                 f,
-                "ValidationError::NotController {{ canister: {canister} }}",
+                "The NNS canister sbzkb-zqaaa-aaaaa-aaaiq-cai is not a controller of canister {canister}."
             ),
-            ValidationError::SourceNotStopped(Reserved) => write!(f, "SourceNotStopped"),
-            ValidationError::SourceNotReady(Reserved) => write!(f, "SourceNotReady"),
-            ValidationError::TargetNotStopped(Reserved) => write!(f, "TargetNotStopped"),
-            ValidationError::TargetHasSnapshots(Reserved) => write!(f, "TargetHasSnapshots"),
-            ValidationError::SourceInsufficientCycles(Reserved) => {
-                write!(f, "SourceInsufficientCycles")
+            ValidationError::SourceNotStopped(Reserved) => {
+                write!(f, "The migrated canister is not stopped.")
             }
+            ValidationError::SourceNotReady(Reserved) => write!(
+                f,
+                "The migrated canister is not ready for migration. Try again later."
+            ),
+            ValidationError::TargetNotStopped(Reserved) => {
+                write!(f, "The replaced canister is not stopped.")
+            }
+            ValidationError::TargetHasSnapshots(Reserved) => {
+                write!(f, "The replaced canister has snapshots.")
+            }
+            ValidationError::SourceInsufficientCycles(Reserved) => write!(
+                f,
+                "The migrated canister does not have enough cycles for canister migration. Top up the migrated canister with the required amount of cycles."
+            ),
             ValidationError::CallFailed { reason } => {
-                write!(f, "ValidationError::CallFailed {{ reason: {reason} }}")
+                write!(f, "Internal IC error: a call failed due to {reason}")
             }
         }
     }
