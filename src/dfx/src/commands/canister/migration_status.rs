@@ -30,80 +30,80 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMigrationStatusOpts) -> D
     let canister_id_store = env.get_canister_id_store()?;
 
     // Get the canister IDs.
-    let source_canister = opts.canister.as_str();
-    let target_canister = opts.replace.as_str();
-    let source_canister_id = Principal::from_text(source_canister)
-        .or_else(|_| canister_id_store.get(source_canister))
+    let migrated_canister = opts.canister.as_str();
+    let replaced_canister = opts.replace.as_str();
+    let migrated_canister_id = Principal::from_text(migrated_canister)
+        .or_else(|_| canister_id_store.get(migrated_canister))
         .map_err(|_| {
             anyhow::anyhow!(
-                "Cannot find canister '{source_canister}'. Please use canister id instead"
+                "Cannot find canister '{migrated_canister}'. Please use canister id instead"
             )
         })?;
-    let target_canister_id = Principal::from_text(target_canister)
-        .or_else(|_| canister_id_store.get(target_canister))
+    let replaced_canister_id = Principal::from_text(replaced_canister)
+        .or_else(|_| canister_id_store.get(replaced_canister))
         .map_err(|_| {
             anyhow::anyhow!(
-                "Cannot find canister '{target_canister}'. Please use canister id instead"
+                "Cannot find canister '{replaced_canister}'. Please use canister id instead"
             )
         })?;
 
-    let Some(status) = migration_status(agent, source_canister_id, target_canister_id).await?
+    let Some(status) = migration_status(agent, migrated_canister_id, replaced_canister_id).await?
     else {
         info!(
             log,
-            "No migration status found for canister '{source_canister}' to '{target_canister}'"
+            "No migration status found for canister '{migrated_canister}' to '{replaced_canister}'"
         );
         return Ok(());
     };
 
     // Print the statuses in a table with aligned columns.
-    let source_text = source_canister_id.to_text();
-    let target_text = target_canister_id.to_text();
+    let migrated_canister_text = migrated_canister_id.to_text();
+    let replaced_canister_text = replaced_canister_id.to_text();
     let status_strings: Vec<String> = vec![format_status(&status)];
 
-    let header_source = "Canister";
-    let header_target = "Canister To Be Replaced";
+    let header_migrated_canister = "Canister";
+    let header_replaced_canister = "Canister To Be Replaced";
     let header_status = "Migration Status";
 
-    let source_width = header_source.len().max(source_text.len());
-    let target_width = header_target.len().max(target_text.len());
+    let migrated_canister_width = header_migrated_canister.len().max(migrated_canister_text.len());
+    let replaced_canister_width = header_replaced_canister.len().max(replaced_canister_text.len());
     let status_width = header_status
         .len()
         .max(status_strings.iter().map(|s| s.len()).max().unwrap_or(0));
 
-    let sep_source = "-".repeat(source_width);
-    let sep_target = "-".repeat(target_width);
+    let sep_migrated_canister = "-".repeat(migrated_canister_width);
+    let sep_replaced_canister = "-".repeat(replaced_canister_width);
     let sep_status = "-".repeat(status_width);
 
     info!(
         log,
         "| {:<s_w$} | {:<t_w$} | {:<st_w$} |",
-        header_source,
-        header_target,
+        header_migrated_canister,
+        header_replaced_canister,
         header_status,
-        s_w = source_width,
-        t_w = target_width,
+        s_w = migrated_canister_width,
+        t_w = replaced_canister_width,
         st_w = status_width
     );
     info!(
         log,
         "| {:<s_w$} | {:<t_w$} | {:<st_w$} |",
-        sep_source,
-        sep_target,
+        sep_migrated_canister,
+        sep_replaced_canister,
         sep_status,
-        s_w = source_width,
-        t_w = target_width,
+        s_w = migrated_canister_width,
+        t_w = replaced_canister_width,
         st_w = status_width
     );
     for status in status_strings {
         info!(
             log,
             "| {:<s_w$} | {:<t_w$} | {:<st_w$} |",
-            source_text,
-            target_text,
+            migrated_canister_text,
+            replaced_canister_text,
             status,
-            s_w = source_width,
-            t_w = target_width,
+            s_w = migrated_canister_width,
+            t_w = replaced_canister_width,
             st_w = status_width
         );
     }
