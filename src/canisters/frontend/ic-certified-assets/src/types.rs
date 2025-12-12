@@ -25,6 +25,12 @@ pub struct ConfigurationResponse {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct StateInfo {
+    pub last_state_update_timestamp: u64,
+    pub state_hash: Option<String>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct CreateAssetArguments {
     pub key: AssetKey,
     pub content_type: String,

@@ -123,6 +123,11 @@ type ConfigureArguments = record {
   max_bytes: opt opt nat64;
 };
 
+type StateInfo = record {
+  last_state_update_timestamp: nat64;
+  state_hash: opt text;
+};
+
 type Permission = variant {
   Commit;
   ManagePermissions;
@@ -223,6 +228,9 @@ service: (asset_canister_args: opt AssetCanisterArgs) -> {
 
   // Compute a hash over the canister content.  Call until it returns Some(hash).
   compute_state_hash: () -> (opt text);
+
+  // Get information about the current state of the canister
+  get_state_info: () -> (StateInfo) query;
 
   // Delete a batch that has been created, or proposed for commit, but not yet committed
   delete_batch: (DeleteBatchArguments) -> ();
