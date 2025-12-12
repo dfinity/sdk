@@ -12,12 +12,12 @@ const MIGRATION_STATUS_METHOD: &str = "migration_status";
 
 #[derive(Clone, CandidType, Deserialize)]
 pub struct MigrateCanisterArgs {
-    pub canister_id: Principal,
+    pub migrated_canister_id: Principal,
     pub replace_canister_id: Principal,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub enum ValidationError {
+enum ValidationError {
     MigrationsDisabled(Reserved),
     RateLimited(Reserved),
     ValidationInProgress { canister: Principal },
@@ -26,11 +26,11 @@ pub enum ValidationError {
     SameSubnet(Reserved),
     CallerNotController { canister: Principal },
     NotController { canister: Principal },
-    SourceNotStopped(Reserved),
-    SourceNotReady(Reserved),
-    TargetNotStopped(Reserved),
-    TargetHasSnapshots(Reserved),
-    SourceInsufficientCycles(Reserved),
+    MigratedNotStopped(Reserved),
+    MigratedNotReady(Reserved),
+    ReplacedNotStopped(Reserved),
+    ReplacedHasSnapshots(Reserved),
+    MigratedInsufficientCycles(Reserved),
     CallFailed { reason: String },
 }
 
@@ -66,20 +66,20 @@ impl fmt::Display for ValidationError {
                 f,
                 "The NNS canister sbzkb-zqaaa-aaaaa-aaaiq-cai is not a controller of canister {canister}."
             ),
-            ValidationError::SourceNotStopped(Reserved) => {
+            ValidationError::MigratedNotStopped(Reserved) => {
                 write!(f, "The migrated canister is not stopped.")
             }
-            ValidationError::SourceNotReady(Reserved) => write!(
+            ValidationError::MigratedNotReady(Reserved) => write!(
                 f,
                 "The migrated canister is not ready for migration. Try again later."
             ),
-            ValidationError::TargetNotStopped(Reserved) => {
+            ValidationError::ReplacedNotStopped(Reserved) => {
                 write!(f, "The replaced canister is not stopped.")
             }
-            ValidationError::TargetHasSnapshots(Reserved) => {
+            ValidationError::ReplacedHasSnapshots(Reserved) => {
                 write!(f, "The replaced canister has snapshots.")
             }
-            ValidationError::SourceInsufficientCycles(Reserved) => write!(
+            ValidationError::MigratedInsufficientCycles(Reserved) => write!(
                 f,
                 "The migrated canister does not have enough cycles for canister migration. Top up the migrated canister with the required amount of cycles."
             ),
@@ -127,7 +127,7 @@ pub async fn migrate_canister(
         .build()?;
 
     let arg = MigrateCanisterArgs {
-        canister_id: from_canister,
+        migrated_canister_id: from_canister,
         replace_canister_id: to_canister,
     };
 
@@ -155,7 +155,7 @@ pub async fn migration_status(
         .build()?;
 
     let arg = MigrateCanisterArgs {
-        canister_id: from_canister,
+        migrated_canister_id: from_canister,
         replace_canister_id: to_canister,
     };
 
