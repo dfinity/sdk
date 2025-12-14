@@ -65,8 +65,12 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMigrationStatusOpts) -> D
     let header_replaced_canister = "Canister To Be Replaced";
     let header_status = "Migration Status";
 
-    let migrated_canister_width = header_migrated_canister.len().max(migrated_canister_text.len());
-    let replaced_canister_width = header_replaced_canister.len().max(replaced_canister_text.len());
+    let migrated_canister_width = header_migrated_canister
+        .len()
+        .max(migrated_canister_text.len());
+    let replaced_canister_width = header_replaced_canister
+        .len()
+        .max(replaced_canister_text.len());
     let status_width = header_status
         .len()
         .max(status_strings.iter().map(|s| s.len()).max().unwrap_or(0));

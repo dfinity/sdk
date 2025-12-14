@@ -62,7 +62,9 @@ pub async fn exec(
     if !opts.yes {
         ask_for_consent(
             env,
-            &format!("Canister '{migrated_canister}' will be removed from its own subnet. Continue?"),
+            &format!(
+                "Canister '{migrated_canister}' will be removed from its own subnet. Continue?"
+            ),
         )?;
     }
 
@@ -115,7 +117,9 @@ pub async fn exec(
     let migrated_canister_subnet = get_subnet_for_canister(agent, migrated_canister_id).await?;
     let replaced_canister_subnet = get_subnet_for_canister(agent, replaced_canister_id).await?;
     if migrated_canister_subnet == replaced_canister_subnet {
-        bail!("The canisters '{migrated_canister}' and '{replaced_canister}' are on the same subnet");
+        bail!(
+            "The canisters '{migrated_canister}' and '{replaced_canister}' are on the same subnet"
+        );
     }
 
     // Add the NNS migration canister as a controller to the migrated canister.
@@ -155,7 +159,10 @@ pub async fn exec(
     }
 
     // Migrate the from canister to the rename_to canister.
-    debug!(log, "Migrate '{migrated_canister}' replacing '{replaced_canister}'");
+    debug!(
+        log,
+        "Migrate '{migrated_canister}' replacing '{replaced_canister}'"
+    );
     migrate_canister(agent, migrated_canister_id, replaced_canister_id).await?;
 
     // Wait for migration to complete.
