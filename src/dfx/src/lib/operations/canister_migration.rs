@@ -118,8 +118,8 @@ impl fmt::Display for MigrationStatus {
 
 pub async fn migrate_canister(
     agent: &Agent,
-    from_canister: Principal,
-    to_canister: Principal,
+    migrated_canister: Principal,
+    replaced_canister: Principal,
 ) -> DfxResult {
     let canister = Canister::builder()
         .with_agent(agent)
@@ -127,8 +127,8 @@ pub async fn migrate_canister(
         .build()?;
 
     let arg = MigrateCanisterArgs {
-        migrated_canister_id: from_canister,
-        replace_canister_id: to_canister,
+        migrated_canister_id: migrated_canister,
+        replace_canister_id: replaced_canister,
     };
 
     let (result,): (Result<(), Option<ValidationError>>,) = canister
@@ -146,8 +146,8 @@ pub async fn migrate_canister(
 
 pub async fn migration_status(
     agent: &Agent,
-    from_canister: Principal,
-    to_canister: Principal,
+    migrated_canister: Principal,
+    replaced_canister: Principal,
 ) -> DfxResult<Option<MigrationStatus>> {
     let canister = Canister::builder()
         .with_agent(agent)
@@ -155,8 +155,8 @@ pub async fn migration_status(
         .build()?;
 
     let arg = MigrateCanisterArgs {
-        migrated_canister_id: from_canister,
-        replace_canister_id: to_canister,
+        migrated_canister_id: migrated_canister,
+        replace_canister_id: replaced_canister,
     };
 
     let (result,): (Option<MigrationStatus>,) = canister
