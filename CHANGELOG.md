@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Candid
+
+Updated candid_parser to 0.2.4.
+
 # 0.30.1
 
 ### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
