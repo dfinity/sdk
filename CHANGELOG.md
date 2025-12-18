@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.3](https://github.com/dfinity/motoko/releases/tag/0.16.3)
+
 # 0.30.1
 
 ### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
