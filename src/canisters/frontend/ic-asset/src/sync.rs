@@ -200,7 +200,7 @@ async fn create_commit_batches<'a>(
 ) -> Vec<Vec<BatchOperationKind>> {
     const MAX_OPERATIONS_PER_BATCH: usize = 500; // empirically this works good enough
     const MAX_HEADER_MAP_SIZE: usize = 1_500_000; // 1.5 MB leaves plenty of room for other data that we do not calculate precisely
-    const MAX_ASSET_CONTENT_SIZE: usize = 100_000_000; // 100 MB is ~20% of how much data we can hash in a single message (if no other work is done)
+    const MAX_ASSET_CONTENT_SIZE: usize = 100_000_000; // 100 MB is ~20% of how much data we can hash in a single message: 40b instructions per update call, measured best case of 80 instructions per byte hashed -> ~500MB limit
 
     let mut batches = Vec::new();
     let mut current_batch = Vec::new();
