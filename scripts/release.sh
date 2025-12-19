@@ -63,7 +63,7 @@ pre_release_check() {
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
-    # cargo clean --release
+    cargo clean --release
     cargo build --release --locked
     x="$(pwd)/target/release"
     "$x/dfx" --version
