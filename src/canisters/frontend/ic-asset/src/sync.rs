@@ -302,7 +302,7 @@ async fn commit_in_stages<'a>(
             canister,
             CommitBatchArguments {
                 batch_id: Nat::from(0_u8),
-                operations: operations.into(),
+                operations,
             },
         )
         .await?;
