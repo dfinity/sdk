@@ -13,6 +13,10 @@ Now, the ingress message size limit is respected more explicitly, and also a lim
 
 Updated Motoko to [0.16.3](https://github.com/dfinity/motoko/releases/tag/0.16.3)
 
+### Candid
+
+Updated candid_parser to 0.2.4.
+
 # 0.30.1
 
 ### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
