@@ -14,7 +14,7 @@ const MIGRATION_STATUS_METHOD: &str = "migration_status";
 #[derive(Clone, CandidType, Deserialize)]
 pub struct MigrateCanisterArgs {
     pub migrated_canister_id: Principal,
-    pub replace_canister_id: Principal,
+    pub replaced_canister_id: Principal,
 }
 
 #[derive(Clone, Debug, Error, CandidType, Deserialize)]
@@ -91,7 +91,7 @@ pub async fn migrate_canister(
 
     let arg = MigrateCanisterArgs {
         migrated_canister_id: migrated_canister,
-        replace_canister_id: replaced_canister,
+        replaced_canister_id: replaced_canister,
     };
 
     let (result,): (Result<(), Option<ValidationError>>,) = canister
@@ -119,7 +119,7 @@ pub async fn migration_status(
 
     let arg = MigrateCanisterArgs {
         migrated_canister_id: migrated_canister,
-        replace_canister_id: replaced_canister,
+        replaced_canister_id: replaced_canister,
     };
 
     let (result,): (Option<MigrationStatus>,) = canister
