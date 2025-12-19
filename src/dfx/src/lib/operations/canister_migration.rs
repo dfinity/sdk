@@ -38,17 +38,17 @@ enum ValidationError {
     )]
     NotController { canister: Principal },
     #[error("The migrated canister is not stopped.")]
-    MigratedNotStopped(Reserved),
+    MigratedCanisterNotStopped(Reserved),
     #[error("The migrated canister is not ready for migration. Try again later.")]
-    MigratedNotReady(Reserved),
+    MigratedCanisterNotReady(Reserved),
     #[error("The replaced canister is not stopped.")]
-    ReplacedNotStopped(Reserved),
+    ReplacedCanisterNotStopped(Reserved),
     #[error("The replaced canister has snapshots.")]
-    ReplacedHasSnapshots(Reserved),
+    ReplacedCanisterHasSnapshots(Reserved),
     #[error(
         "The migrated canister does not have enough cycles for canister migration. Top up the migrated canister with the required amount of cycles."
     )]
-    MigratedInsufficientCycles(Reserved),
+    MigratedCanisterInsufficientCycles(Reserved),
     #[error("Internal IC error: a call failed due to {reason}")]
     CallFailed { reason: String },
 }
