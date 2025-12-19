@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: support for canister ID migration
+
+Canister ID migration can be performed using `dfx canister migrate-id`
+and its status can be checked out using `dfx canister migration-status`.
+
 # 0.30.2
 
 ### Improve frontend canister sync logic
