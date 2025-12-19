@@ -30,7 +30,7 @@ const CONTENT_ENCODING_IDENTITY: &str = "identity";
 // Any file counts as at least 1 mb.
 const MAX_COST_SINGLE_FILE_MB: usize = 45;
 
-const MAX_CHUNK_SIZE: usize = 1_900_000;
+pub(crate) const MAX_CHUNK_SIZE: usize = 1_900_000;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AssetDescriptor {
@@ -59,6 +59,7 @@ pub enum Mode {
 
 type IdMapping = BTreeMap<usize, Nat>;
 type UploadQueue = Vec<(usize, Vec<u8>)>;
+type CanisterChunkSizeMap = HashMap<Nat, usize>;
 pub(crate) struct ChunkUploader<'agent> {
     canister: Canister<'agent>,
     batch_id: Nat,
@@ -68,6 +69,8 @@ pub(crate) struct ChunkUploader<'agent> {
     // maps uploader_chunk_id to canister_chunk_id
     id_mapping: Arc<Mutex<IdMapping>>,
     upload_queue: Arc<Mutex<UploadQueue>>,
+    // maps canister_chunk_id to chunk size
+    canister_chunk_sizes: Arc<Mutex<CanisterChunkSizeMap>>,
 }
 
 impl<'agent> ChunkUploader<'agent> {
@@ -80,6 +83,7 @@ impl<'agent> ChunkUploader<'agent> {
             bytes: Arc::new(AtomicUsize::new(0)),
             id_mapping: Arc::new(Mutex::new(BTreeMap::new())),
             upload_queue: Arc::new(Mutex::new(vec![])),
+            canister_chunk_sizes: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -93,8 +97,10 @@ impl<'agent> ChunkUploader<'agent> {
         progress: Option<&dyn AssetSyncProgressRenderer>,
     ) -> Result<usize, CreateChunkError> {
         let uploader_chunk_id = self.chunks.fetch_add(1, Ordering::SeqCst);
-        self.bytes.fetch_add(contents.len(), Ordering::SeqCst);
-        if contents.len() == MAX_CHUNK_SIZE || self.api_version < 2 {
+        let chunk_size = contents.len();
+        self.bytes.fetch_add(chunk_size, Ordering::SeqCst);
+
+        if chunk_size == MAX_CHUNK_SIZE || self.api_version < 2 {
             let canister_chunk_id = create_chunk(
                 &self.canister,
                 &self.batch_id,
@@ -103,8 +109,15 @@ impl<'agent> ChunkUploader<'agent> {
                 progress,
             )
             .await?;
-            let mut map = self.id_mapping.lock().await;
-            map.insert(uploader_chunk_id, canister_chunk_id);
+
+            self.id_mapping
+                .lock()
+                .await
+                .insert(uploader_chunk_id, canister_chunk_id.clone());
+            self.canister_chunk_sizes
+                .lock()
+                .await
+                .insert(canister_chunk_id, chunk_size);
 
             Ok(uploader_chunk_id)
         } else {
@@ -144,6 +157,15 @@ impl<'agent> ChunkUploader<'agent> {
     }
     pub(crate) fn chunks(&self) -> usize {
         self.chunks.load(Ordering::SeqCst)
+    }
+
+    /// Get total size of chunks by their canister chunk IDs
+    pub(crate) async fn get_canister_chunk_total_size(&self, canister_chunk_ids: &[Nat]) -> usize {
+        let sizes = self.canister_chunk_sizes.lock().await;
+        canister_chunk_ids
+            .iter()
+            .filter_map(|id| sizes.get(id))
+            .sum()
     }
 
     /// Call only after `finalize_upload` has completed.
@@ -212,15 +234,27 @@ impl<'agent> ChunkUploader<'agent> {
         }
 
         try_join_all(batches.into_iter().map(|chunks| async move {
-            let (uploader_chunk_ids, chunks): (Vec<_>, Vec<_>) = chunks.into_iter().unzip();
-            let canister_chunk_ids =
-                create_chunks(&self.canister, &self.batch_id, chunks, semaphores, progress).await?;
-            let mut map = self.id_mapping.lock().await;
-            for (uploader_id, canister_id) in uploader_chunk_ids
+            let (uploader_chunk_ids, chunk_contents): (Vec<_>, Vec<_>) = chunks.into_iter().unzip();
+            let chunk_sizes: Vec<usize> = chunk_contents.iter().map(|c| c.len()).collect();
+
+            let canister_chunk_ids = create_chunks(
+                &self.canister,
+                &self.batch_id,
+                chunk_contents,
+                semaphores,
+                progress,
+            )
+            .await?;
+
+            let mut id_map = self.id_mapping.lock().await;
+            let mut canister_sizes = self.canister_chunk_sizes.lock().await;
+            for ((uploader_id, canister_id), chunk_size) in uploader_chunk_ids
                 .into_iter()
                 .zip(canister_chunk_ids.into_iter())
+                .zip(chunk_sizes.into_iter())
             {
-                map.insert(uploader_id, canister_id);
+                id_map.insert(uploader_id, canister_id.clone());
+                canister_sizes.insert(canister_id, chunk_size);
             }
             Ok(())
         }))

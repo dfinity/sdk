@@ -7,7 +7,28 @@
 Canister ID migration can be performed using `dfx canister migrate-id`
 and its status can be checked out using `dfx canister migration-status`.
 
+# 0.30.2
+
+### Improve frontend canister sync logic
+
+Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
+Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.3](https://github.com/dfinity/motoko/releases/tag/0.16.3)
+
+### Candid
+
+Updated candid_parser to 0.2.4.
+
 # 0.30.1
+
+### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
+
+If an asset canister is updated and `--verbose` is enabled, `dfx` will now print the state hash of the local assets before syncing. Calling `compute_state_hash` on the asset canister after syncing will eventually return the same hash.
 
 ### feat: support dogecoin for the local dev environment
 
@@ -45,6 +66,24 @@ This incorporates the following executed proposals:
 - [139192](https://dashboard.internetcomputer.org/proposal/139192)
 - [139079](https://dashboard.internetcomputer.org/proposal/139079)
 
+### Frontend canister
+
+#### feat: `list` returns more info about assets
+
+Asset info now contains the fields `max_age: opt nat64;`, `headers: opt vec HeaderField;`, `allow_raw_access: opt bool;`, and ``is_aliased: opt bool;` in addition to the previously returned ones.
+
+#### feat!: `list` is now paginated
+
+`list` now returns info about up to 100 assets instead of all assets in the canister. `start` allows specifying the offset at which the list of assets should start. `length` allows specifying a smaller limit if e.g. headers are too large to return the default number of assets. The full argument to `list` is now `(record { start: opt nat; length: opt nat })`.
+
+#### feat: `compute_state_hash`
+
+The function `compute_state_hash` works similar to `compute_evidence`, but instead of computing a hash over a batch of changes, it computes a hash over the full asset canister content. This can be used to verify the integrity of assets e.g. between a live and a local deployment. (This will only work if builds are deterministic. If there are e.g. timestamps hidden in filenames then hashes will not match.)
+
+#### feat: `get_state_info` returns last asset change timestamp and state hash
+
+- Module hash: 15a6366a4823baf994f314a55ddbdda333dff11cbcc5114caebfe444e5eae3b6
+- https://github.com/dfinity/sdk/pull/4434
 
 # 0.30.0
 

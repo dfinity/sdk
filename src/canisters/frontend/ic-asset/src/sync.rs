@@ -45,15 +45,15 @@ use walkdir::WalkDir;
 const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn upload_content_and_assemble_sync_operations(
-    canister: &Canister<'_>,
+pub async fn upload_content_and_assemble_sync_operations<'a>(
+    canister: &Canister<'a>,
     canister_api_version: u16,
     dirs: &[&Path],
     no_delete: bool,
     mode: batch_upload::plumbing::Mode,
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
-) -> Result<CommitBatchArguments, UploadContentError> {
+) -> Result<(CommitBatchArguments, ChunkUploader<'a>), UploadContentError> {
     if let Some(progress) = progress {
         progress.set_state(AssetSyncState::GatherAssetDescriptors);
     }
@@ -144,7 +144,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     // -vv
     trace!(logger, "Value of CommitBatch: {:?}", commit_batch_args);
 
-    Ok(commit_batch_args)
+    Ok((commit_batch_args, chunk_uploader))
 }
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
@@ -156,7 +156,7 @@ pub async fn sync(
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), SyncError> {
     let canister_api_version = api_version(canister).await;
-    let commit_batch_args = upload_content_and_assemble_sync_operations(
+    let (commit_batch_args, chunk_uploader) = upload_content_and_assemble_sync_operations(
         canister,
         canister_api_version,
         dirs,
@@ -180,7 +180,7 @@ pub async fn sync(
             warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
             commit_batch(canister, commit_batch_args_v0).await
         }
-        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger, progress).await,
+        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, &chunk_uploader, logger, progress).await,
     }.map_err(CommitBatchFailed)?;
     if let Some(progress) = progress {
         progress.set_state(AssetSyncState::Done);
@@ -188,56 +188,126 @@ pub async fn sync(
     Ok(())
 }
 
-async fn commit_in_stages(
+/// Creates batches of operations for committing.
+///
+/// Batches are created based on three conditions (any of which triggers a new batch):
+/// 1. 500 operations reached -  generally respected limit to avoid too much cert tree work
+/// 2. 1.5MB of header map data reached - headers are the largest part of ingress message size
+/// 3. 100MB of total chunk size reached - the full asset content gets hashed in the commit message
+async fn create_commit_batches<'a>(
+    operations: Vec<BatchOperationKind>,
+    chunk_uploader: &ChunkUploader<'a>,
+) -> Vec<Vec<BatchOperationKind>> {
+    const MAX_OPERATIONS_PER_BATCH: usize = 500; // empirically this works good enough
+    const MAX_HEADER_MAP_SIZE: usize = 1_500_000; // 1.5 MB leaves plenty of room for other data that we do not calculate precisely
+    const MAX_ASSET_CONTENT_SIZE: usize = 100_000_000; // 100 MB is ~20% of how much data we can hash in a single message: 40b instructions per update call, measured best case of 80 instructions per byte hashed -> ~500MB limit
+
+    let mut batches = Vec::new();
+    let mut current_batch = Vec::new();
+    let mut operation_count = 0;
+    let mut header_map_size = 0;
+    let mut content_size = 0;
+
+    for operation in operations {
+        let operation_header_size = calculate_header_size(&operation);
+        let operation_chunk_size = calculate_content_size(&operation, chunk_uploader).await;
+
+        // Check if adding this operation would exceed any limits
+        let would_exceed_operation_limit = operation_count >= MAX_OPERATIONS_PER_BATCH;
+        let would_exceed_header_limit =
+            header_map_size + operation_header_size >= MAX_HEADER_MAP_SIZE;
+        let would_exceed_chunk_limit =
+            content_size + operation_chunk_size >= MAX_ASSET_CONTENT_SIZE;
+
+        if (would_exceed_operation_limit || would_exceed_header_limit || would_exceed_chunk_limit)
+            && !current_batch.is_empty()
+        {
+            // Start a new batch
+            batches.push(current_batch);
+            current_batch = Vec::new();
+            operation_count = 0;
+            header_map_size = 0;
+            content_size = 0;
+        }
+
+        // Add operation to current batch
+        current_batch.push(operation);
+        operation_count += 1;
+        header_map_size += operation_header_size;
+        content_size += operation_chunk_size;
+    }
+
+    // Add the last batch if it has any operations
+    if !current_batch.is_empty() {
+        batches.push(current_batch);
+    }
+
+    batches
+}
+
+/// Calculate the size in bytes of header data for an operation.
+fn calculate_header_size(operation: &BatchOperationKind) -> usize {
+    match operation {
+        BatchOperationKind::CreateAsset(args) => args.headers.as_ref().map_or(0, |headers| {
+            headers.iter().map(|(k, v)| k.len() + v.len()).sum()
+        }),
+        BatchOperationKind::SetAssetProperties(args) => args
+            .headers
+            .as_ref()
+            .and_then(|h| h.as_ref())
+            .map_or(0, |headers| {
+                headers.iter().map(|(k, v)| k.len() + v.len()).sum()
+            }),
+        _ => 0,
+    }
+}
+
+/// Calculate the size in bytes of chunk data for an operation.
+/// This includes both:
+/// - Chunks referenced by `chunk_ids` (looked up from ChunkUploader)
+/// - The `last_chunk` field which is included directly in the commit message
+async fn calculate_content_size<'a>(
+    operation: &BatchOperationKind,
+    chunk_uploader: &ChunkUploader<'a>,
+) -> usize {
+    match operation {
+        BatchOperationKind::SetAssetContent(args) => {
+            let chunk_ids_size = chunk_uploader
+                .get_canister_chunk_total_size(&args.chunk_ids)
+                .await;
+            let last_chunk_size = args.last_chunk.as_ref().map_or(0, |chunk| chunk.len());
+            chunk_ids_size + last_chunk_size
+        }
+        _ => 0,
+    }
+}
+
+async fn commit_in_stages<'a>(
     canister: &Canister<'_>,
     commit_batch_args: CommitBatchArguments,
+    chunk_uploader: &ChunkUploader<'a>,
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), AgentError> {
     if let Some(progress) = progress {
         progress.set_total_batch_operations(commit_batch_args.operations.len());
     }
-    // Note that SetAssetProperties operations are only generated for assets that
-    // already exist, since CreateAsset operations set all properties.
-    let (set_properties_operations, other_operations): (Vec<_>, Vec<_>) = commit_batch_args
-        .operations
-        .into_iter()
-        .partition(|op| matches!(op, BatchOperationKind::SetAssetProperties(_)));
 
-    // This part seems reasonable in general as a separate batch
-    for operations in set_properties_operations.chunks(500) {
-        debug!(logger, "Setting properties of {} assets.", operations.len());
+    let batches = create_commit_batches(commit_batch_args.operations, chunk_uploader).await;
+
+    for operations in batches {
+        let op_amount = operations.len();
+        debug!(logger, "Committing batch with {op_amount} operations.");
         commit_batch(
             canister,
             CommitBatchArguments {
                 batch_id: Nat::from(0_u8),
-                operations: operations.into(),
+                operations,
             },
         )
         .await?;
         if let Some(progress) = progress {
-            progress.add_committed_batch_operations(operations.len());
-        }
-    }
-
-    // Seen to work at 800 ({"SetAssetContent": 932, "Delete": 47, "CreateAsset": 58})
-    // so 500 shouldn't exceed per-message instruction limit
-    for operations in other_operations.chunks(500) {
-        debug!(
-            logger,
-            "Committing batch with {} operations.",
-            operations.len()
-        );
-        commit_batch(
-            canister,
-            CommitBatchArguments {
-                batch_id: Nat::from(0_u8),
-                operations: operations.into(),
-            },
-        )
-        .await?;
-        if let Some(progress) = progress {
-            progress.add_committed_batch_operations(operations.len());
+            progress.add_committed_batch_operations(op_amount);
         }
     }
 
@@ -260,7 +330,7 @@ pub async fn prepare_sync_for_proposal(
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
     let canister_api_version = api_version(canister).await;
-    let arg = upload_content_and_assemble_sync_operations(
+    let (arg, _chunk_uploader) = upload_content_and_assemble_sync_operations(
         canister,
         canister_api_version,
         dirs,

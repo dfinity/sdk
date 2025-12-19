@@ -1,5 +1,5 @@
 use crate::evidence::EvidenceComputation::{Computed, NextChunkIndex, NextOperation};
-use crate::state_machine::Chunk;
+use crate::state_machine::{Chunk, State};
 use crate::types::BatchOperation::{
     Clear, CreateAsset, DeleteAsset, SetAssetContent, SetAssetProperties, UnsetAssetContent,
 };
@@ -38,6 +38,27 @@ pub enum EvidenceComputation {
     },
 
     Computed(ByteBuf),
+
+    Virtual {
+        sorted_keys: Vec<String>,
+        current_key_index: usize,
+        state: VirtualState,
+        hasher: Sha256,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub enum VirtualState {
+    CreateAsset,
+    SetAssetContent {
+        sorted_encoding_names: Vec<String>,
+        encoding_index: usize,
+    },
+    HashChunks {
+        sorted_encoding_names: Vec<String>,
+        encoding_index: usize,
+        chunk_index: usize,
+    },
 }
 
 impl Default for EvidenceComputation {
@@ -66,6 +87,25 @@ impl EvidenceComputation {
                 hasher,
             } => next_chunk_index(args, operation_index, chunk_index, hasher, chunks),
             Computed(evidence) => Computed(evidence),
+            Self::Virtual { .. } => {
+                panic!("Virtual evidence computation cannot be advanced with CommitBatchArguments")
+            }
+        }
+    }
+
+    pub fn advance_virtual(self, state: &crate::state_machine::State) -> Self {
+        if let Self::Virtual {
+            sorted_keys,
+            current_key_index,
+            state: virtual_state,
+            hasher,
+        } = self
+        {
+            next_virtual_step(state, sorted_keys, current_key_index, virtual_state, hasher)
+        } else {
+            panic!(
+                "EvidenceComputation::advance_virtual called on non-virtual evidence computation"
+            );
         }
     }
 }
@@ -159,7 +199,7 @@ fn hash_chunk_by_id(hasher: &mut Sha256, chunk_id: &ChunkId, chunks: &HashMap<Ch
     }
 }
 
-fn hash_chunk_by_content(hasher: &mut Sha256, chunk_content: &ByteBuf) {
+fn hash_chunk_by_content(hasher: &mut Sha256, chunk_content: &[u8]) {
     hasher.update(chunk_content);
 }
 
@@ -283,4 +323,117 @@ fn tag_value_uniqueness() {
         tags.unique().count(),
         "tag values must be unique"
     );
+}
+
+fn next_virtual_step(
+    state: &State,
+    sorted_keys: Vec<String>,
+    current_key_index: usize,
+    virtual_state: VirtualState,
+    mut hasher: Sha256,
+) -> EvidenceComputation {
+    if current_key_index >= sorted_keys.len() {
+        let sha256: [u8; 32] = hasher.finalize().into();
+        return EvidenceComputation::Computed(ByteBuf::from(sha256));
+    }
+
+    let key = &sorted_keys[current_key_index];
+    let asset = state.assets.get(key).expect("asset must exist");
+
+    match virtual_state {
+        VirtualState::CreateAsset => {
+            let args = CreateAssetArguments {
+                key: key.clone(),
+                content_type: asset.content_type.clone(),
+                max_age: asset.max_age,
+                headers: asset.headers.clone(),
+                enable_aliasing: asset.is_aliased,
+                allow_raw_access: asset.allow_raw_access,
+            };
+            hash_create_asset(&mut hasher, &args);
+            let mut sorted_encoding_names: Vec<String> = asset.encodings.keys().cloned().collect();
+            sorted_encoding_names.sort();
+
+            EvidenceComputation::Virtual {
+                sorted_keys,
+                current_key_index,
+                state: VirtualState::SetAssetContent {
+                    sorted_encoding_names,
+                    encoding_index: 0,
+                },
+                hasher,
+            }
+        }
+        VirtualState::SetAssetContent {
+            sorted_encoding_names,
+            encoding_index,
+        } => {
+            if encoding_index >= sorted_encoding_names.len() {
+                // Done with this asset, move to next
+                return EvidenceComputation::Virtual {
+                    sorted_keys,
+                    current_key_index: current_key_index + 1,
+                    state: VirtualState::CreateAsset,
+                    hasher,
+                };
+            }
+
+            let enc_name = &sorted_encoding_names[encoding_index];
+            let enc = asset.encodings.get(enc_name).expect("encoding must exist");
+
+            let args = SetAssetContentArguments {
+                key: key.clone(),
+                content_encoding: enc_name.clone(),
+                chunk_ids: vec![],
+                last_chunk: None,
+                sha256: Some(ByteBuf::from(enc.sha256)),
+            };
+            hash_set_asset_content(&mut hasher, &args);
+
+            EvidenceComputation::Virtual {
+                sorted_keys,
+                current_key_index,
+                state: VirtualState::HashChunks {
+                    sorted_encoding_names,
+                    encoding_index,
+                    chunk_index: 0,
+                },
+                hasher,
+            }
+        }
+        VirtualState::HashChunks {
+            sorted_encoding_names,
+            encoding_index,
+            chunk_index,
+        } => {
+            let enc_name = &sorted_encoding_names[encoding_index];
+            let enc = asset.encodings.get(enc_name).expect("encoding must exist");
+
+            if chunk_index < enc.content_chunks.len() {
+                hash_chunk_by_content(&mut hasher, &enc.content_chunks[chunk_index]);
+
+                EvidenceComputation::Virtual {
+                    sorted_keys,
+                    current_key_index,
+                    state: VirtualState::HashChunks {
+                        sorted_encoding_names,
+                        encoding_index,
+                        chunk_index: chunk_index + 1,
+                    },
+                    hasher,
+                }
+            } else {
+                // Done with chunks, move to next encoding
+                EvidenceComputation::Virtual {
+                    sorted_keys,
+                    current_key_index,
+                    state: VirtualState::SetAssetContent {
+                        sorted_encoding_names,
+                        encoding_index: encoding_index + 1,
+                    },
+                    hasher,
+                }
+            }
+        }
+    }
 }

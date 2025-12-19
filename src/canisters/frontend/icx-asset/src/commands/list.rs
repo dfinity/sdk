@@ -7,7 +7,7 @@ use slog::{Logger, info};
 use time::{OffsetDateTime, format_description};
 
 pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()> {
-    #[derive(CandidType, Deserialize)]
+    #[derive(CandidType, Deserialize, PartialEq, Eq)]
     struct Encoding {
         modified: Int,
         content_encoding: String,
@@ -15,7 +15,7 @@ pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()
         length: Nat,
     }
 
-    #[derive(CandidType, Deserialize)]
+    #[derive(CandidType, Deserialize, PartialEq, Eq)]
     struct ListEntry {
         key: String,
         content_type: String,
@@ -23,16 +23,51 @@ pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()
     }
 
     #[derive(CandidType, Deserialize)]
-    struct EmptyRecord {}
+    struct ListRequest {
+        start: Option<Nat>,
+        length: Option<Nat>,
+    }
 
-    let (entries,): (Vec<ListEntry>,) = canister
-        .query("list")
-        .with_arg(EmptyRecord {})
-        .build()
-        .call()
-        .await?;
+    let mut all_entries: Vec<ListEntry> = Vec::new();
+    let mut start = 0u64;
+    let mut prev_page_size: Option<usize> = None;
 
-    for entry in entries {
+    // Fetch assets in pages until we get 0 items or fewer items than the previous page
+    loop {
+        let (entries,): (Vec<ListEntry>,) = canister
+            .query("list")
+            .with_arg(ListRequest {
+                start: Some(Nat::from(start)),
+                length: None,
+            })
+            .build()
+            .call()
+            .await?;
+
+        let num_entries = entries.len();
+        if num_entries == 0 {
+            break;
+        }
+
+        // If we're on a subsequent page but got the same data as the first page,
+        // the canister doesn't support pagination and is returning all entries every time
+        if start > 0 && entries == all_entries {
+            break;
+        }
+
+        start += num_entries as u64;
+        all_entries.extend(entries);
+
+        // If we got fewer items than the previous page, we've reached the end
+        if let Some(prev_size) = prev_page_size {
+            if num_entries < prev_size {
+                break;
+            }
+        }
+        prev_page_size = Some(num_entries);
+    }
+
+    for entry in all_entries {
         for encoding in entry.encodings {
             let modified = encoding.modified;
             let modified =

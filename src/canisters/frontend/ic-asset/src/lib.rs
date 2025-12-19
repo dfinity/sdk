@@ -42,6 +42,7 @@ mod sync;
 mod upload;
 
 pub use evidence::compute_evidence;
+pub use evidence::compute_state_hash;
 pub use progress::{AssetSyncProgressRenderer, AssetSyncState};
 pub use sync::prepare_sync_for_proposal;
 pub use sync::sync;

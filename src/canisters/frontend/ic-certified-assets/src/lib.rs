@@ -230,6 +230,16 @@ pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_as
     })
 }
 
+pub fn compute_state_hash() -> Option<String> {
+    let system_context = SystemContext::new();
+
+    with_state_mut(|s| s.compute_state_hash(&system_context))
+}
+
+pub fn get_state_info() -> StateInfo {
+    with_state(|s| s.get_state_info())
+}
+
 pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     let system_context = SystemContext::new();
 
@@ -265,8 +275,8 @@ pub fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
     })
 }
 
-pub fn list() -> Vec<AssetDetails> {
-    with_state(|s| s.list_assets())
+pub fn list(request: ListRequest) -> Vec<AssetDetails> {
+    with_state(|s| s.list_assets(request))
 }
 
 pub fn certified_tree() -> CertifiedTree {
@@ -467,8 +477,8 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_query]
         #[$crate::ic_certified_assets_candid_method(query)]
-        fn list() -> Vec<state_machine::AssetDetails> {
-            $crate::list()
+        fn list(request: types::ListRequest) -> Vec<state_machine::AssetDetails> {
+            $crate::list(request)
         }
 
         #[$crate::ic_certified_assets_query]
@@ -642,6 +652,18 @@ macro_rules! export_canister_methods {
             arg: types::ComputeEvidenceArguments,
         ) -> Option<ic_certified_assets_ByteBuf> {
             $crate::compute_evidence(arg)
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn compute_state_hash() -> Option<String> {
+            $crate::compute_state_hash()
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn get_state_info() -> types::StateInfo {
+            $crate::get_state_info()
         }
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
