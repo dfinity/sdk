@@ -4,6 +4,7 @@ use ic_agent::Agent;
 use ic_utils::Canister;
 use serde::Deserialize;
 use std::fmt;
+use thiserror::Error;
 
 pub const NNS_MIGRATION_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x01, 0x01]);
@@ -16,78 +17,40 @@ pub struct MigrateCanisterArgs {
     pub replace_canister_id: Principal,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, Error, CandidType, Deserialize)]
 enum ValidationError {
+    #[error("Canister migrations are disabled at the moment.")]
     MigrationsDisabled(Reserved),
+    #[error("Canister migration has been rate-limited. Try again later.")]
     RateLimited(Reserved),
+    #[error("Validation for canister {canister} is already in progress.")]
     ValidationInProgress { canister: Principal },
+    #[error("Canister migration for canister {canister} is already in progress.")]
     MigrationInProgress { canister: Principal },
+    #[error("The canister {canister} does not exist.")]
     CanisterNotFound { canister: Principal },
+    #[error("Both canisters are on the same subnet.")]
     SameSubnet(Reserved),
+    #[error("The canister {canister} is not controlled by the calling identity.")]
     CallerNotController { canister: Principal },
+    #[error(
+        "The NNS canister sbzkb-zqaaa-aaaaa-aaaiq-cai is not a controller of canister {canister}."
+    )]
     NotController { canister: Principal },
+    #[error("The migrated canister is not stopped.")]
     MigratedNotStopped(Reserved),
+    #[error("The migrated canister is not ready for migration. Try again later.")]
     MigratedNotReady(Reserved),
+    #[error("The replaced canister is not stopped.")]
     ReplacedNotStopped(Reserved),
+    #[error("The replaced canister has snapshots.")]
     ReplacedHasSnapshots(Reserved),
+    #[error(
+        "The migrated canister does not have enough cycles for canister migration. Top up the migrated canister with the required amount of cycles."
+    )]
     MigratedInsufficientCycles(Reserved),
+    #[error("Internal IC error: a call failed due to {reason}")]
     CallFailed { reason: String },
-}
-
-impl fmt::Display for ValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ValidationError::MigrationsDisabled(Reserved) => {
-                write!(f, "Canister migrations are disabled at the moment.")
-            }
-            ValidationError::RateLimited(Reserved) => write!(
-                f,
-                "Canister migration has been rate-limited. Try again later."
-            ),
-            ValidationError::ValidationInProgress { canister } => write!(
-                f,
-                "Validation for canister {canister} is already in progress."
-            ),
-            ValidationError::MigrationInProgress { canister } => write!(
-                f,
-                "Canister migration for canister {canister} is already in progress."
-            ),
-            ValidationError::CanisterNotFound { canister } => {
-                write!(f, "The canister {canister} does not exist.")
-            }
-            ValidationError::SameSubnet(Reserved) => {
-                write!(f, "Both canisters are on the same subnet.")
-            }
-            ValidationError::CallerNotController { canister } => write!(
-                f,
-                "The canister {canister} is not controlled by the calling identity."
-            ),
-            ValidationError::NotController { canister } => write!(
-                f,
-                "The NNS canister sbzkb-zqaaa-aaaaa-aaaiq-cai is not a controller of canister {canister}."
-            ),
-            ValidationError::MigratedNotStopped(Reserved) => {
-                write!(f, "The migrated canister is not stopped.")
-            }
-            ValidationError::MigratedNotReady(Reserved) => write!(
-                f,
-                "The migrated canister is not ready for migration. Try again later."
-            ),
-            ValidationError::ReplacedNotStopped(Reserved) => {
-                write!(f, "The replaced canister is not stopped.")
-            }
-            ValidationError::ReplacedHasSnapshots(Reserved) => {
-                write!(f, "The replaced canister has snapshots.")
-            }
-            ValidationError::MigratedInsufficientCycles(Reserved) => write!(
-                f,
-                "The migrated canister does not have enough cycles for canister migration. Top up the migrated canister with the required amount of cycles."
-            ),
-            ValidationError::CallFailed { reason } => {
-                write!(f, "Internal IC error: a call failed due to {reason}")
-            }
-        }
-    }
 }
 
 #[derive(Clone, CandidType, Deserialize, Debug)]
