@@ -235,9 +235,7 @@ impl<'agent> ChunkUploader<'agent> {
 
         try_join_all(batches.into_iter().map(|chunks| async move {
             let (uploader_chunk_ids, chunk_contents): (Vec<_>, Vec<_>) = chunks.into_iter().unzip();
-
-            // Store chunk sizes before uploading
-            let chunk_sizes_vec: Vec<usize> = chunk_contents.iter().map(|c| c.len()).collect();
+            let chunk_sizes: Vec<usize> = chunk_contents.iter().map(|c| c.len()).collect();
 
             let canister_chunk_ids = create_chunks(
                 &self.canister,
@@ -253,7 +251,7 @@ impl<'agent> ChunkUploader<'agent> {
             for ((uploader_id, canister_id), chunk_size) in uploader_chunk_ids
                 .into_iter()
                 .zip(canister_chunk_ids.into_iter())
-                .zip(chunk_sizes_vec.into_iter())
+                .zip(chunk_sizes.into_iter())
             {
                 id_map.insert(uploader_id, canister_id.clone());
                 canister_sizes.insert(canister_id, chunk_size);
