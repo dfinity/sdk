@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### Improve frontend canister sync logic
+
+Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
+Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
+
 ## Dependencies
 
 ### Motoko
