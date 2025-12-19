@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
+
 # 0.30.2
 
 ### Improve frontend canister sync logic
