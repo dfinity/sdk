@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.30.2
+
 ### Improve frontend canister sync logic
 
 Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
