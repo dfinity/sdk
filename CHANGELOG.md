@@ -6,7 +6,7 @@
 
 Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
 
-- Module hash: 9b6d4a486286be59de5acea4c3149cd4189c7d71c36eecf17a7d397c22c6093e
+- Module hash: c156183e6a6f5c3c71ecde5f38a7280b770ff172b4827127ef03b89b764065ba
 - https://github.com/dfinity/sdk/pull/4446
 
 # 0.30.2
