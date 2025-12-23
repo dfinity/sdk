@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+### Frontend canister
+
+Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
+
+- Module hash: 9b6d4a486286be59de5acea4c3149cd4189c7d71c36eecf17a7d397c22c6093e
+- https://github.com/dfinity/sdk/pull/4446
+
 # 0.30.2
 
 ### Improve frontend canister sync logic

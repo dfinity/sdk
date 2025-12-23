@@ -732,6 +732,7 @@ impl State {
         system_context: &SystemContext,
     ) -> Result<(), String> {
         // Reload the canister env to get the latest values
+        let old_encoded_canister_env = self.encoded_canister_env.clone();
         self.encoded_canister_env = system_context.get_canister_env().to_cookie_value();
 
         let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
@@ -753,7 +754,12 @@ impl State {
         self.batches.remove(&batch_id);
         self.certify_404_if_required();
 
-        self.update_ic_env_cookie_in_html_files();
+        // Only re-certify all HTML files if the canister environment changed.
+        // Assets modified in this batch already have the correct cookie via on_asset_change.
+        // Note: this can cause the canister to incur in the instructions limit with many assets.
+        if old_encoded_canister_env != self.encoded_canister_env {
+            self.update_ic_env_cookie_in_html_files();
+        }
         self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
 
         Ok(())
