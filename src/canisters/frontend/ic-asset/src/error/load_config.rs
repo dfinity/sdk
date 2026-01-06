@@ -1,5 +1,5 @@
+use crate::error::fs::{ReadDirError, ReadToStringError};
 use crate::error::load_rule::LoadRuleError;
-use dfx_core::error::fs::{ReadDirError, ReadToStringError};
 use std::path::PathBuf;
 use thiserror::Error;
 

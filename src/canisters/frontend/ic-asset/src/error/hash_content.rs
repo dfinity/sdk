@@ -1,5 +1,5 @@
 use crate::asset::content_encoder::ContentEncoder;
-use dfx_core::error::fs::ReadFileError;
+use crate::error::fs::ReadFileError;
 use thiserror::Error;
 
 /// Errors related to hashing asset content.
