@@ -445,7 +445,7 @@ where
     F: FnMut(P) -> ComputationStatus<D, P, E>,
     P: Default,
 {
-    const INSTRUCTION_THRESHOLD: u64 = 35_000_000_000;
+    const INSTRUCTION_THRESHOLD: u64 = 35_000_000_000; // At the time of writing, 40b instructions are the limit for an update call
     let mut progress = P::default();
 
     loop {
@@ -455,8 +455,7 @@ where
                 progress = p;
                 if ic_cdk::api::performance_counter(0) > INSTRUCTION_THRESHOLD {
                     // Reset instruction counter by doing a bogus self-call
-                    // (self-calls are most likely to be short-circuited by the scheduler so we don't incur too much wait time)
-                    ic_cdk::println!("Resetting instruction counter");
+                    // (self-calls are most likely to be short-circuited by the scheduler so we don't incur more wait time than necessary)
                     let _ = ic_cdk::call::Call::bounded_wait(
                         ic_cdk::api::canister_self(),
                         "__this-FunctionDoes_not-Exist",

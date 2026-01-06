@@ -871,15 +871,15 @@ fn batches_with_evidence_do_not_expire() {
         operations: vec![],
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args));
-    assert!(matches!(
+    assert!(
         run_computation_until_completion(|_progress| {
             state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-        }),
-        Ok(_)
-    ));
+        })
+        .is_ok()
+    );
 
     system_context.current_timestamp_ns =
         system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS + 1;
@@ -2588,24 +2588,24 @@ mod evidence_computation {
             ],
         };
         assert!(state.propose_commit_batch(cba).is_ok());
-        assert!(matches!(
+        assert!(
             run_computation_until_completion(|_progress| {
                 state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_1.clone(),
                     max_iterations: Some(3),
                 })
-            }),
-            Ok(_)
-        ));
-        assert!(matches!(
+            })
+            .is_ok()
+        );
+        assert!(
             run_computation_until_completion(|_progress| {
                 state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_1.clone(),
                     max_iterations: Some(1),
                 })
-            }),
-            Ok(_)
-        ));
+            })
+            .is_ok()
+        );
     }
 
     #[test]
@@ -2658,24 +2658,24 @@ mod evidence_computation {
             ],
         };
         assert!(state.propose_commit_batch(cba).is_ok());
-        assert!(matches!(
+        assert!(
             run_computation_until_completion(|_progress| {
                 state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_1.clone(),
                     max_iterations: Some(4),
                 })
-            }),
-            Ok(_)
-        ));
-        assert!(matches!(
+            })
+            .is_ok()
+        );
+        assert!(
             run_computation_until_completion(|_progress| {
                 state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_1.clone(),
                     max_iterations: Some(1),
                 })
-            }),
-            Ok(_)
-        ));
+            })
+            .is_ok()
+        );
     }
 
     #[test]
@@ -4175,15 +4175,15 @@ mod validate_commit_proposed_batch {
                 .is_ok()
         );
 
-        assert!(matches!(
+        assert!(
             run_computation_until_completion(|_progress| {
                 state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_id.clone(),
                     max_iterations: Some(1),
                 })
-            }),
-            Ok(_)
-        ));
+            })
+            .is_ok()
+        );
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
             batch_id: batch_id.clone(),
@@ -4229,7 +4229,7 @@ mod validate_commit_proposed_batch {
                 max_iterations: Some(1),
             })
         });
-        assert!(matches!(compute_evidence_result, Ok(_)));
+        assert!(compute_evidence_result.is_ok());
 
         let evidence = if let Ok(computed_evidence) = compute_evidence_result {
             computed_evidence

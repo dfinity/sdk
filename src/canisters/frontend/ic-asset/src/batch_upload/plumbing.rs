@@ -159,15 +159,6 @@ impl<'agent> ChunkUploader<'agent> {
         self.chunks.load(Ordering::SeqCst)
     }
 
-    /// Get total size of chunks by their canister chunk IDs
-    pub(crate) async fn get_canister_chunk_total_size(&self, canister_chunk_ids: &[Nat]) -> usize {
-        let sizes = self.canister_chunk_sizes.lock().await;
-        canister_chunk_ids
-            .iter()
-            .filter_map(|id| sizes.get(id))
-            .sum()
-    }
-
     /// Call only after `finalize_upload` has completed.
     pub(crate) async fn uploader_ids_to_canister_chunk_ids(
         &self,

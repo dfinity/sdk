@@ -225,6 +225,7 @@ pub enum ComputationStatus<D, P, E> {
     Error(E),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Default)]
 pub enum CommitBatchProgress {
     /// Initial state when `commit_batch` is first called.
@@ -276,6 +277,7 @@ pub enum CommitBatchProgress {
     },
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Default)]
 pub enum CommitProposedBatchProgress {
     #[default]
