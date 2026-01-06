@@ -365,14 +365,14 @@ pub(crate) fn gather_asset_descriptors(
 ) -> Result<Vec<AssetDescriptor>, GatherAssetDescriptorsError> {
     let mut asset_descriptors: HashMap<String, AssetDescriptor> = HashMap::new();
     for dir in dirs {
-        let dir = dfx_core::fs::canonicalize(dir).map_err(InvalidSourceDirectory)?;
+        let dir = crate::fs::canonicalize(dir).map_err(InvalidSourceDirectory)?;
         let mut configuration =
             AssetSourceDirectoryConfiguration::load(&dir).map_err(LoadConfigFailed)?;
         let mut asset_descriptors_interim = vec![];
         let entries = WalkDir::new(&dir)
             .into_iter()
             .filter_entry(|entry| {
-                if let Ok(canonical_path) = &dfx_core::fs::canonicalize(entry.path()) {
+                if let Ok(canonical_path) = &crate::fs::canonicalize(entry.path()) {
                     let config = configuration
                         .get_asset_config(canonical_path)
                         .unwrap_or_default();
@@ -388,7 +388,7 @@ pub(crate) fn gather_asset_descriptors(
             .collect::<Vec<_>>();
 
         for e in entries {
-            let source = dfx_core::fs::canonicalize(e.path()).map_err(InvalidDirectoryEntry)?;
+            let source = crate::fs::canonicalize(e.path()).map_err(InvalidDirectoryEntry)?;
             let relative = source.strip_prefix(&dir).expect("cannot strip prefix");
             let key = String::from("/") + relative.to_string_lossy().as_ref();
             let config = configuration.get_asset_config(&source)?;

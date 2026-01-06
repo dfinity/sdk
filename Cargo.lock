@@ -2916,7 +2916,7 @@ dependencies = [
  "brotli",
  "candid",
  "derivative",
- "dfx-core",
+ "dunce",
  "flate2",
  "futures",
  "futures-intrusive",
