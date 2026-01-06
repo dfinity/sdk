@@ -6,7 +6,10 @@
 
 Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
 
-- Module hash: c156183e6a6f5c3c71ecde5f38a7280b770ff172b4827127ef03b89b764065ba
+Use canister self-calls to avoid hitting instruction limits during `commit_batch`, `compute_evidence`, and `compute_state_hash`.
+
+- Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
+- https://github.com/dfinity/sdk/pull/4450
 - https://github.com/dfinity/sdk/pull/4446
 
 # 0.30.2

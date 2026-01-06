@@ -207,7 +207,7 @@ pub async fn commit_batch(arg: CommitBatchArguments) {
     let system_context = SystemContext::new();
     let arg_ref = &arg;
 
-    loop_with_async_call_until_completion(|progress| {
+    loop_with_message_extension_until_completion(|progress| {
         with_state_mut(|s| s.commit_batch(arg_ref, progress, &system_context))
     })
     .await
@@ -230,7 +230,7 @@ pub async fn compute_evidence(
     arg: ComputeEvidenceArguments,
 ) -> Option<ic_certified_assets_ByteBuf> {
     let arg_ref = &arg;
-    loop_with_async_call_until_completion(|_progress| {
+    loop_with_message_extension_until_completion(|_progress| {
         with_state_mut(|s| s.compute_evidence(arg_ref))
     })
     .await
@@ -238,9 +238,11 @@ pub async fn compute_evidence(
 }
 
 pub async fn compute_state_hash() -> Option<String> {
-    loop_with_async_call_until_completion(|_progress| with_state_mut(|s| s.compute_state_hash()))
-        .await
-        .ok()
+    loop_with_message_extension_until_completion(|_progress| {
+        with_state_mut(|s| s.compute_state_hash())
+    })
+    .await
+    .ok()
 }
 
 pub fn get_state_info() -> StateInfo {
@@ -251,7 +253,7 @@ pub async fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     let system_context = SystemContext::new();
     let arg_ref = &arg;
 
-    loop_with_async_call_until_completion(|progress| {
+    loop_with_message_extension_until_completion(|progress| {
         with_state_mut(|s| s.commit_proposed_batch(arg_ref, progress, &system_context))
     })
     .await
@@ -438,14 +440,14 @@ where
     STATE.with(|s| f(&s.borrow()))
 }
 
-/// Loops calling a state machine function until completion, periodically calling
-/// `raw_rand().await` to reset the instruction counter when needed.
-async fn loop_with_async_call_until_completion<F, D, P, E>(mut compute_fn: F) -> Result<D, E>
+/// Loops calling a state machine function until completion, periodically async-calling
+/// self to reset the instruction counter when needed.
+async fn loop_with_message_extension_until_completion<F, D, P, E>(mut compute_fn: F) -> Result<D, E>
 where
     F: FnMut(P) -> ComputationStatus<D, P, E>,
     P: Default,
 {
-    const INSTRUCTION_THRESHOLD: u64 = 35_000_000_000; // At the time of writing, 40b instructions are the limit for an update call
+    const INSTRUCTION_THRESHOLD: u64 = 35_000_000_000; // At the time of writing, 40b instructions are the limit for single message
     let mut progress = P::default();
 
     loop {
@@ -454,7 +456,7 @@ where
             ComputationStatus::InProgress(p) => {
                 progress = p;
                 if ic_cdk::api::performance_counter(0) > INSTRUCTION_THRESHOLD {
-                    // Reset instruction counter by doing a bogus self-call
+                    // Reset instruction counter 0 by doing a bogus self-call
                     // (self-calls are most likely to be short-circuited by the scheduler so we don't incur more wait time than necessary)
                     let _ = ic_cdk::call::Call::bounded_wait(
                         ic_cdk::api::canister_self(),

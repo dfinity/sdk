@@ -1052,14 +1052,12 @@ impl State {
     ) -> ComputationStatus<(), CommitProposedBatchProgress, String> {
         match progress {
             CommitProposedBatchProgress::Starting => {
-                // First call - take the proposed batch arguments from the batch
                 if let Err(e) = self.validate_commit_proposed_batch_args(arg) {
                     return ComputationStatus::Error(e);
                 }
                 let batch = self.batches.get_mut(&arg.batch_id).unwrap();
                 let commit_batch_args = batch.commit_batch_arguments.take().unwrap();
 
-                // Call commit_batch with Starting progress
                 match self.commit_batch(
                     &commit_batch_args,
                     CommitBatchProgress::default(),
@@ -1079,13 +1077,12 @@ impl State {
                 commit_batch_args,
                 commit_batch_progress,
             } => {
-                // Subsequent calls - pass the stored args and progress to commit_batch
                 match self.commit_batch(&commit_batch_args, commit_batch_progress, system_context) {
                     ComputationStatus::Done(()) => ComputationStatus::Done(()),
-                    ComputationStatus::InProgress(new_commit_batch_progress) => {
+                    ComputationStatus::InProgress(progress) => {
                         ComputationStatus::InProgress(CommitProposedBatchProgress::InProgress {
                             commit_batch_args,
-                            commit_batch_progress: new_commit_batch_progress,
+                            commit_batch_progress: progress,
                         })
                     }
                     ComputationStatus::Error(e) => ComputationStatus::Error(e),
@@ -1162,10 +1159,7 @@ impl State {
 
         match &batch.evidence_computation {
             Some(Computed(evidence)) => ComputationStatus::Done(evidence.clone()),
-            _ => {
-                // EvidenceComputation is already stored in batch.evidence_computation
-                ComputationStatus::InProgress(())
-            }
+            _ => ComputationStatus::InProgress(()),
         }
     }
 

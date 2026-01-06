@@ -62,9 +62,7 @@ where
         match compute_fn(progress) {
             ComputationStatus::Done(done) => return Ok(done),
             ComputationStatus::InProgress(p) => {
-                // Update progress for next iteration
                 progress = p;
-                // Continue loop - state machine will resume from saved state
             }
             ComputationStatus::Error(e) => return Err(e),
         }
