@@ -445,7 +445,7 @@ where
     F: FnMut(P) -> ComputationStatus<D, P, E>,
     P: Default,
 {
-    const INSTRUCTION_THRESHOLD: u64 = 20_000_000_000; // TODO: split asset hashing too
+    const INSTRUCTION_THRESHOLD: u64 = 35_000_000_000;
     let mut progress = P::default();
 
     loop {
@@ -456,6 +456,7 @@ where
                 if ic_cdk::api::performance_counter(0) > INSTRUCTION_THRESHOLD {
                     // Reset instruction counter by doing a bogus self-call
                     // (self-calls are most likely to be short-circuited by the scheduler so we don't incur too much wait time)
+                    ic_cdk::println!("Resetting instruction counter");
                     let _ = ic_cdk::call::Call::bounded_wait(
                         ic_cdk::api::canister_self(),
                         "__this-FunctionDoes_not-Exist",
