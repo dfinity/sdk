@@ -38,6 +38,6 @@ export default defineConfig({
         ),
       },
     ],
-    dedupe: ['@dfinity/agent'],
+    dedupe: ['@icp-sdk/core/agent'],
   },
 });
