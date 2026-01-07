@@ -23,8 +23,8 @@ needless_lifetimes = "allow"
 future_not_send = "warn"
 
 [workspace.dependencies]
-candid = { path = "../candid/rust/candid"}
-candid_parser =  { path = "../candid/rust/candid_parser"}
+candid = "0.10.18"
+candid_parser = "0.2.4"
 dfx-core = { path = "src/dfx-core", version = "0.2.0" }
 ic-agent = "0.44.2"
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.25.0" }
@@ -85,10 +85,6 @@ time = "0.3.9"
 tokio = "1.43"
 url = { version = "2.1.0", features = ["serde"] }
 walkdir = "2.3.2"
-
-[patch.crates-io]
-candid = { path = "../candid/rust/candid" }
-candid_parser = { path = "../candid/rust/candid_parser" }
 
 [profile.release]
 panic = 'abort'
