@@ -38,6 +38,6 @@ export default defineConfig({
         ),
       },
     ],
-    dedupe: ['@icp-sdk/core/agent'],
+    dedupe: ['@icp-sdk/core'],
   },
 });
