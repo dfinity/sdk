@@ -1,6 +1,6 @@
 [package]
 name = "ic-asset"
-version = "0.25.0" # sync with icx-asset
+version = "0.26.0" # sync with icx-asset
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -19,7 +19,7 @@ backoff.workspace = true
 brotli = "6.0.0"
 candid = { workspace = true }
 derivative = "2.2.0"
-dfx-core.workspace = true
+dunce.workspace = true
 flate2.workspace = true
 futures.workspace = true
 futures-intrusive = "0.4.0"

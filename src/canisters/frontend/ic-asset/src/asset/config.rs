@@ -176,7 +176,7 @@ impl AssetSourceDirectoryConfiguration {
         &mut self,
         canonical_path: &Path,
     ) -> Result<AssetConfig, GetAssetConfigError> {
-        let parent_dir = dfx_core::fs::parent(canonical_path)?;
+        let parent_dir = crate::fs::parent(canonical_path)?;
         Ok(self
             .config_map
             .get(&parent_dir)
@@ -243,7 +243,7 @@ impl AssetConfigTreeNode {
         };
         let mut rules = vec![];
         if let Some(config_path) = config_path {
-            let content = dfx_core::fs::read_to_string(&config_path)?;
+            let content = crate::fs::read_to_string(&config_path)?;
 
             let interim_rules: Vec<rule_utils::InterimAssetConfigRule> = json5::from_str(&content)
                 .map_err(|e| MalformedAssetConfigFile(config_path.to_path_buf(), e))?;
@@ -264,7 +264,7 @@ impl AssetConfigTreeNode {
         };
 
         configs.insert(dir.to_path_buf(), parent_ref.clone());
-        for f in dfx_core::fs::read_dir(dir)?
+        for f in crate::fs::read_dir(dir)?
             .filter_map(|x| x.ok())
             .filter(|x| x.file_type().map_or_else(|_e| false, |ft| ft.is_dir()))
         {

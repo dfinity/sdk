@@ -1,4 +1,4 @@
-use dfx_core::error::fs::NoParentPathError;
+use crate::error::fs::NoParentPathError;
 use std::path::PathBuf;
 use thiserror::Error;
 

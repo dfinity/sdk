@@ -1,6 +1,6 @@
+use crate::error::fs::CanonicalizePathError;
 use crate::error::get_asset_config::GetAssetConfigError;
 use crate::error::load_config::AssetLoadConfigError;
-use dfx_core::error::fs::CanonicalizePathError;
 use std::path::PathBuf;
 use thiserror::Error;
 

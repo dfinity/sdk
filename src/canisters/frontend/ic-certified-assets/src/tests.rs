@@ -2,7 +2,7 @@ use crate::CreateChunksArg;
 use crate::asset_certification::types::http::{
     CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackToken, StreamingStrategy,
 };
-use crate::state_machine::{BATCH_EXPIRY_NANOS, StableStateV2, State};
+use crate::state_machine::{BATCH_EXPIRY_NANOS, ComputationStatus, StableStateV2, State};
 use crate::system_context::SystemContext;
 use crate::system_context::canister_env::CanisterEnv;
 use crate::types::{
@@ -46,6 +46,27 @@ fn mock_system_context() -> SystemContext {
         }),
         100_000_000_000,
     )
+}
+
+/// Synchronous test driver for incremental computations.
+/// Loops calling a state machine function until completion.
+/// Unlike the async version, this doesn't check instruction counters or make async calls.
+fn run_computation_until_completion<F, D, P, E>(mut compute_fn: F) -> Result<D, E>
+where
+    F: FnMut(P) -> ComputationStatus<D, P, E>,
+    P: Default,
+{
+    let mut progress = P::default();
+
+    loop {
+        match compute_fn(progress) {
+            ComputationStatus::Done(done) => return Ok(done),
+            ComputationStatus::InProgress(p) => {
+                progress = p;
+            }
+            ComputationStatus::Error(e) => return Err(e),
+        }
+    }
 }
 
 pub fn verify_response(
@@ -227,15 +248,17 @@ fn create_assets(
         &batch_id,
     );
 
-    state
-        .commit_batch(
-            CommitBatchArguments {
+    run_computation_until_completion(|progress| {
+        state.commit_batch(
+            &CommitBatchArguments {
                 batch_id: batch_id.clone(),
-                operations,
+                operations: operations.clone(),
             },
+            progress,
             system_context,
         )
-        .unwrap();
+    })
+    .unwrap();
 
     batch_id
 }
@@ -261,23 +284,25 @@ fn create_assets_by_proposal(
         })
         .unwrap();
 
-    let evidence = state
-        .compute_evidence(ComputeEvidenceArguments {
+    let evidence = run_computation_until_completion(|_progress| {
+        state.compute_evidence(&ComputeEvidenceArguments {
             batch_id: batch_id.clone(),
             max_iterations: Some(100),
         })
-        .unwrap()
-        .unwrap();
+    })
+    .unwrap();
 
-    state
-        .commit_proposed_batch(
-            CommitProposedBatchArguments {
+    run_computation_until_completion(|progress| {
+        state.commit_proposed_batch(
+            &CommitProposedBatchArguments {
                 batch_id: batch_id.clone(),
-                evidence,
+                evidence: evidence.clone(),
             },
+            progress,
             system_context,
         )
-        .unwrap();
+    })
+    .unwrap();
 
     batch_id
 }
@@ -844,13 +869,15 @@ fn batches_with_evidence_do_not_expire() {
         operations: vec![],
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args));
-    assert!(matches!(
-        state.compute_evidence(ComputeEvidenceArguments {
-            batch_id: batch_1.clone(),
-            max_iterations: Some(3),
-        }),
-        Ok(Some(_))
-    ));
+    assert!(
+        run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_1.clone(),
+                max_iterations: Some(3),
+            })
+        })
+        .is_ok()
+    );
 
     system_context.current_timestamp_ns =
         system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS + 1;
@@ -2559,20 +2586,24 @@ mod evidence_computation {
             ],
         };
         assert!(state.propose_commit_batch(cba).is_ok());
-        assert!(matches!(
-            state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
-                max_iterations: Some(3),
-            }),
-            Ok(None)
-        ));
-        assert!(matches!(
-            state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
-                max_iterations: Some(1),
-            }),
-            Ok(Some(_))
-        ));
+        assert!(
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_1.clone(),
+                    max_iterations: Some(3),
+                })
+            })
+            .is_ok()
+        );
+        assert!(
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_1.clone(),
+                    max_iterations: Some(1),
+                })
+            })
+            .is_ok()
+        );
     }
 
     #[test]
@@ -2625,20 +2656,24 @@ mod evidence_computation {
             ],
         };
         assert!(state.propose_commit_batch(cba).is_ok());
-        assert!(matches!(
-            state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
-                max_iterations: Some(4),
-            }),
-            Ok(None)
-        ));
-        assert!(matches!(
-            state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
-                max_iterations: Some(1),
-            }),
-            Ok(Some(_))
-        ));
+        assert!(
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_1.clone(),
+                    max_iterations: Some(4),
+                })
+            })
+            .is_ok()
+        );
+        assert!(
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_1.clone(),
+                    max_iterations: Some(1),
+                })
+            })
+            .is_ok()
+        );
     }
 
     #[test]
@@ -2667,12 +2702,13 @@ mod evidence_computation {
             max_iterations: Some(1),
         };
         assert!(
-            state
-                .compute_evidence(compute_args.clone())
-                .unwrap()
-                .is_none()
+            run_computation_until_completion(|_progress| { state.compute_evidence(&compute_args) })
+                .is_ok()
         );
-        assert!(state.compute_evidence(compute_args).unwrap().is_some());
+        assert!(
+            run_computation_until_completion(|_progress| { state.compute_evidence(&compute_args) })
+                .is_ok()
+        );
     }
 
     #[test]
@@ -2706,22 +2742,22 @@ mod evidence_computation {
         assert!(state.propose_commit_batch(cba).is_ok());
 
         assert!(
-            state
-                .compute_evidence(ComputeEvidenceArguments {
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_id.clone(),
                     max_iterations: Some(3),
                 })
-                .unwrap()
-                .is_none()
+            })
+            .is_ok()
         );
         assert!(
-            state
-                .compute_evidence(ComputeEvidenceArguments {
-                    batch_id,
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_id.clone(),
                     max_iterations: Some(1),
                 })
-                .unwrap()
-                .is_some()
+            })
+            .is_ok()
         );
     }
 
@@ -2738,13 +2774,13 @@ mod evidence_computation {
         assert!(state.propose_commit_batch(cba).is_ok());
 
         assert!(
-            state
-                .compute_evidence(ComputeEvidenceArguments {
-                    batch_id,
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_id.clone(),
                     max_iterations: Some(1),
                 })
-                .unwrap()
-                .is_some()
+            })
+            .is_ok()
         );
     }
 
@@ -2770,13 +2806,13 @@ mod evidence_computation {
                     })
                     .is_ok()
             );
-            let evidence_1 = state
-                .compute_evidence(ComputeEvidenceArguments {
+            let evidence_1 = run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_1.clone(),
                     max_iterations: Some(3),
                 })
-                .unwrap()
-                .unwrap();
+            })
+            .unwrap();
             delete_batch(&mut state, batch_1);
 
             let batch_2 = state.create_batch(&system_context).unwrap();
@@ -2795,13 +2831,13 @@ mod evidence_computation {
                     })
                     .is_ok()
             );
-            let evidence_2 = state
-                .compute_evidence(ComputeEvidenceArguments {
+            let evidence_2 = run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_2.clone(),
                     max_iterations: Some(3),
                 })
-                .unwrap()
-                .unwrap();
+            })
+            .unwrap();
             delete_batch(&mut state, batch_2);
 
             assert_eq!(evidence_1, evidence_2);
@@ -2827,13 +2863,13 @@ mod evidence_computation {
                     })
                     .is_ok()
             );
-            let evidence_1 = state
-                .compute_evidence(ComputeEvidenceArguments {
+            let evidence_1 = run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
                     batch_id: batch_1.clone(),
                     max_iterations: Some(3),
                 })
-                .unwrap()
-                .unwrap();
+            })
+            .unwrap();
             delete_batch(&mut state, batch_1);
 
             let batch_2 = state.create_batch(&system_context).unwrap();
@@ -2855,13 +2891,13 @@ mod evidence_computation {
                     })
                     .is_ok()
             );
-            let evidence_2 = state
-                .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_2,
+            let evidence_2 = run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_2.clone(),
                     max_iterations: Some(3),
                 })
-                .unwrap()
-                .unwrap();
+            })
+            .unwrap();
             assert_eq!(evidence_1, evidence_2);
         }
     }
@@ -2887,13 +2923,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -2912,13 +2948,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -2944,13 +2980,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -2969,13 +3005,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3001,13 +3037,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3027,13 +3063,13 @@ mod evidence_computation {
                 .is_ok()
         );
 
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(&system_context).unwrap();
@@ -3052,13 +3088,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_3 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3,
+        let evidence_3 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_3.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
         assert_ne!(evidence_1, evidence_3);
@@ -3086,13 +3122,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3111,13 +3147,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(&system_context).unwrap();
@@ -3137,13 +3173,13 @@ mod evidence_computation {
                 .is_ok()
         );
 
-        let evidence_3 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_3 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_3.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_3);
 
         let batch_4 = state.create_batch(&system_context).unwrap();
@@ -3165,13 +3201,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_4 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_4,
+        let evidence_4 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_4.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
         assert_ne!(evidence_1, evidence_3);
@@ -3202,13 +3238,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3228,13 +3264,13 @@ mod evidence_computation {
                 .is_ok()
         );
 
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(&system_context).unwrap();
@@ -3253,13 +3289,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_3 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3,
+        let evidence_3 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_3.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
         assert_ne!(evidence_1, evidence_3);
@@ -3287,13 +3323,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3313,13 +3349,13 @@ mod evidence_computation {
                 .is_ok()
         );
 
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(&system_context).unwrap();
@@ -3338,13 +3374,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_3 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3,
+        let evidence_3 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_3.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
         assert_ne!(evidence_1, evidence_3);
@@ -3371,13 +3407,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3395,13 +3431,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3426,13 +3462,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3450,13 +3486,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3493,13 +3529,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3526,13 +3562,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3581,13 +3617,13 @@ mod evidence_computation {
                     .is_ok()
             );
         }
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(4),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3625,13 +3661,13 @@ mod evidence_computation {
                     .is_ok()
             );
         }
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(4),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3659,13 +3695,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3683,13 +3719,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3713,13 +3749,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3736,13 +3772,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3766,13 +3802,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3789,13 +3825,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3817,13 +3853,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3837,13 +3873,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3862,13 +3898,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3883,13 +3919,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3916,13 +3952,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_1 = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence_1 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
         delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -3942,13 +3978,13 @@ mod evidence_computation {
                 })
                 .is_ok()
         );
-        let evidence_2 = state
-            .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+        let evidence_2 = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
     }
@@ -3999,13 +4035,13 @@ mod evidence_computation {
                     .is_ok()
             );
 
-            state
-                .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch,
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch.clone(),
                     max_iterations: Some(3),
                 })
-                .unwrap()
-                .unwrap()
+            })
+            .unwrap()
         }
 
         let instances = generate_unique_set_asset_properties();
@@ -4041,13 +4077,16 @@ mod validate_commit_proposed_batch {
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
 
-        match state.commit_proposed_batch(
-            CommitProposedBatchArguments {
-                batch_id: 1_u8.into(),
-                evidence: Default::default(),
-            },
-            &system_context,
-        ) {
+        match run_computation_until_completion(|progress| {
+            state.commit_proposed_batch(
+                &CommitProposedBatchArguments {
+                    batch_id: 1_u8.into(),
+                    evidence: Default::default(),
+                },
+                progress,
+                &system_context,
+            )
+        }) {
             Err(err) if err.contains("batch not found") => (),
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
@@ -4067,13 +4106,16 @@ mod validate_commit_proposed_batch {
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
 
-        match state.commit_proposed_batch(
-            CommitProposedBatchArguments {
-                batch_id,
-                evidence: Default::default(),
-            },
-            &system_context,
-        ) {
+        match run_computation_until_completion(|progress| {
+            state.commit_proposed_batch(
+                &CommitProposedBatchArguments {
+                    batch_id: batch_id.clone(),
+                    evidence: Default::default(),
+                },
+                progress,
+                &system_context,
+            )
+        }) {
             Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
@@ -4101,13 +4143,16 @@ mod validate_commit_proposed_batch {
             Err(err) if err.contains("batch does not have computed evidence") => (),
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
-        match state.commit_proposed_batch(
-            CommitProposedBatchArguments {
-                batch_id,
-                evidence: Default::default(),
-            },
-            &system_context,
-        ) {
+        match run_computation_until_completion(|progress| {
+            state.commit_proposed_batch(
+                &CommitProposedBatchArguments {
+                    batch_id: batch_id.clone(),
+                    evidence: Default::default(),
+                },
+                progress,
+                &system_context,
+            )
+        }) {
             Err(err) if err.contains("batch does not have computed evidence") => (),
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
@@ -4128,13 +4173,15 @@ mod validate_commit_proposed_batch {
                 .is_ok()
         );
 
-        assert!(matches!(
-            state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_id.clone(),
-                max_iterations: Some(1),
-            }),
-            Ok(Some(_))
-        ));
+        assert!(
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_id.clone(),
+                    max_iterations: Some(1),
+                })
+            })
+            .is_ok()
+        );
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
             batch_id: batch_id.clone(),
@@ -4144,13 +4191,16 @@ mod validate_commit_proposed_batch {
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
 
-        match state.commit_proposed_batch(
-            CommitProposedBatchArguments {
-                batch_id,
-                evidence: Default::default(),
-            },
-            &system_context,
-        ) {
+        match run_computation_until_completion(|progress| {
+            state.commit_proposed_batch(
+                &CommitProposedBatchArguments {
+                    batch_id: batch_id.clone(),
+                    evidence: Default::default(),
+                },
+                progress,
+                &system_context,
+            )
+        }) {
             Err(err) if err.contains("does not match presented evidence") => (),
             other => panic!("expected 'batch not found' error, got: {other:?}"),
         }
@@ -4171,13 +4221,15 @@ mod validate_commit_proposed_batch {
                 .is_ok()
         );
 
-        let compute_evidence_result = state.compute_evidence(ComputeEvidenceArguments {
-            batch_id: batch_id.clone(),
-            max_iterations: Some(1),
+        let compute_evidence_result = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: Some(1),
+            })
         });
-        assert!(matches!(compute_evidence_result, Ok(Some(_))));
+        assert!(compute_evidence_result.is_ok());
 
-        let evidence = if let Ok(Some(computed_evidence)) = compute_evidence_result {
+        let evidence = if let Ok(computed_evidence) = compute_evidence_result {
             computed_evidence
         } else {
             unreachable!()
@@ -4193,12 +4245,17 @@ mod validate_commit_proposed_batch {
             "commit proposed batch 0 with evidence e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         );
 
-        state
-            .commit_proposed_batch(
-                CommitProposedBatchArguments { batch_id, evidence },
+        run_computation_until_completion(|progress| {
+            state.commit_proposed_batch(
+                &CommitProposedBatchArguments {
+                    batch_id: batch_id.clone(),
+                    evidence: evidence.clone(),
+                },
+                progress,
                 &system_context,
             )
-            .unwrap();
+        })
+        .unwrap();
     }
 }
 
@@ -4391,13 +4448,13 @@ mod enforce_limits {
         );
 
         assert!(
-            state
-                .compute_evidence(ComputeEvidenceArguments {
-                    batch_id,
+            run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_id.clone(),
                     max_iterations: Some(1),
                 })
-                .unwrap()
-                .is_some()
+            })
+            .is_ok()
         );
 
         system_context.current_timestamp_ns = time_now + BATCH_EXPIRY_NANOS + 1;
@@ -4495,7 +4552,7 @@ mod enforce_limits {
             state
                 .create_chunk(
                     CreateChunkArg {
-                        batch_id: batch_2,
+                        batch_id: batch_2.clone(),
                         content: ByteBuf::new(),
                     },
                     &system_context,
@@ -4563,7 +4620,7 @@ mod enforce_limits {
         state
             .create_chunk(
                 CreateChunkArg {
-                    batch_id: batch_2,
+                    batch_id: batch_2.clone(),
                     content: ByteBuf::from(c3),
                 },
                 &system_context,
@@ -4600,10 +4657,10 @@ mod last_state_update_timestamp {
         // Create and commit a batch with asset operations
         let batch_id = state.create_batch(&system_context).unwrap();
 
-        state
-            .commit_batch(
-                CommitBatchArguments {
-                    batch_id,
+        run_computation_until_completion(|progress| {
+            state.commit_batch(
+                &CommitBatchArguments {
+                    batch_id: batch_id.clone(),
                     operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
                         key: "/test.txt".to_string(),
                         content_type: "text/plain".to_string(),
@@ -4613,9 +4670,11 @@ mod last_state_update_timestamp {
                         allow_raw_access: None,
                     })],
                 },
+                progress,
                 &system_context,
             )
-            .unwrap();
+        })
+        .unwrap();
 
         // Timestamp should be updated to system context timestamp
         assert_eq!(
@@ -4684,10 +4743,10 @@ mod last_state_update_timestamp {
         let updated_time = system_context.current_timestamp_ns;
 
         let batch_id = state.create_batch(&system_context).unwrap();
-        state
-            .commit_batch(
-                CommitBatchArguments {
-                    batch_id,
+        run_computation_until_completion(|progress| {
+            state.commit_batch(
+                &CommitBatchArguments {
+                    batch_id: batch_id.clone(),
                     operations: vec![BatchOperation::SetAssetProperties(
                         SetAssetPropertiesArguments {
                             key: "/test.txt".to_string(),
@@ -4701,9 +4760,11 @@ mod last_state_update_timestamp {
                         },
                     )],
                 },
+                progress,
                 &system_context,
             )
-            .unwrap();
+        })
+        .unwrap();
 
         // Timestamp should be updated to new time
         assert_eq!(state.last_state_update_timestamp_ns(), updated_time);
@@ -5266,19 +5327,23 @@ mod compute_state_hash {
 
         state.propose_commit_batch(args.clone()).unwrap();
 
-        let evidence = state
-            .compute_evidence(ComputeEvidenceArguments {
+        let evidence = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
                 batch_id: batch_id.clone(),
                 max_iterations: None,
             })
-            .unwrap()
-            .unwrap();
+        })
+        .unwrap();
 
         // Now apply the batch to state so we can compute state hash
-        state.commit_batch(args, &system_context).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(&args, progress, &system_context)
+        })
+        .unwrap();
 
         // Compute state hash
-        let state_hash = state.compute_state_hash(&system_context).unwrap();
+        let state_hash =
+            run_computation_until_completion(|_progress| state.compute_state_hash()).unwrap();
 
         assert_eq!(
             hex::encode(evidence.as_slice()),
@@ -5324,10 +5389,13 @@ mod compute_state_hash {
                 }),
             ],
         };
-        state.commit_batch(args, &system_context).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(&args, progress, &system_context)
+        })
+        .unwrap();
 
         // Reset computation
-        state.compute_state_hash(&system_context).unwrap(); // Ensure it's done or started
+        run_computation_until_completion(|_progress| state.compute_state_hash()).unwrap(); // Ensure it's done or started
 
         // Update state using commit_batch to ensure timestamp is updated
         // We need a new system context with a later timestamp
@@ -5350,15 +5418,18 @@ mod compute_state_hash {
                 allow_raw_access: None,
             })],
         };
-        state.commit_batch(args, &system_context_later).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(&args, progress, &system_context_later)
+        })
+        .unwrap();
 
         // Since the new API doesn't allow controlling instruction counter per call,
         // we can't easily test interruption. This test now just verifies completion.
-        let result = state.compute_state_hash(&system_context_later);
-        assert!(result.is_some());
+        let result = run_computation_until_completion(|_progress| state.compute_state_hash());
+        assert!(result.is_ok());
 
         // Verify we can call it again
-        let result = state.compute_state_hash(&system_context_later);
-        assert!(result.is_some());
+        let result = run_computation_until_completion(|_progress| state.compute_state_hash());
+        assert!(result.is_ok());
     }
 }

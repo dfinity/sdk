@@ -6,28 +6,6 @@ use canister_env::CanisterEnv;
 use ic_cdk::api::time;
 
 /// Context that is available only inside canister runtime.
-///
-/// # Example
-///
-/// ```
-/// use ic_certified_assets::system_context::SystemContext;
-/// use ic_certified_assets::with_state_mut;
-/// use ic_certified_assets::types::CommitBatchArguments;
-/// use ic_cdk::api::{certified_data_set, trap};
-/// use ic_cdk::update;
-///
-/// #[update]
-/// pub fn commit_batch(arg: CommitBatchArguments) {
-///     let system_context = SystemContext::new();
-///
-///     with_state_mut(|s| {
-///         if let Err(msg) = s.commit_batch(arg, &system_context) {
-///             trap(&msg);
-///         }
-///         certified_data_set(s.root_hash());
-///     });
-/// }
-/// ```
 pub struct SystemContext {
     canister_env: RefCell<Option<CanisterEnv>>,
     pub current_timestamp_ns: u64,

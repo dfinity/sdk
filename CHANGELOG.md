@@ -2,19 +2,21 @@
 
 # UNRELEASED
 
-### Frontend canister
-
-Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
-
-- Module hash: c156183e6a6f5c3c71ecde5f38a7280b770ff172b4827127ef03b89b764065ba
-- https://github.com/dfinity/sdk/pull/4446
-
 # 0.30.2
 
 ### Improve frontend canister sync logic
 
 Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
 Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
+
+### Frontend canister
+
+Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
+
+Use canister self-calls to avoid hitting instruction limits during `commit_batch`, `compute_evidence`, and `compute_state_hash`.
+
+- Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
+- https://github.com/dfinity/sdk/pull/4450
 
 ## Dependencies
 
