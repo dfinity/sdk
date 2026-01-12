@@ -107,7 +107,6 @@ supports-color = "2.1.0"
 sysinfo = "0.28.4"
 tar.workspace = true
 tempfile.workspace = true
-term = "0.7.0"
 thiserror.workspace = true
 time = { workspace = true, features = ["macros", "serde", "serde-human-readable"] }
 tokio = { workspace = true, features = ["full"] }
