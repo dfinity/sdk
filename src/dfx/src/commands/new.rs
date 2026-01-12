@@ -409,12 +409,12 @@ fn program_installed(program: &str) -> bool {
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
     let output = Command::new(program::NPM)
         .arg("show")
-        .arg("@dfinity/agent")
+        .arg("@icp-sdk/core")
         .arg(format!("dist-tags.{dist_tag}"))
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .output()
-        .context("Failed to execute 'npm show @dfinity/agent'")?;
+        .context("Failed to execute 'npm show @icp-sdk/core'")?;
     if !output.status.success() {
         return Err(anyhow::anyhow!(
             "npm command failed with exit code {}",
