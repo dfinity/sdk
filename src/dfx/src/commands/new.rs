@@ -344,7 +344,7 @@ fn scaffold_frontend_code(
         } else {
             spinner.set_message("Getting agent-js version from npm".into());
             get_agent_js_version_from_npm(AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
-                .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
+                .map_err(|err| anyhow!("Cannot execute npm: {err}"))?
         };
         spinner.finish_and_clear();
 
@@ -636,7 +636,7 @@ fn get_requirements(
 
         for new_requirement in &new_requirements {
             let Some(requirement) = find_project_template(new_requirement) else {
-                bail!("Did not find required project template {}", new_requirement)
+                bail!("Did not find required project template {new_requirement}")
             };
             have.insert(requirement.name.clone(), requirement.clone());
             requirements.push(requirement);

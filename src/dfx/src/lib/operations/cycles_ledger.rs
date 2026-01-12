@@ -285,15 +285,11 @@ pub async fn withdraw(
                 );
                 Ok(duplicate_of)
             }
-            Ok(Err(WithdrawError::InvalidReceiver { receiver })) => {
-                Err(backoff::Error::permanent(anyhow!(
-                    "Invalid receiver: {}.  Make sure the receiver is a canister.",
-                    receiver
-                )))
-            }
+            Ok(Err(WithdrawError::InvalidReceiver { receiver })) => Err(backoff::Error::permanent(
+                anyhow!("Invalid receiver: {receiver}.  Make sure the receiver is a canister."),
+            )),
             Ok(Err(send_err)) => Err(backoff::Error::permanent(anyhow!(
-                "send error: {:?}",
-                send_err
+                "send error: {send_err:?}"
             ))),
             Err(agent_err) if retryable(&agent_err) => {
                 Err(backoff::Error::transient(anyhow!(agent_err)))
@@ -362,12 +358,7 @@ pub async fn create_with_cycles_ledger(
         &result,
         Result<CreateCanisterSuccess, CreateCanisterError>
     )
-    .map_err(|err| {
-        anyhow!(
-            "Failed to decode cycles ledger response: {}",
-            err.to_string()
-        )
-    })?;
+    .map_err(|err| anyhow!("Failed to decode cycles ledger response: {err}"))?;
     match create_result {
         Ok(result) => Ok(result.canister_id),
         Err(CreateCanisterError::Duplicate {

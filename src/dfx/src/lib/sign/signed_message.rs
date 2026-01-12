@@ -109,7 +109,7 @@ impl SignedMessageV1 {
                         )
                     }
                     if OffsetDateTime::now_utc() > expiration_from_cbor {
-                        bail!("The message has been expired at: {}", expiration_from_cbor);
+                        bail!("The message has been expired at: {expiration_from_cbor}");
                     }
                 }
                 let sender = m
@@ -122,9 +122,7 @@ impl SignedMessageV1 {
                         .map_err(|_| anyhow!("Invalid json: sender."))?;
                     if !sender_from_cbor.eq(&sender_from_json) {
                         bail!(
-                            "Invalid message: sender principle not match\njson: {}\ncbor: {}",
-                            sender_from_json,
-                            sender_from_cbor
+                            "Invalid message: sender principle not match\njson: {sender_from_json}\ncbor: {sender_from_cbor}"
                         )
                     }
                 }
@@ -139,9 +137,7 @@ impl SignedMessageV1 {
                         .map_err(|_| anyhow!("Invalid json: canister_id."))?;
                     if !canister_id_from_cbor.eq(&canister_id_from_json) {
                         bail!(
-                            "Invalid message: canister_id not match\njson: {}\ncbor: {}",
-                            canister_id_from_json,
-                            canister_id_from_cbor
+                            "Invalid message: canister_id not match\njson: {canister_id_from_json}\ncbor: {canister_id_from_cbor}"
                         )
                     }
                 }

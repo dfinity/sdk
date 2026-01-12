@@ -51,11 +51,7 @@ pub fn load(
 
     let output = match cmd.output() {
         Ok(output) => output,
-        Err(err) => bail!(
-            "Failed to invoke the package tool {:?}\n the error was: {}",
-            cmd,
-            err
-        ),
+        Err(err) => bail!("Failed to invoke the package tool {cmd:?}\n the error was: {err}"),
     };
 
     if !output.status.success() {

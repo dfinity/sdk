@@ -50,11 +50,10 @@ pub async fn get_subnet_for_canister(
                 subnet_id: Some(subnet_id),
             })) => Ok(subnet_id),
             Ok(Ok(GetSubnetForCanisterResponse { subnet_id: None })) => Err(
-                backoff::Error::permanent(anyhow!("no subnet found for canister {}", &canister_id)),
+                backoff::Error::permanent(anyhow!("no subnet found for canister {canister_id}")),
             ),
             Ok(Err(text)) => Err(backoff::Error::permanent(anyhow!(
-                "unable to determine subnet: {}",
-                text
+                "unable to determine subnet: {text}"
             ))),
             Err(agent_err) if retryable(&agent_err) => {
                 Err(backoff::Error::transient(anyhow!(agent_err)))

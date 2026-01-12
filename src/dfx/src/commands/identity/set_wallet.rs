@@ -81,7 +81,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: NetworkOpt) -> 
                         Err(anyhow!("Could not find the wallet or the wallet was invalid."))
                     },
                     Err(err) => {
-                        Err(anyhow!("Unable to access the wallet: {}", err))
+                        Err(anyhow!("Unable to access the wallet: {err}"))
                     },
                     _ => {
                         Ok(())
