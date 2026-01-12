@@ -782,13 +782,15 @@ dependencies = [
 [[package]]
 name = "candid"
 version = "0.10.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8037a01ec09d6c06883a38bad4f47b8d06158ad360b841e0ae5707c9884dfaf6"
 dependencies = [
  "anyhow",
  "binread",
  "byteorder",
  "candid_derive",
  "hex",
- "ic_principal 0.1.1",
+ "ic_principal",
  "leb128",
  "num-bigint 0.4.6",
  "num-traits",
@@ -803,6 +805,8 @@ dependencies = [
 [[package]]
 name = "candid_derive"
 version = "0.10.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb45f4d5eff3805598ee633dd80f8afb306c023249d34b5b7dfdc2080ea1df2e"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -831,7 +835,9 @@ dependencies = [
 
 [[package]]
 name = "candid_parser"
-version = "0.2.4"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "331d5ed7e9a460cd0db8f1c7641a30fb86d50c1e209a5f8053bc0fbb7c1a5da2"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -1619,7 +1625,7 @@ dependencies = [
  "byte-unit",
  "bytes",
  "candid",
- "candid_parser 0.2.4",
+ "candid_parser 0.3.0",
  "cargo_metadata",
  "chrono",
  "ci_info",
@@ -3116,7 +3122,7 @@ dependencies = [
  "anyhow",
  "base64 0.13.1",
  "candid",
- "candid_parser 0.2.4",
+ "candid_parser 0.3.0",
  "hex",
  "ic-cdk",
  "ic-certification 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3496,7 +3502,7 @@ version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d30d4cf17aff1024e13133897048bcba580e063c9000571ab766ca37e2996f4"
 dependencies = [
- "ic_principal 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic_principal",
 ]
 
 [[package]]
@@ -3696,6 +3702,8 @@ dependencies = [
 [[package]]
 name = "ic_principal"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1762deb6f7c8d8c2bdee4b6c5a47b60195b74e9b5280faa5ba29692f8e17429c"
 dependencies = [
  "arbitrary",
  "crc32fast",
@@ -3704,12 +3712,6 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror 1.0.69",
 ]
-
-[[package]]
-name = "ic_principal"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1762deb6f7c8d8c2bdee4b6c5a47b60195b74e9b5280faa5ba29692f8e17429c"
 
 [[package]]
 name = "icrc-cbor"
