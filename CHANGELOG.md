@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: Wasm optimization failure issues a warning instead of error
+
+The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
+Instead of blocking the build, such optimization failure will issue a warning.
+
 ### Frontend canister
 
 Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
