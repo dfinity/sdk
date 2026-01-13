@@ -7,17 +7,11 @@
 The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
 Instead of blocking the build, such optimization failure will issue a warning.
 
-### Frontend canister
-
-Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
-
-Use canister self-calls to avoid hitting instruction limits during `commit_batch`, `compute_evidence`, and `compute_state_hash`.
-
-- Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
-- https://github.com/dfinity/sdk/pull/4450
-- https://github.com/dfinity/sdk/pull/4446
-
 ## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
 
 ### Replica
 
@@ -29,6 +23,16 @@ This incorporates the following executed proposals:
 - [139674](https://dashboard.internetcomputer.org/proposal/139674)
 
 # 0.30.2
+
+### Frontend canister
+
+Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
+
+Use canister self-calls to avoid hitting instruction limits during `commit_batch`, `compute_evidence`, and `compute_state_hash`.
+
+- Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
+- https://github.com/dfinity/sdk/pull/4450
+- https://github.com/dfinity/sdk/pull/4446
 
 ### Improve frontend canister sync logic
 
