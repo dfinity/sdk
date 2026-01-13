@@ -5,7 +5,7 @@
             "type": "custom",
             "candid": "empty.did",
             "wasm": "m64.wasm",
-            "build": "echo \"generated from (module (memory i64 0 0))\"",
+            "build": "echo \"generated from (module (memory i64 0 0) (table i64 1 10 funcref))\"",
             "shrink": true,
             "optimize": "Oz",
             "gzip": true
