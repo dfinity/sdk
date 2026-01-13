@@ -159,15 +159,6 @@ impl<'agent> ChunkUploader<'agent> {
         self.chunks.load(Ordering::SeqCst)
     }
 
-    /// Get total size of chunks by their canister chunk IDs
-    pub(crate) async fn get_canister_chunk_total_size(&self, canister_chunk_ids: &[Nat]) -> usize {
-        let sizes = self.canister_chunk_sizes.lock().await;
-        canister_chunk_ids
-            .iter()
-            .filter_map(|id| sizes.get(id))
-            .sum()
-    }
-
     /// Call only after `finalize_upload` has completed.
     pub(crate) async fn uploader_ids_to_canister_chunk_ids(
         &self,
@@ -448,7 +439,7 @@ async fn make_project_asset(
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<ProjectAsset, CreateProjectAssetError> {
-    let file_size = dfx_core::fs::metadata(&asset_descriptor.source)?.len();
+    let file_size = crate::fs::metadata(&asset_descriptor.source)?.len();
     let permits = (file_size.div_ceil(1000000) as usize).clamp(1, MAX_COST_SINGLE_FILE_MB);
     let _releaser = semaphores.file.acquire(permits).await;
     let content = Content::load(&asset_descriptor.source)
