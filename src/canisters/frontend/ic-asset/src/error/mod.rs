@@ -7,6 +7,7 @@ mod create_chunk;
 mod create_encoding;
 mod create_project_asset;
 mod downgrade_commit_batch_arguments;
+pub(crate) mod fs;
 mod gather_asset_descriptors;
 mod get_asset_config;
 mod get_asset_properties;

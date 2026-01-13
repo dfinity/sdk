@@ -7,6 +7,27 @@
 Canister ID migration can be performed using `dfx canister migrate-id`
 and its status can be checked out using `dfx canister migration-status`.
 
+### Frontend canister
+
+Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
+
+Use canister self-calls to avoid hitting instruction limits during `commit_batch`, `compute_evidence`, and `compute_state_hash`.
+
+- Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
+- https://github.com/dfinity/sdk/pull/4450
+- https://github.com/dfinity/sdk/pull/4446
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 035a2c7a2b19bc7ce7c4d977169583eb64b0e3cb.
+This incorporates the following executed proposals:
+
+- [139937](https://dashboard.internetcomputer.org/proposal/139937)
+- [139766](https://dashboard.internetcomputer.org/proposal/139766)
+- [139674](https://dashboard.internetcomputer.org/proposal/139674)
+
 # 0.30.2
 
 ### Improve frontend canister sync logic

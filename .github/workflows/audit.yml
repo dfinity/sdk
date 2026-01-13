@@ -34,3 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/audit@v1
+        with:
+          # TODO: remove this once the fix is backported to rkyv v0.7
+          # https://github.com/rkyv/rkyv/issues/644
+          ignore: RUSTSEC-2026-0001

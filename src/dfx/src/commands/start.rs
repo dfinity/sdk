@@ -101,12 +101,13 @@ pub struct StartOpts {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 async fn fg_ping_and_wait(
+    logger: &Logger,
     pocketic_port_path: &Path,
     webserver_port_path: &Path,
     frontend_url: &str,
 ) -> DfxResult {
-    let port = wait_for_port(webserver_port_path).await?;
-    _ = wait_for_port(pocketic_port_path).await?; // used as a signal that initialization is complete
+    let port = wait_for_port(logger, webserver_port_path).await?;
+    _ = wait_for_port(logger, pocketic_port_path).await?; // used as a signal that initialization is complete
     // not needed for network functionality, but ensures the child is done sending to stderr
 
     let mut frontend_url_mod = frontend_url.to_string();
@@ -118,8 +119,9 @@ async fn fg_ping_and_wait(
     ping_and_wait(&frontend_url_mod).await
 }
 
-async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
+async fn wait_for_port(logger: &Logger, webserver_port_path: &Path) -> DfxResult<String> {
     let mut retries = 0;
+    let mut warned = false;
     loop {
         let tokio_file = tokio::fs::File::open(&webserver_port_path)
             .await
@@ -134,7 +136,14 @@ async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
         if !contents.is_empty() {
             break Ok(contents);
         }
-        if retries >= 30 {
+        if retries >= 30 && !warned {
+            warned = true;
+            warn!(
+                logger,
+                "Replica has not become healthy in 30s. Still waiting..."
+            );
+        }
+        if retries > 300 {
             bail!("Timed out waiting for replica to become healthy");
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
@@ -249,7 +258,13 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         return Runtime::new()
             .expect("Unable to create a runtime")
             .block_on(async {
-                fg_ping_and_wait(&pocketic_port_path, &webserver_port_path, &frontend_url).await
+                fg_ping_and_wait(
+                    env.get_logger(),
+                    &pocketic_port_path,
+                    &webserver_port_path,
+                    &frontend_url,
+                )
+                .await
             });
     }
     local_server_descriptor.describe(env.get_logger());
