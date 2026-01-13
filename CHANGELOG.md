@@ -12,6 +12,17 @@ Use canister self-calls to avoid hitting instruction limits during `commit_batch
 - https://github.com/dfinity/sdk/pull/4450
 - https://github.com/dfinity/sdk/pull/4446
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 035a2c7a2b19bc7ce7c4d977169583eb64b0e3cb.
+This incorporates the following executed proposals:
+
+- [139937](https://dashboard.internetcomputer.org/proposal/139937)
+- [139766](https://dashboard.internetcomputer.org/proposal/139766)
+- [139674](https://dashboard.internetcomputer.org/proposal/139674)
+
 # 0.30.2
 
 ### Improve frontend canister sync logic
