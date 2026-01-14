@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: support for canister ID migration
+
+Canister ID migration can be performed using `dfx canister migrate-id`
+and its status can be checked out using `dfx canister migration-status`.
+
 ### feat: Wasm optimization failure issues a warning instead of error
 
 The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
