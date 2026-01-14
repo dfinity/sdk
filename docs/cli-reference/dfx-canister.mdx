@@ -723,13 +723,14 @@ service : {
 ## dfx canister migrate-id
 
 Use the `dfx canister migrate-id` command to perform canister ID migration
-of a canister on one subnet (called the "migrated" canister)
-to another subnet replacing the canister ID of a canister on that other subnet.
+of a canister (called the "migrated" canister) on one subnet
+to another subnet replacing the canister ID of a canister
+(called the "replaced" canister) on that other subnet.
 
 ### Basic usage
 
 ``` bash
-dfx canister migrate-id <canister> --replace <replace>
+dfx canister migrate-id <canister> --replace <replaced>
 ```
 
 ### Arguments
@@ -765,13 +766,14 @@ Migration succeeded at 2025-11-26 08:57:41 UTC
 
 Use the `dfx canister migration-status` command to display the current status
 for a canister ID migration (triggered by a separate command [`migrate-id`](#dfx-canister-migrate-id))
-of a canister on one subnet (called the "migrated" canister)
-to another subnet replacing the canister ID of a canister on that other subnet.
+of a canister (called the "migrated" canister) on one subnet
+to another subnet replacing the canister ID of a canister
+(called the "replaced" canister) on that other subnet.
 
 ### Basic usage
 
 ``` bash
-dfx canister migration-status <canister> --replace <replace>
+dfx canister migration-status <canister> --replace <replaced>
 ```
 
 ### Arguments
@@ -797,9 +799,9 @@ $ dfx canister migration-status migrated --replace replaced
 The command displays output similar to the following:
 
 ```
-| Canister                    | Canister To Be Replaced     | Migration Status             |
-| --------------------------- | --------------------------- | ---------------------------- |
-| uqqxf-5h777-77774-qaaaa-cai | ahree-maaaa-aaaar-q777q-cai | In progress: MigratedDeleted |
+| Canister                    | Canister To Be Replaced     | Migration Status                     |
+| --------------------------- | --------------------------- | ------------------------------------ |
+| uqqxf-5h777-77774-qaaaa-cai | ahree-maaaa-aaaar-q777q-cai | In progress: MigratedCanisterDeleted |
 ```
 
 ## dfx canister request-status

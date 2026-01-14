@@ -91,7 +91,7 @@ pub async fn exec(
         .cycles
         .0
         .to_u128()
-        .expect("Unable to parse cycles");
+        .context("Unable to parse cycles")?;
     if cycles < 10_000_000_000_000 {
         bail!("Canister '{migrated_canister}' has less than 10T cycles");
     }
