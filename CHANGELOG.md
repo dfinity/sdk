@@ -12,6 +12,10 @@ and its status can be checked out using `dfx canister migration-status`.
 The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
 Instead of blocking the build, such optimization failure will issue a warning.
 
+### fix: prevent panic on terminals with limited color support
+
+Fixed a panic that could occur when running `dfx` on terminals lacking color support. The `term` crate has been replaced with raw ANSI escape codes, and colors are now only emitted when stderr is a TTY and the `NO_COLOR` environment variable is not set.
+
 ## Dependencies
 
 ### Motoko
