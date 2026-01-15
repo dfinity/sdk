@@ -31,6 +31,6 @@ percent-encoding = "2.3.1"
 ic-http-certification = "3.0.3"
 candid_parser.workspace = true
 anyhow.workspace = true
-ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git", tag = "3.0.3" }
-ic-certification-testing = { git = "https://github.com/dfinity/response-verification.git", tag = "3.0.3" }
-ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "1290256484f59c3d950c5e9a098e97383b248ad6" }
+ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git", rev = "66d33cf61e6ac17ec895598dd7f584605637bb42" }
+ic-certification-testing = { git = "https://github.com/dfinity/response-verification.git", rev = "66d33cf61e6ac17ec895598dd7f584605637bb42" }
+ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "724ae4101bfdd8d4443126a6a8b1ec5ca9b68a12" }

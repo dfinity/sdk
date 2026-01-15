@@ -178,23 +178,31 @@ impl SignedMessageV1 {
 }
 
 mod date_time_utc {
-    time::serde::format_description!(
-        date_time,
-        PrimitiveDateTime,
-        "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC"
-    );
-
-    use serde::{Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
     pub fn serialize<S: Serializer>(datetime: &OffsetDateTime, s: S) -> Result<S::Ok, S::Error> {
         let utc = datetime.to_offset(UtcOffset::UTC);
-        let date = utc.date();
-        let time = utc.time();
-        date_time::serialize(&PrimitiveDateTime::new(date, time), s)
+        let formatted = format!(
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02} UTC",
+            utc.year(),
+            u8::from(utc.month()),
+            utc.day(),
+            utc.hour(),
+            utc.minute(),
+            utc.second()
+        );
+        formatted.serialize(s)
     }
+
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<OffsetDateTime, D::Error> {
-        let primitive = date_time::deserialize(d)?;
-        Ok(primitive.assume_utc())
+        let s = String::deserialize(d)?;
+        let format = time::format_description::parse(
+            "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC"
+        ).map_err(serde::de::Error::custom)?;
+        
+        PrimitiveDateTime::parse(&s, &format)
+            .map_err(serde::de::Error::custom)
+            .map(|dt| dt.assume_offset(UtcOffset::UTC))
     }
 }
