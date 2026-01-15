@@ -101,7 +101,7 @@ impl CanisterBuilder for RustBuilder {
         })?;
 
         if !output.status.success() {
-            bail!("Failed to compile the rust package: {}", package);
+            bail!("Failed to compile the rust package: {package}");
         }
 
         Ok(BuildOutput {

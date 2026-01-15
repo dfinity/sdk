@@ -71,8 +71,7 @@ pub async fn deploy_canisters(
     if let Some(canister_name) = some_canister {
         if pull_canisters_in_config.contains_key(canister_name) {
             bail!(
-                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
-                canister_name
+                "{canister_name} is a pull dependency. Please deploy it using `dfx deps deploy {canister_name}`"
             );
         }
     }
@@ -372,10 +371,7 @@ async fn prepare_assets_for_commit(
     let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
     if !canister_info.is_assets() {
-        bail!(
-            "Expected canister {} to be an asset canister.",
-            canister_name
-        );
+        bail!("Expected canister {canister_name} to be an asset canister.");
     }
 
     let agent = env.get_agent();
@@ -396,10 +392,7 @@ async fn compute_evidence(
     let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
     if !canister_info.is_assets() {
-        bail!(
-            "Expected canister {} to be an asset canister.",
-            canister_name
-        );
+        bail!("Expected canister {canister_name} to be an asset canister.");
     }
 
     let agent = env.get_agent();

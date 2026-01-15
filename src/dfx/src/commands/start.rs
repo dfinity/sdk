@@ -114,7 +114,7 @@ async fn fg_ping_and_wait(
     let port_offset = frontend_url_mod
         .as_str()
         .rfind(':')
-        .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
+        .ok_or_else(|| anyhow!("Malformed frontend url: {frontend_url}"))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
     ping_and_wait(&frontend_url_mod).await
 }
@@ -432,7 +432,7 @@ pub fn apply_command_line_parameters(
     if let Some(host) = host {
         let host: SocketAddr = host
             .parse()
-            .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
+            .map_err(|e| anyhow!("Invalid argument: Invalid host: {e}"))?;
         local_server_descriptor = local_server_descriptor.with_bind_address(host);
     }
     if enable_bitcoin || !bitcoin_nodes.is_empty() {

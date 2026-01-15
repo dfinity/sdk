@@ -170,7 +170,7 @@ teardown() {
   dfx_start
   jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
   assert_command dfx deploy hello_backend --specified-id n2m2m-wyaaa-aaaaa-p777a-cai
-  assert_contains "WARN: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
+  assert_contains "WARNING: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
   assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai."
   assert_contains "The command line value will be used."
 

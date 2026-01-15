@@ -89,7 +89,7 @@ impl CanisterInfo {
 
         let canister_config = canister_map
             .get(name)
-            .ok_or_else(|| anyhow!("Cannot find canister '{}',", name.to_string()))?;
+            .ok_or_else(|| anyhow!("Cannot find canister '{name}',"))?;
 
         let dependencies = canister_config.dependencies.clone();
 
@@ -97,11 +97,7 @@ impl CanisterInfo {
 
         for dep in &dependencies {
             let dep_config = canister_map.get(dep).ok_or_else(|| {
-                anyhow!(
-                    "Cannot find canister '{}' which is a dependency of '{}'",
-                    dep,
-                    name.to_string()
-                )
+                anyhow!("Cannot find canister '{dep}' which is a dependency of '{name}'")
             })?;
 
             if let CanisterTypeProperties::Pull { id } = dep_config.type_specific {

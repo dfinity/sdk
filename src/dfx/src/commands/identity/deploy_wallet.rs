@@ -37,11 +37,7 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: NetworkOpt) 
             })?;
         }
         Err(err) => {
-            bail!(
-                "Cannot convert {} to a valid canister id. Candid error: {}",
-                canister_id,
-                err
-            );
+            bail!("Cannot convert {canister_id} to a valid canister id. Candid error: {err}");
         }
     };
     Ok(())

@@ -2,12 +2,53 @@
 
 # UNRELEASED
 
+### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
+
+It is possible to restore the previous behavior by replacing uses of `dfx generate` with e.g. `dfx generate && find src/declarations -type f -exec perl -i -pe 's|@dfinity/|@icp-sdk/core/|g' {} +`.
+Most projects will want to substitute this in the frontend's `package.json`, in the `"prebuild"` step.
+
+### feat: support for canister ID migration
+
+Canister ID migration can be performed using `dfx canister migrate-id`
+and its status can be checked out using `dfx canister migration-status`.
+
+### feat: Wasm optimization failure issues a warning instead of error
+
+The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
+Instead of blocking the build, such optimization failure will issue a warning.
+
+### fix: prevent panic on terminals with limited color support
+
+Fixed a panic that could occur when running `dfx` on terminals lacking color support. The `term` crate has been replaced with raw ANSI escape codes, and colors are now only emitted when stderr is a TTY and the `NO_COLOR` environment variable is not set.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
+
+### Replica
+
+Updated replica to elected commit 035a2c7a2b19bc7ce7c4d977169583eb64b0e3cb.
+This incorporates the following executed proposals:
+
+- [139937](https://dashboard.internetcomputer.org/proposal/139937)
+- [139766](https://dashboard.internetcomputer.org/proposal/139766)
+- [139674](https://dashboard.internetcomputer.org/proposal/139674)
+
+### Frontend canister
+
+- Module hash: 2830d9934ea6ec87e35e3a8b56dda562a3b09c1f94cd1fa3c0db3c2e41a4340c
+- https://github.com/dfinity/sdk/pull/4455
+
 # 0.30.2
 
 ### Improve frontend canister sync logic
 
 Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
 Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
+
+## Dependencies
 
 ### Frontend canister
 
@@ -17,8 +58,7 @@ Use canister self-calls to avoid hitting instruction limits during `commit_batch
 
 - Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
 - https://github.com/dfinity/sdk/pull/4450
-
-## Dependencies
+- https://github.com/dfinity/sdk/pull/4446
 
 ### Motoko
 
