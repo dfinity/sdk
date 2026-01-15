@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.31.0
+
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
 
 It is possible to restore the previous behavior by replacing uses of `dfx generate` with e.g. `dfx generate && find src/declarations -type f -exec perl -i -pe 's|@dfinity/|@icp-sdk/core/|g' {} +`.
