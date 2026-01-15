@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
+
+It is possible to restore the previous behavior by replacing uses of `dfx generate` with e.g. `dfx generate && find src/declarations -type f -exec perl -i -pe 's|@dfinity/|@icp-sdk/core/|g' {} +`.
+Most projects will want to substitute this in the frontend's `package.json`, in the `"prebuild"` step.
+
 ### feat: support for canister ID migration
 
 Canister ID migration can be performed using `dfx canister migrate-id`
