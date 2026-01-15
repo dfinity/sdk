@@ -1812,25 +1812,25 @@ EOF
   ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_match 'WARN: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
-  assert_contains 'WARN: {
+  assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+  assert_contains 'WARNING: {
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
   }
 }'
-  assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
-  assert_contains 'WARN: {
+  assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+  assert_contains 'WARNING: {
   "match": "nevermatchme",
   "headers": {},
   "ignore": false
 }
-WARN: {
+WARNING: {
   "match": "nevermatchmetoo",
   "headers": {},
   "ignore": false
 }
-WARN: {
+WARNING: {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
@@ -1838,7 +1838,7 @@ WARN: {
   "ignore": false
 }'
   # splitting this up into two checks, because the order is different on macos vs ubuntu
-  assert_contains 'WARN: {
+  assert_contains 'WARNING: {
   "match": "/thanks-for-not-stripping-forward-slash",
   "headers": {
     "x-header": "x-value"
