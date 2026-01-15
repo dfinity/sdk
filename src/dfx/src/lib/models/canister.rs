@@ -153,9 +153,20 @@ impl Canister {
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
             trace!(logger, "Optimizing Wasm at level {}", level);
-            ic_wasm::optimize::optimize(&mut m, &wasm_opt_level_convert(level), false, &None, true)
-                .context("Failed to optimize the Wasm module.")?;
-            modified = true;
+            match ic_wasm::optimize::optimize(
+                &mut m,
+                &wasm_opt_level_convert(level),
+                false,
+                &None,
+                true,
+            ) {
+                Ok(()) => {
+                    modified = true;
+                }
+                Err(e) => {
+                    warn!(logger, "Failed to optimize the Wasm module: {}", e);
+                }
+            }
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {

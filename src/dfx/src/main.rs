@@ -15,6 +15,7 @@ use dfx_core::extension::manager::ExtensionManager;
 use indicatif::MultiProgress;
 use std::collections::HashMap;
 use std::ffi::OsString;
+use std::io::{IsTerminal, Write, stderr};
 use std::path::PathBuf;
 use std::time::Instant;
 use util::default_allowlisted_canisters;
@@ -72,8 +73,19 @@ fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger, MultiProgress) {
     (verbose_level, logger, spinners)
 }
 
+/// Returns true if colored output should be used on stderr.
+/// Respects the NO_COLOR environment variable (https://no-color.org/).
+fn use_color() -> bool {
+    std::env::var_os("NO_COLOR").is_none() && stderr().is_terminal()
+}
+
 fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis: DiagnosedError) {
-    let mut stderr = util::stderr_wrapper::stderr_wrapper();
+    let mut stderr = stderr().lock();
+    let use_color = use_color();
+
+    const RED: &str = "\x1b[31m";
+    const YELLOW: &str = "\x1b[33m";
+    const RESET: &str = "\x1b[0m";
 
     // print error chain stack
     if log_level.unwrap_or_default() > 0 // DEBUG or more verbose
@@ -85,17 +97,15 @@ fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis
             }
 
             let (color, prefix) = if level == 0 {
-                (term::color::RED, "Error")
+                (RED, "Error")
             } else {
-                (term::color::YELLOW, "Caused by")
+                (YELLOW, "Caused by")
             };
-            stderr
-                .fg(color)
-                .expect("Failed to set stderr output color.");
-            write!(stderr, "{prefix}: ").expect("Failed to write to stderr.");
-            stderr
-                .reset()
-                .expect("Failed to reset stderr output color.");
+            if use_color {
+                write!(stderr, "{color}{prefix}: {RESET}").expect("Failed to write to stderr.");
+            } else {
+                write!(stderr, "{prefix}: ").expect("Failed to write to stderr.");
+            }
 
             writeln!(stderr, "{cause}").expect("Failed to write to stderr.");
         }
@@ -103,25 +113,19 @@ fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis
 
     // print diagnosis
     if let Some(explanation) = error_diagnosis.explanation {
-        stderr
-            .fg(term::color::RED)
-            .expect("Failed to set stderr output color.");
-        write!(stderr, "Error: ").expect("Failed to write to stderr.");
-        stderr
-            .reset()
-            .expect("Failed to reset stderr output color.");
-
+        if use_color {
+            write!(stderr, "{RED}Error: {RESET}").expect("Failed to write to stderr.");
+        } else {
+            write!(stderr, "Error: ").expect("Failed to write to stderr.");
+        }
         writeln!(stderr, "{explanation}").expect("Failed to write to stderr.");
     }
     if let Some(action_suggestion) = error_diagnosis.action_suggestion {
-        stderr
-            .fg(term::color::YELLOW)
-            .expect("Failed to set stderr output color.");
-        write!(stderr, "To fix: ").expect("Failed to write to stderr.");
-        stderr
-            .reset()
-            .expect("Failed to reset stderr output color.");
-
+        if use_color {
+            write!(stderr, "{YELLOW}To fix: {RESET}").expect("Failed to write to stderr.");
+        } else {
+            write!(stderr, "To fix: ").expect("Failed to write to stderr.");
+        }
         writeln!(stderr, "{action_suggestion}").expect("Failed to write to stderr.");
     }
 }

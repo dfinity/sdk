@@ -2,6 +2,37 @@
 
 # UNRELEASED
 
+### feat: support for canister ID migration
+
+Canister ID migration can be performed using `dfx canister migrate-id`
+and its status can be checked out using `dfx canister migration-status`.
+
+### feat: Wasm optimization failure issues a warning instead of error
+
+The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
+Instead of blocking the build, such optimization failure will issue a warning.
+
+### fix: prevent panic on terminals with limited color support
+
+Fixed a panic that could occur when running `dfx` on terminals lacking color support. The `term` crate has been replaced with raw ANSI escape codes, and colors are now only emitted when stderr is a TTY and the `NO_COLOR` environment variable is not set.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
+
+### Replica
+
+Updated replica to elected commit 035a2c7a2b19bc7ce7c4d977169583eb64b0e3cb.
+This incorporates the following executed proposals:
+
+- [139937](https://dashboard.internetcomputer.org/proposal/139937)
+- [139766](https://dashboard.internetcomputer.org/proposal/139766)
+- [139674](https://dashboard.internetcomputer.org/proposal/139674)
+
+# 0.30.2
+
 ### Frontend canister
 
 Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
@@ -11,8 +42,6 @@ Use canister self-calls to avoid hitting instruction limits during `commit_batch
 - Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
 - https://github.com/dfinity/sdk/pull/4450
 - https://github.com/dfinity/sdk/pull/4446
-
-# 0.30.2
 
 ### Improve frontend canister sync logic
 
