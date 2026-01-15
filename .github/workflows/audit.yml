@@ -35,6 +35,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/audit@v1
         with:
+          # RUSTSEC-2026-0001
           # TODO: remove this once the fix is backported to rkyv v0.7
           # https://github.com/rkyv/rkyv/issues/644
-          ignore: RUSTSEC-2026-0001
+
+          # RUSTSEC-2024-0437
+          # Ok to ignore because it is only used in the monorepo, which forbids using the affected type.
+
+          ignore: RUSTSEC-2026-0001,RUSTSEC-2024-0437
