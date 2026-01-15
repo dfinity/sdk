@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
+
+It is possible to restore the previous behavior by replacing uses of `dfx generate` with e.g. `dfx generate && find src/declarations -type f -exec perl -i -pe 's|@dfinity/|@icp-sdk/core/|g' {} +`.
+Most projects will want to substitute this in the frontend's `package.json`, in the `"prebuild"` step.
+
 ### feat: support for canister ID migration
 
 Canister ID migration can be performed using `dfx canister migrate-id`
@@ -30,6 +35,11 @@ This incorporates the following executed proposals:
 - [139937](https://dashboard.internetcomputer.org/proposal/139937)
 - [139766](https://dashboard.internetcomputer.org/proposal/139766)
 - [139674](https://dashboard.internetcomputer.org/proposal/139674)
+
+### Frontend canister
+
+- Module hash: 2830d9934ea6ec87e35e3a8b56dda562a3b09c1f94cd1fa3c0db3c2e41a4340c
+- https://github.com/dfinity/sdk/pull/4455
 
 # 0.30.2
 

@@ -152,8 +152,7 @@ pub async fn exec(
             let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
             if pull_canisters_in_config.contains_key(canister) {
                 bail!(
-                    "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
-                    canister
+                    "{canister} is a pull dependency. Please deploy it using `dfx deps deploy {canister}`"
                 );
             }
             if config_interface.is_remote_canister(canister, &network.name)? {

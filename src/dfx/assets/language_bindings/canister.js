@@ -1,24 +1,24 @@
-import { Actor, HttpAgent } from "@dfinity/agent";
+import { Actor, HttpAgent } from "@icp-sdk/core/agent";
 
 // Imports and re-exports candid interface
 import { idlFactory } from './{canister_name}.did.js';
 export { idlFactory } from './{canister_name}.did.js';
 // CANISTER_ID is replaced by webpack based on node environment
-export const canisterId = process.env.CANISTER_ID_{canister_name_ident_uppercase};
+export const canisterId = process.env.CANISTER_ID_{ canister_name_ident_uppercase };
 
 /**
  * @deprecated since dfx 0.11.1
  * Do not import from `.dfx`, instead switch to using `dfx generate` to generate your JS interface.
- * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
- * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig} | { agent?: import("@dfinity/agent").Agent; actorOptions?: import("@dfinity/agent").ActorConfig }} [options]
- * @return {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
+ * @param {string | import("@icp-sdk/core/principal").Principal} canisterId Canister ID of Agent
+ * @param {{agentOptions?: import("@icp-sdk/core/agent").HttpAgentOptions; actorOptions?: import("@icp-sdk/core/agent").ActorConfig} | { agent?: import("@icp-sdk/core/agent").Agent; actorOptions?: import("@icp-sdk/core/agent").ActorConfig }} [options]
+ * @return {import("@icp-sdk/core/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
  */
 export const createActor = (canisterId, options = {}) => {
   console.warn(`Deprecation warning: you are currently importing code from .dfx. Going forward, refactor to use the dfx generate command for JavaScript bindings.
 
 See https://internetcomputer.org/docs/current/developer-docs/updates/release-notes/ for migration instructions`);
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
-  
+
   // Fetch root key for certificate validation during development
   if (process.env.DFX_NETWORK !== "ic") {
     agent.fetchRootKey().catch(err => {
@@ -34,9 +34,9 @@ See https://internetcomputer.org/docs/current/developer-docs/updates/release-not
     ...(options ? options.actorOptions : {}),
   });
 };
-  
+
 /**
  * A ready-to-use agent for the {canister_name} canister
- * @type {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
+ * @type {import("@icp-sdk/core/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
  */
-export const {canister_name_ident} = createActor(canisterId);
+export const { canister_name_ident } = createActor(canisterId);

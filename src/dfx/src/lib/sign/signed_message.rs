@@ -109,7 +109,7 @@ impl SignedMessageV1 {
                         )
                     }
                     if OffsetDateTime::now_utc() > expiration_from_cbor {
-                        bail!("The message has been expired at: {}", expiration_from_cbor);
+                        bail!("The message has been expired at: {expiration_from_cbor}");
                     }
                 }
                 let sender = m
@@ -122,9 +122,7 @@ impl SignedMessageV1 {
                         .map_err(|_| anyhow!("Invalid json: sender."))?;
                     if !sender_from_cbor.eq(&sender_from_json) {
                         bail!(
-                            "Invalid message: sender principle not match\njson: {}\ncbor: {}",
-                            sender_from_json,
-                            sender_from_cbor
+                            "Invalid message: sender principle not match\njson: {sender_from_json}\ncbor: {sender_from_cbor}"
                         )
                     }
                 }
@@ -139,9 +137,7 @@ impl SignedMessageV1 {
                         .map_err(|_| anyhow!("Invalid json: canister_id."))?;
                     if !canister_id_from_cbor.eq(&canister_id_from_json) {
                         bail!(
-                            "Invalid message: canister_id not match\njson: {}\ncbor: {}",
-                            canister_id_from_json,
-                            canister_id_from_cbor
+                            "Invalid message: canister_id not match\njson: {canister_id_from_json}\ncbor: {canister_id_from_cbor}"
                         )
                     }
                 }
@@ -182,23 +178,31 @@ impl SignedMessageV1 {
 }
 
 mod date_time_utc {
-    time::serde::format_description!(
-        date_time,
-        PrimitiveDateTime,
-        "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC"
-    );
-
-    use serde::{Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
     pub fn serialize<S: Serializer>(datetime: &OffsetDateTime, s: S) -> Result<S::Ok, S::Error> {
         let utc = datetime.to_offset(UtcOffset::UTC);
-        let date = utc.date();
-        let time = utc.time();
-        date_time::serialize(&PrimitiveDateTime::new(date, time), s)
+        let formatted = format!(
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02} UTC",
+            utc.year(),
+            u8::from(utc.month()),
+            utc.day(),
+            utc.hour(),
+            utc.minute(),
+            utc.second()
+        );
+        formatted.serialize(s)
     }
+
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<OffsetDateTime, D::Error> {
-        let primitive = date_time::deserialize(d)?;
-        Ok(primitive.assume_utc())
+        let s = String::deserialize(d)?;
+        let format = time::format_description::parse(
+            "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC"
+        ).map_err(serde::de::Error::custom)?;
+
+        PrimitiveDateTime::parse(&s, &format)
+            .map_err(serde::de::Error::custom)
+            .map(|dt| dt.assume_offset(UtcOffset::UTC))
     }
 }

@@ -112,7 +112,7 @@ fn set_init(
         (Some(arg_str), false) => {
             if argument_type_from_cli == Some("raw") {
                 let bytes = hex::decode(arg_str)
-                    .map_err(|e| anyhow!("Argument is not a valid hex string: {}", e))?;
+                    .map_err(|e| anyhow!("Argument is not a valid hex string: {e}"))?;
                 init_json.set_init_arg(canister_id, None, &bytes);
             } else {
                 let bytes = fuzzy_parse_argument(arg_str, &env, &types)?;

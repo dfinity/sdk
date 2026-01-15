@@ -123,8 +123,7 @@ impl InitJson {
     pub fn get_arg_raw(&self, canister_id: &Principal) -> DfxResult<Vec<u8>> {
         let init_item = self.canisters.get(canister_id).ok_or_else(|| {
             anyhow!(
-                "Failed to find {0} entry in init.json. Please run `dfx deps init {0}`.",
-                canister_id
+                "Failed to find {canister_id} entry in init.json. Please run `dfx deps init {canister_id}`."
             )
         })?;
         match &init_item.arg_raw {
@@ -163,8 +162,7 @@ pub fn validate_pulled(
         match &pulled_canister.name {
             Some(s) if s == name => continue,
             Some(other_name) => bail!(
-                "{canister_id} is \"{name}\" in dfx.json, but it has name \"{}\" in pulled.json.",
-                other_name
+                "{canister_id} is \"{name}\" in dfx.json, but it has name \"{other_name}\" in pulled.json."
             ),
             None => bail!(
                 "{canister_id} is \"{name}\" in dfx.json, but it doesn't have name in pulled.json."

@@ -108,8 +108,7 @@ pub async fn exec(
     let snapshots = list_canister_snapshots(env, replaced_canister_id, call_sender).await?;
     if !snapshots.is_empty() {
         bail!(
-            "The canister '{}' whose canister ID will be replaced has snapshots",
-            replaced_canister
+            "The canister '{replaced_canister}' whose canister ID will be replaced has snapshots"
         );
     }
 

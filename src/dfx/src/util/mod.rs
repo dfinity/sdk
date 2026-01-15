@@ -414,7 +414,7 @@ pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
     let body = loop {
         match attempt_download(&client, from).await {
             Ok(Some(body)) => break body,
-            Ok(None) => bail!("Not found: {}", from),
+            Ok(None) => bail!("Not found: {from}"),
             Err(request_error) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
                 None => bail!(request_error),
