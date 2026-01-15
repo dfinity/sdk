@@ -36,6 +36,11 @@ This incorporates the following executed proposals:
 - [139766](https://dashboard.internetcomputer.org/proposal/139766)
 - [139674](https://dashboard.internetcomputer.org/proposal/139674)
 
+### Frontend canister
+
+- Module hash: 2830d9934ea6ec87e35e3a8b56dda562a3b09c1f94cd1fa3c0db3c2e41a4340c
+- https://github.com/dfinity/sdk/pull/4455
+
 # 0.30.2
 
 ### Frontend canister
