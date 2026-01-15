@@ -200,7 +200,7 @@ mod date_time_utc {
         let format = time::format_description::parse(
             "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC"
         ).map_err(serde::de::Error::custom)?;
-        
+
         PrimitiveDateTime::parse(&s, &format)
             .map_err(serde::de::Error::custom)
             .map(|dt| dt.assume_offset(UtcOffset::UTC))
