@@ -31,7 +31,7 @@ Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
 
 ### Replica
 
-Updated replica to elected commit 035a2c7a2b19bc7ce7c4d977169583eb64b0e3cb.
+Updated replica to commit b0a37d0119a5df1dad84e50dc8717b77978d8f04.
 This incorporates the following executed proposals:
 
 - [139937](https://dashboard.internetcomputer.org/proposal/139937)
@@ -45,6 +45,13 @@ This incorporates the following executed proposals:
 
 # 0.30.2
 
+### Improve frontend canister sync logic
+
+Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
+Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
+
+## Dependencies
+
 ### Frontend canister
 
 Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
@@ -54,13 +61,6 @@ Use canister self-calls to avoid hitting instruction limits during `commit_batch
 - Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
 - https://github.com/dfinity/sdk/pull/4450
 - https://github.com/dfinity/sdk/pull/4446
-
-### Improve frontend canister sync logic
-
-Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
-Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
-
-## Dependencies
 
 ### Motoko
 
