@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
+
 # 0.31.0
 
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
