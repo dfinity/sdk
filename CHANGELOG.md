@@ -31,7 +31,7 @@ Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
 
 ### Replica
 
-Updated replica to elected commit 035a2c7a2b19bc7ce7c4d977169583eb64b0e3cb.
+Updated replica to commit b0a37d0119a5df1dad84e50dc8717b77978d8f04.
 This incorporates the following executed proposals:
 
 - [139937](https://dashboard.internetcomputer.org/proposal/139937)
