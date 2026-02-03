@@ -2947,7 +2947,7 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.26.0"
+version = "0.27.0"
 dependencies = [
  "backoff",
  "brotli",
@@ -3860,7 +3860,7 @@ dependencies = [
 
 [[package]]
 name = "icx-asset"
-version = "0.26.0"
+version = "0.27.0"
 dependencies = [
  "anstyle",
  "anyhow",
