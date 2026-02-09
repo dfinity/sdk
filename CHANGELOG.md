@@ -8,6 +8,11 @@
 
 Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
 
+### Frontend canister
+
+- Module hash: 04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62
+- https://github.com/dfinity/sdk/pull/4474
+
 # 0.31.0
 
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
