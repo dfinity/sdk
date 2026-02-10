@@ -2,7 +2,7 @@
 name = "dfx-core"
 # This crate exposes types from `ic-agent`,
 # so we bump the major version when `ic-agent` is bumped.
-version = "0.2.0"
+version = "0.3.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
