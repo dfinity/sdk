@@ -25,7 +25,7 @@ future_not_send = "warn"
 [workspace.dependencies]
 candid = "0.10.18"
 candid_parser = "0.3.0"
-dfx-core = { path = "src/dfx-core", version = "0.2.0" }
+dfx-core = { path = "src/dfx-core", version = "0.3.0" }
 ic-agent = "0.45.0"
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.27.0" }
 ic-cdk = "0.19.0-beta.2"
