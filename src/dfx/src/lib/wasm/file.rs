@@ -24,7 +24,7 @@ pub fn read_wasm_module(path: &Path) -> DfxResult<walrus::Module> {
         Some(f) if f == "wasm" => bytes_to_module(&bytes)
             .with_context(|| format!("Failed to parse wasm module from {path:?}"))?,
         _ => {
-            bail!("{:?} is neither a wasm nor a wasm.gz file", path);
+            bail!("{path:?} is neither a wasm nor a wasm.gz file");
         }
     };
     Ok(m)

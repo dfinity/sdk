@@ -24,14 +24,14 @@ future_not_send = "warn"
 
 [workspace.dependencies]
 candid = "0.10.18"
-candid_parser = "0.2.2"
-dfx-core = { path = "src/dfx-core", version = "0.2.0" }
-ic-agent = "0.44.2"
-ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.25.0" }
+candid_parser = "0.3.0"
+dfx-core = { path = "src/dfx-core", version = "0.3.0" }
+ic-agent = "0.45.0"
+ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.27.0" }
 ic-cdk = "0.19.0-beta.2"
-ic-identity-hsm = "0.44.2"
-ic-utils = "0.44.2"
-ic-management-canister-types = "0.4.1"
+ic-identity-hsm = "0.45.0"
+ic-utils = "0.45.0"
+ic-management-canister-types = "0.5.0"
 
 aes-gcm = { version = "0.10.3", features = ["std"] }
 anyhow = "1.0.56"
@@ -40,11 +40,12 @@ argon2 = { version = "0.4.0", features = ["std"] }
 backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 base64 = "0.13.0"
 byte-unit = "4.0.14"
-bytes = "1.2.1"
+bytes = "1.11.1"
 clap = "4.5"
 clap_complete = "4.5"
 dialoguer = "0.11.0"
 directories-next = "2.0.0"
+dunce = "1.0"
 flate2 = { version = "1.0.11" }
 futures = "0.3.21"
 handlebars = "4.3.3"
@@ -64,9 +65,7 @@ mime_guess = "2.0.4"
 num-traits = "0.2.14"
 pem = "1.0.2"
 proptest = "1.0.0"
-reqwest = { version = "0.12.4", default-features = false, features = [
-    "rustls-tls",
-] }
+reqwest = { version = "0.12.4", default-features = false, features = ["rustls-tls"] }
 ring = { version = "0.17.14", features = ["std"] }
 schemars = "0.8"
 sec1 = "0.3.0"
@@ -82,7 +81,7 @@ tar = "0.4.38"
 semver = "1.0.6"
 tempfile = "3.3.0"
 thiserror = "1.0.24"
-time = "0.3.9"
+time = "0.3.47"
 tokio = "1.43"
 url = { version = "2.1.0", features = ["serde"] }
 walkdir = "2.3.2"

@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.29.2"
+version = "0.30.2"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -84,7 +84,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "2e99e6c26c0eacd4f321e7c2604d118d645828ad" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "b0a37d0119a5df1dad84e50dc8717b77978d8f04" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
@@ -107,7 +107,6 @@ supports-color = "2.1.0"
 sysinfo = "0.28.4"
 tar.workspace = true
 tempfile.workspace = true
-term = "0.7.0"
 thiserror.workspace = true
 time = { workspace = true, features = ["macros", "serde", "serde-human-readable"] }
 tokio = { workspace = true, features = ["full"] }

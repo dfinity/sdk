@@ -6,28 +6,6 @@ use canister_env::CanisterEnv;
 use ic_cdk::api::time;
 
 /// Context that is available only inside canister runtime.
-///
-/// # Example
-///
-/// ```
-/// use ic_certified_assets::system_context::SystemContext;
-/// use ic_certified_assets::with_state_mut;
-/// use ic_certified_assets::types::CommitBatchArguments;
-/// use ic_cdk::api::{certified_data_set, trap};
-/// use ic_cdk::update;
-///
-/// #[update]
-/// pub fn commit_batch(arg: CommitBatchArguments) {
-///     let system_context = SystemContext::new();
-///
-///     with_state_mut(|s| {
-///         if let Err(msg) = s.commit_batch(arg, &system_context) {
-///             trap(&msg);
-///         }
-///         certified_data_set(s.root_hash());
-///     });
-/// }
-/// ```
 pub struct SystemContext {
     canister_env: RefCell<Option<CanisterEnv>>,
     pub current_timestamp_ns: u64,
@@ -61,6 +39,19 @@ impl SystemContext {
         Ref::map(self.canister_env.borrow(), |opt| {
             opt.as_ref().expect("CanisterEnv should be initialized")
         })
+    }
+
+    pub fn instruction_counter(&self) -> u64 {
+        #[cfg(target_arch = "wasm32")]
+        {
+            ic_cdk::api::performance_counter(0)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // For tests/non-wasm, return 0 or a mock value if needed.
+            // Since we don't have a mock setup here yet, 0 is safe as it won't trigger limits.
+            0
+        }
     }
 }
 

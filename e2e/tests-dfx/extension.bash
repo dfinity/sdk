@@ -696,7 +696,7 @@ EOF
   assert_command dfx extension install nns --version 0.4.1
   assert_command dfx extension install nns --version 0.4.1
   # shellcheck disable=SC2154
-  assert_eq "WARN: Extension 'nns' version 0.4.1 is already installed" "$stderr"
+  assert_eq "WARNING: Extension 'nns' version 0.4.1 is already installed" "$stderr"
   assert_command dfx nns --help
 }
 
@@ -705,7 +705,7 @@ EOF
   assert_command dfx extension install nns --version 0.3.1
   assert_command dfx extension install nns
   # shellcheck disable=SC2154
-  assert_eq "WARN: Extension 'nns' version 0.3.1 is already installed" "$stderr"
+  assert_eq "WARNING: Extension 'nns' version 0.3.1 is already installed" "$stderr"
   assert_command dfx nns --help
 }
 

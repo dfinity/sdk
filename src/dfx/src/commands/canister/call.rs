@@ -139,7 +139,7 @@ async fn request_id_via_wallet_call(
     call_forwarder
         .call()
         .await
-        .map_err(|err| anyhow!("Agent error {}", err))
+        .map_err(|err| anyhow!("Agent error {err}"))
 }
 
 // TODO: move to ic_utils? SDKTG-302
@@ -281,10 +281,7 @@ pub async fn exec(
 
     let effective_canister_id = if canister_id == CanisterId::management_canister() {
         let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
-            anyhow!(
-                "Attempted to call an unsupported management canister method: {}",
-                method_name
-            )
+            anyhow!("Attempted to call an unsupported management canister method: {method_name}")
         })?;
 
         if matches!(call_sender, CallSender::SelectedId)

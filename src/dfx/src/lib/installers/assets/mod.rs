@@ -6,6 +6,7 @@ use crate::lib::progress::EnvAssetSyncProgressRenderer;
 use anyhow::Context;
 use fn_error_context::context;
 use ic_agent::Agent;
+use slog::Drain;
 use std::path::Path;
 
 #[context("Failed to store assets in canister '{}'.", info.get_name())]
@@ -28,8 +29,12 @@ pub async fn post_install_store_assets(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    let progress = EnvAssetSyncProgressRenderer::new(env);
+    if env.get_logger().is_enabled(slog::Level::Debug) {
+        let hash = ic_asset::compute_state_hash(&source_paths, env.get_logger())?;
+        slog::debug!(env.get_logger(), "Computed state hash of assets: {}", hash);
+    }
 
+    let progress = EnvAssetSyncProgressRenderer::new(env);
     ic_asset::sync(
         &canister,
         &source_paths,

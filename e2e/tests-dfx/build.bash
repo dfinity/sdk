@@ -370,4 +370,7 @@ teardown() {
 @test "dfx build can post-process memory64 Wasm module" {
   install_asset memory64
   assert_command dfx build --check
+  # the module contains table64 which is not supported by ic_wasm::optimize
+  # optimization failure doesn't fail the build, but a warning is issued
+  assert_contains "WARNING: Failed to optimize the Wasm module:"
 }

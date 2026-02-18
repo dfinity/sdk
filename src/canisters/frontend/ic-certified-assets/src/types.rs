@@ -25,6 +25,12 @@ pub struct ConfigurationResponse {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct StateInfo {
+    pub last_state_update_timestamp: u64,
+    pub state_hash: Option<String>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct CreateAssetArguments {
     pub key: AssetKey,
     pub content_type: String,
@@ -196,6 +202,12 @@ pub struct RevokePermissionArguments {
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct ListPermittedArguments {
     pub permission: Permission,
+}
+
+#[derive(Clone, Debug, Default, CandidType, Deserialize)]
+pub struct ListRequest {
+    pub start: Option<Nat>,
+    pub length: Option<Nat>,
 }
 
 /// The argument to `init` and `post_upgrade` needs to have the same argument type by definition.

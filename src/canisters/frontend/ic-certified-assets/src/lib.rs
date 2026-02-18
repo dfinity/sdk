@@ -16,7 +16,7 @@ use crate::{
         CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
         StreamingCallbackToken,
     },
-    state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
+    state_machine::{AssetDetails, CertifiedTree, ComputationStatus, EncodedAsset, State},
     system_context::SystemContext,
     types::*,
 };
@@ -203,15 +203,18 @@ pub fn clear() {
     });
 }
 
-pub fn commit_batch(arg: CommitBatchArguments) {
+pub async fn commit_batch(arg: CommitBatchArguments) {
     let system_context = SystemContext::new();
+    let arg_ref = &arg;
 
-    with_state_mut(|s| {
-        if let Err(msg) = s.commit_batch(arg, &system_context) {
-            trap(&msg);
-        }
-        certified_data_set(s.root_hash());
-    });
+    loop_with_message_extension_until_completion(|progress| {
+        with_state_mut(|s| s.commit_batch(arg_ref, progress, &system_context))
+    })
+    .await
+    .map_err(|msg| trap(&msg))
+    .ok();
+
+    with_state_mut(|s| certified_data_set(s.root_hash()));
 }
 
 pub fn propose_commit_batch(arg: CommitBatchArguments) {
@@ -223,22 +226,41 @@ pub fn propose_commit_batch(arg: CommitBatchArguments) {
     });
 }
 
-pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_assets_ByteBuf> {
-    with_state_mut(|s| match s.compute_evidence(arg) {
-        Err(msg) => trap(&msg),
-        Ok(maybe_evidence) => maybe_evidence,
+pub async fn compute_evidence(
+    arg: ComputeEvidenceArguments,
+) -> Option<ic_certified_assets_ByteBuf> {
+    let arg_ref = &arg;
+    loop_with_message_extension_until_completion(|_progress| {
+        with_state_mut(|s| s.compute_evidence(arg_ref))
     })
+    .await
+    .ok()
 }
 
-pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
-    let system_context = SystemContext::new();
+pub async fn compute_state_hash() -> Option<String> {
+    loop_with_message_extension_until_completion(|_progress| {
+        with_state_mut(|s| s.compute_state_hash())
+    })
+    .await
+    .ok()
+}
 
-    with_state_mut(|s| {
-        if let Err(msg) = s.commit_proposed_batch(arg, &system_context) {
-            trap(&msg);
-        }
-        certified_data_set(s.root_hash());
-    });
+pub fn get_state_info() -> StateInfo {
+    with_state(|s| s.get_state_info())
+}
+
+pub async fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    let system_context = SystemContext::new();
+    let arg_ref = &arg;
+
+    loop_with_message_extension_until_completion(|progress| {
+        with_state_mut(|s| s.commit_proposed_batch(arg_ref, progress, &system_context))
+    })
+    .await
+    .map_err(|msg| trap(&msg))
+    .ok();
+
+    with_state_mut(|s| certified_data_set(s.root_hash()));
 }
 
 pub fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
@@ -265,8 +287,8 @@ pub fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
     })
 }
 
-pub fn list() -> Vec<AssetDetails> {
-    with_state(|s| s.list_assets())
+pub fn list(request: ListRequest) -> Vec<AssetDetails> {
+    with_state(|s| s.list_assets(request))
 }
 
 pub fn certified_tree() -> CertifiedTree {
@@ -418,6 +440,36 @@ where
     STATE.with(|s| f(&s.borrow()))
 }
 
+/// Loops calling a state machine function until completion, periodically async-calling
+/// self to reset the instruction counter when needed.
+async fn loop_with_message_extension_until_completion<F, D, P, E>(mut compute_fn: F) -> Result<D, E>
+where
+    F: FnMut(P) -> ComputationStatus<D, P, E>,
+    P: Default,
+{
+    const INSTRUCTION_THRESHOLD: u64 = 35_000_000_000; // At the time of writing, 40b instructions are the limit for single message
+    let mut progress = P::default();
+
+    loop {
+        match compute_fn(progress) {
+            ComputationStatus::Done(done) => return Ok(done),
+            ComputationStatus::InProgress(p) => {
+                progress = p;
+                if ic_cdk::api::performance_counter(0) > INSTRUCTION_THRESHOLD {
+                    // Reset instruction counter 0 by doing a bogus self-call
+                    // (self-calls are most likely to be short-circuited by the scheduler so we don't incur more wait time than necessary)
+                    let _ = ic_cdk::call::Call::bounded_wait(
+                        ic_cdk::api::canister_self(),
+                        "__this-FunctionDoes_not-Exist",
+                    )
+                    .await;
+                }
+            }
+            ComputationStatus::Error(e) => return Err(e),
+        }
+    }
+}
+
 /// Exports the whole asset canister interface, but does not handle init/pre_/post_upgrade for initial configuration or state persistence across upgrades.
 ///
 /// For a working example how to use this macro, see [here](https://github.com/dfinity/sdk/blob/master/src/canisters/frontend/ic-frontend-canister/src/lib.rs).
@@ -467,8 +519,8 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_query]
         #[$crate::ic_certified_assets_candid_method(query)]
-        fn list() -> Vec<state_machine::AssetDetails> {
-            $crate::list()
+        fn list(request: types::ListRequest) -> Vec<state_machine::AssetDetails> {
+            $crate::list(request)
         }
 
         #[$crate::ic_certified_assets_query]
@@ -626,8 +678,8 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
         #[$crate::ic_certified_assets_candid_method(update)]
-        fn commit_batch(arg: types::CommitBatchArguments) {
-            $crate::commit_batch(arg)
+        async fn commit_batch(arg: types::CommitBatchArguments) {
+            $crate::commit_batch(arg).await
         }
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
@@ -638,16 +690,28 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
         #[$crate::ic_certified_assets_candid_method(update)]
-        fn compute_evidence(
+        async fn compute_evidence(
             arg: types::ComputeEvidenceArguments,
         ) -> Option<ic_certified_assets_ByteBuf> {
-            $crate::compute_evidence(arg)
+            $crate::compute_evidence(arg).await
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn compute_state_hash() -> Option<String> {
+            $crate::compute_state_hash().await
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn get_state_info() -> types::StateInfo {
+            $crate::get_state_info()
         }
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
         #[$crate::ic_certified_assets_candid_method(update)]
-        fn commit_proposed_batch(arg: types::CommitProposedBatchArguments) {
-            $crate::commit_proposed_batch(arg)
+        async fn commit_proposed_batch(arg: types::CommitProposedBatchArguments) {
+            $crate::commit_proposed_batch(arg).await
         }
 
         #[$crate::ic_certified_assets_update]

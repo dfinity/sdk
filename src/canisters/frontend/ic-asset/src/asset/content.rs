@@ -1,6 +1,6 @@
 use crate::asset::content_encoder::ContentEncoder;
+use crate::error::fs::ReadFileError;
 use brotli::CompressorWriter;
-use dfx_core::error::fs::ReadFileError;
 use flate2::Compression;
 use flate2::write::GzEncoder;
 use mime::Mime;
@@ -16,7 +16,7 @@ pub(crate) struct Content {
 
 impl Content {
     pub fn load(path: &Path) -> Result<Content, ReadFileError> {
-        let data = dfx_core::fs::read(path)?;
+        let data = crate::fs::read(path)?;
 
         // todo: check contents if mime_guess fails https://github.com/dfinity/sdk/issues/1594
         let media_type = mime_guess::from_path(path)

@@ -25,8 +25,7 @@ pub fn exec(env: &dyn Environment, opts: RenameOpts) -> DfxResult {
     let result = identity_manager.rename(log, env.get_project_temp_dir()?, from, to);
     if let Err(SwitchDefaultIdentitySettingsFailed(_)) = result {
         bail!(
-            "Failed to switch over default identity settings.  Please do this manually by running 'dfx identity use {}'",
-            to
+            "Failed to switch over default identity settings.  Please do this manually by running 'dfx identity use {to}'"
         );
     }
     let renamed_default = result?;

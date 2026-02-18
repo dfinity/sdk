@@ -264,7 +264,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   cd ../app
   assert_command dfx deps pull --network local -vvv
-  assert_contains "WARN: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
+  assert_contains "WARNING: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
 
   # hash mismatch is ok
   rm -r "${PULLED_DIR:?}/"
@@ -293,7 +293,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   assert_command dfx deps init
   assert_contains "Canister $CANISTER_ID_C (dep_c) set init argument with \"(null)\"."
-  assert_contains "WARN: The following canister(s) require an init argument. Please run \`dfx deps init <NAME/PRINCIPAL>\` to set them individually:
+  assert_contains "WARNING: The following canister(s) require an init argument. Please run \`dfx deps init <NAME/PRINCIPAL>\` to set them individually:
 $CANISTER_ID_A"
 
   assert_command dfx deps init "$CANISTER_ID_A" --argument 11

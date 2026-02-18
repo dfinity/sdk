@@ -2,6 +2,96 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
+
+### Frontend canister
+
+- Module hash: 04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62
+- https://github.com/dfinity/sdk/pull/4474
+
+# 0.31.0
+
+### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
+
+It is possible to restore the previous behavior by replacing uses of `dfx generate` with e.g. `dfx generate && find src/declarations -type f -exec perl -i -pe 's|@dfinity/|@icp-sdk/core/|g' {} +`.
+Most projects will want to substitute this in the frontend's `package.json`, in the `"prebuild"` step.
+
+### feat: support for canister ID migration
+
+Canister ID migration can be performed using `dfx canister migrate-id`
+and its status can be checked out using `dfx canister migration-status`.
+
+### feat: Wasm optimization failure issues a warning instead of error
+
+The optimization functionality provided by `ic_wasm::optimize" cannot handle Wasm modules that contains 64-bit table.
+Instead of blocking the build, such optimization failure will issue a warning.
+
+### fix: prevent panic on terminals with limited color support
+
+Fixed a panic that could occur when running `dfx` on terminals lacking color support. The `term` crate has been replaced with raw ANSI escape codes, and colors are now only emitted when stderr is a TTY and the `NO_COLOR` environment variable is not set.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
+
+### Replica
+
+Updated replica to commit b0a37d0119a5df1dad84e50dc8717b77978d8f04.
+This incorporates the following executed proposals:
+
+- [139937](https://dashboard.internetcomputer.org/proposal/139937)
+- [139766](https://dashboard.internetcomputer.org/proposal/139766)
+- [139674](https://dashboard.internetcomputer.org/proposal/139674)
+
+### Frontend canister
+
+- Module hash: 2830d9934ea6ec87e35e3a8b56dda562a3b09c1f94cd1fa3c0db3c2e41a4340c
+- https://github.com/dfinity/sdk/pull/4455
+
+# 0.30.2
+
+### Improve frontend canister sync logic
+
+Previously, committing frontend canister changes happened in multiple batches defined by simple heuristics that would likely not exceed the ingress message size limit.
+Now, the ingress message size limit is respected more explicitly, and also a limit of total content size per batch since all content in the batch newly gets hashed in the canister.
+
+## Dependencies
+
+### Frontend canister
+
+Sets the `ic_env` cookie for all HTML files only if the canister environment changed in the `commit_batch` method.
+
+Use canister self-calls to avoid hitting instruction limits during `commit_batch`, `compute_evidence`, and `compute_state_hash`.
+
+- Module hash: 63d122d0149a29f4e48603efdd7d2bce656a6a83bac1e3207897c68e8e225bb6
+- https://github.com/dfinity/sdk/pull/4450
+- https://github.com/dfinity/sdk/pull/4446
+
+### Motoko
+
+Updated Motoko to [0.16.3](https://github.com/dfinity/motoko/releases/tag/0.16.3)
+
+### Candid
+
+Updated candid_parser to 0.2.4.
+
+# 0.30.1
+
+### feat: asset sync now prints the target asset canister state hash in `--verbose` mode
+
+If an asset canister is updated and `--verbose` is enabled, `dfx` will now print the state hash of the local assets before syncing. Calling `compute_state_hash` on the asset canister after syncing will eventually return the same hash.
+
+### feat: support dogecoin for the local dev environment
+
+You can now launch a network with `dfx start --enable-dogeoin` to run the dogecoin
+integration locally.
+
 ### feat: improved the canister snapshot download/upload feature
 
 Improved the canister snapshot download/upload feature by
@@ -15,19 +105,42 @@ Improved the canister snapshot download/upload feature by
 The custom logic was prone to becoming outdated, such as not adapting to changing cycles fees.
 By using `pocket-ic`, which gets updated frequently, the BTC integration is significanly less likely to break.
 
+### fix: `dfx start --enable-bitcoin` will add `--bitcoin-node 127.0.0.1:18444` unless nodes are specified in dfx.json
+
 ### chore: Bump cdk to 0.19 in project template.
 
 ## Dependencies
 
 ### Replica
 
-Updated replica to elected commit 03783153d1596a81311b38cc1602063c400a3c8a.
-This incorporates the following executed proposals:
+Updated replica to elected commit 724ae4101bfdd8d4443126a6a8b1ec5ca9b68a12.
 
+This incorporates the following executed proposals:
+- [139570](https://dashboard.internetcomputer.org/proposal/139570)
+- [139480](https://dashboard.internetcomputer.org/proposal/139480)
+- [139403](https://dashboard.internetcomputer.org/proposal/139403)
 - [139317](https://dashboard.internetcomputer.org/proposal/139317)
 - [139192](https://dashboard.internetcomputer.org/proposal/139192)
 - [139079](https://dashboard.internetcomputer.org/proposal/139079)
 
+### Frontend canister
+
+#### feat: `list` returns more info about assets
+
+Asset info now contains the fields `max_age: opt nat64;`, `headers: opt vec HeaderField;`, `allow_raw_access: opt bool;`, and ``is_aliased: opt bool;` in addition to the previously returned ones.
+
+#### feat!: `list` is now paginated
+
+`list` now returns info about up to 100 assets instead of all assets in the canister. `start` allows specifying the offset at which the list of assets should start. `length` allows specifying a smaller limit if e.g. headers are too large to return the default number of assets. The full argument to `list` is now `(record { start: opt nat; length: opt nat })`.
+
+#### feat: `compute_state_hash`
+
+The function `compute_state_hash` works similar to `compute_evidence`, but instead of computing a hash over a batch of changes, it computes a hash over the full asset canister content. This can be used to verify the integrity of assets e.g. between a live and a local deployment. (This will only work if builds are deterministic. If there are e.g. timestamps hidden in filenames then hashes will not match.)
+
+#### feat: `get_state_info` returns last asset change timestamp and state hash
+
+- Module hash: 15a6366a4823baf994f314a55ddbdda333dff11cbcc5114caebfe444e5eae3b6
+- https://github.com/dfinity/sdk/pull/4434
 
 # 0.30.0
 

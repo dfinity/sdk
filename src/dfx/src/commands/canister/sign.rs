@@ -92,10 +92,7 @@ pub async fn exec(
         Some(true) => !opts.update,
         Some(false) => {
             if opts.query {
-                bail!(
-                    "Invalid method call: {} is not a query method.",
-                    method_name
-                );
+                bail!("Invalid method call: {method_name} is not a query method.");
             } else {
                 false
             }
@@ -159,10 +156,7 @@ pub async fn exec(
 
     let effective_canister_id = if canister_id == Principal::management_canister() {
         let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
-            anyhow!(
-                "Attempted to call an unsupported management canister method: {}",
-                method_name
-            )
+            anyhow!("Attempted to call an unsupported management canister method: {method_name}")
         })?;
         get_effective_canister_id(&management_method, &arg_value)?
     } else {
