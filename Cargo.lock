@@ -1025,7 +1025,7 @@ checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
 dependencies = [
  "serde",
  "termcolor",
- "unicode-width 0.2.2",
+ "unicode-width 0.1.14",
 ]
 
 [[package]]
@@ -5112,8 +5112,8 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "pocket-ic"
-version = "11.0.0"
-source = "git+https://github.com/dfinity/ic?rev=b0a37d0119a5df1dad84e50dc8717b77978d8f04#b0a37d0119a5df1dad84e50dc8717b77978d8f04"
+version = "12.0.0"
+source = "git+https://github.com/dfinity/ic?rev=3b6853464c3ce93be748e19867ca29e74fc89bba#3b6853464c3ce93be748e19867ca29e74fc89bba"
 dependencies = [
  "backoff",
  "base64 0.13.1",
@@ -5127,7 +5127,6 @@ dependencies = [
  "schemars",
  "semver",
  "serde",
- "serde_bytes",
  "serde_cbor",
  "serde_json",
  "sha2 0.10.9",
