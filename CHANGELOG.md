@@ -4,10 +4,6 @@
 
 ## Dependencies
 
-### Motoko
-
-Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
-
 ### Frontend canister
 
 - Module hash: 04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62
@@ -38,7 +34,7 @@ Fixed a panic that could occur when running `dfx` on terminals lacking color sup
 
 ### Motoko
 
-Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
+Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
 
 ### Replica
 
