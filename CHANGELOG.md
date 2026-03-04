@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## Fixes
+
+### fix: fix formatting and broken anchors in CLI reference documentation
+
+Fixed incorrect page title in `dfx-killall.mdx`, broken anchor references in command tables for `dfx cache`, `dfx nns`, and `dfx sns`, malformed markdown tables in `dfx-wallet.mdx`, `dfx-cycles.mdx`, and `dfx-completion.mdx`, and a missing code block language tag in `dfx-sns.mdx`.
+
 ## Dependencies
 
 ### Motoko
