@@ -8,6 +8,12 @@
 
 Updated Motoko to [1.2.0](https://github.com/dfinity/motoko/releases/tag/1.2.0)
 
+## Fixes
+
+### fix: correct `dfx sns` example commands in documentation
+
+Fixed incorrect commands `dfx sns config create` and `dfx sns config validate` in the `dfx sns` CLI reference examples. The correct commands are `dfx sns create` and `dfx sns validate`.
+
 # 0.31.0
 
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
