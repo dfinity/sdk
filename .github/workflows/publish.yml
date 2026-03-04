@@ -169,11 +169,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag'
     needs: build_dfx
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          ["x86_64-darwin", "aarch64-darwin", "x86_64-linux", "aarch64-linux"]
     steps:
       - uses: actions/checkout@v4
 
@@ -183,7 +178,8 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
+          pattern: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-*
+          merge-multiple: true
 
       - name: Upload dfx tarballs and sha256
         uses: svenstaro/upload-release-action@v2
@@ -194,15 +190,6 @@ jobs:
           tag: ${{ env.VERSION }}
           prerelease: true
           make_latest: false
-  publish-assets:
-    runs-on: ubuntu-latest
-    if: github.ref_type == 'tag'
-    needs: publish
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup environment variables
-        run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Upload assets canister
         uses: svenstaro/upload-release-action@v2

@@ -12,12 +12,7 @@ Fixed incorrect page title in `dfx-killall.mdx`, broken anchor references in com
 
 ### Motoko
 
-Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
-
-### Frontend canister
-
-- Module hash: 04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62
-- https://github.com/dfinity/sdk/pull/4474
+Updated Motoko to [1.2.0](https://github.com/dfinity/motoko/releases/tag/1.2.0)
 
 # 0.31.0
 
@@ -44,7 +39,7 @@ Fixed a panic that could occur when running `dfx` on terminals lacking color sup
 
 ### Motoko
 
-Updated Motoko to [1.0.0](https://github.com/dfinity/motoko/releases/tag/1.0.0)
+Updated Motoko to [1.1.0](https://github.com/dfinity/motoko/releases/tag/1.1.0)
 
 ### Replica
 
@@ -57,8 +52,8 @@ This incorporates the following executed proposals:
 
 ### Frontend canister
 
-- Module hash: 2830d9934ea6ec87e35e3a8b56dda562a3b09c1f94cd1fa3c0db3c2e41a4340c
-- https://github.com/dfinity/sdk/pull/4455
+- Module hash: 04e565b3425fe7510ee16b02adcfe3f01abc9a2725c82a21cb08969241debd62
+- https://github.com/dfinity/sdk/pull/4474
 
 # 0.30.2
 
