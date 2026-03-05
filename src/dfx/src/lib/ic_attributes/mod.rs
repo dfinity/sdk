@@ -59,6 +59,7 @@ impl From<CanisterSettings>
                 .map(u64::from)
                 .map(candid::Nat::from),
             log_visibility: value.log_visibility,
+            log_memory_limit: None,
             environment_variables: value.environment_variables,
         }
     }
