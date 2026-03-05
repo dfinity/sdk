@@ -17,6 +17,7 @@ allow = [
     "Zlib",
     "Unicode-DFS-2016",
     "Unicode-3.0",
+    "OpenSSL",
 ]
 
 unused-allowed-license = "allow"
