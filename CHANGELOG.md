@@ -4,15 +4,19 @@
 
 ## Dependencies
 
-### Motoko
-
-Updated Motoko to [1.2.0](https://github.com/dfinity/motoko/releases/tag/1.2.0)
-
 ## Fixes
 
 ### fix: correct `dfx sns` example commands in documentation
 
 Fixed incorrect commands `dfx sns config create` and `dfx sns config validate` in the `dfx sns` CLI reference examples. The correct commands are `dfx sns create` and `dfx sns validate`.
+
+### Motoko
+
+Updated Motoko to [1.2.0](https://github.com/dfinity/motoko/releases/tag/1.2.0)
+
+### Replica
+
+Updated replica to commit 142182f2ec4d916fa32e32da59239c4eb0c87bd3.
 
 # 0.31.0
 

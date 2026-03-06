@@ -215,15 +215,28 @@ async fn create_with_management_canister(
             builder = builder.with_controller(controller);
         }
     };
-    let res = builder
-        .with_optional_compute_allocation(settings.compute_allocation)
-        .with_optional_memory_allocation(settings.memory_allocation)
-        .with_optional_freezing_threshold(settings.freezing_threshold)
-        .with_optional_reserved_cycles_limit(settings.reserved_cycles_limit)
-        .with_optional_wasm_memory_limit(settings.wasm_memory_limit)
-        .with_optional_wasm_memory_threshold(settings.wasm_memory_threshold)
-        .with_optional_log_visibility(settings.log_visibility)
-        .await;
+    if let Some(v) = settings.compute_allocation {
+        builder = builder.with_compute_allocation(v);
+    }
+    if let Some(v) = settings.memory_allocation {
+        builder = builder.with_memory_allocation(v);
+    }
+    if let Some(v) = settings.freezing_threshold {
+        builder = builder.with_freezing_threshold(v);
+    }
+    if let Some(v) = settings.reserved_cycles_limit {
+        builder = builder.with_reserved_cycles_limit(v);
+    }
+    if let Some(v) = settings.wasm_memory_limit {
+        builder = builder.with_wasm_memory_limit(v);
+    }
+    if let Some(v) = settings.wasm_memory_threshold {
+        builder = builder.with_wasm_memory_threshold(v);
+    }
+    if let Some(v) = settings.log_visibility {
+        builder = builder.with_log_visibility(v);
+    }
+    let res = builder.await;
     const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
                         To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
                         using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";

@@ -371,6 +371,7 @@ async fn initialize_pocketic(
         system: vec![],
         verified_application: vec![],
         application: vec![],
+        cloud_engine: vec![],
     };
     match replica_config.subnet_type {
         ReplicaSubnetType::Application => subnet_config_set.application.push(<_>::default()),
@@ -435,6 +436,7 @@ async fn initialize_pocketic(
             port: Some(addr.port()),
             domains,
             https_config: None,
+            domain_custom_provider_local_file: None,
         }),
         initial_time: Some(InitialTime::AutoProgress(AutoProgressConfig {
             artificial_delay_ms: Some(replica_config.artificial_delay as u64),
