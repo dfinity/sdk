@@ -823,9 +823,9 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.10.21"
+version = "0.10.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e49a6e53730e2d41f6fc3ad9ef4d9bc7ad738ddc6aed4ceb30a35a2cd63e9bcb"
+checksum = "601b519700ec333a2a2c7eb3e8e1eca89177055e3e1fb24ca42cbbb025986696"
 dependencies = [
  "anyhow",
  "binread",
@@ -846,9 +846,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.10.21"
+version = "0.10.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab75e3283c7912bb2986dd7033a87e4e5f3f472158816308a04d40f5d697099c"
+checksum = "f195a40cd3d199191fc8b534165fadd78c08a1f9666222addaf9f58593002a73"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -1078,7 +1078,7 @@ checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
 dependencies = [
  "serde",
  "termcolor",
- "unicode-width 0.2.2",
+ "unicode-width 0.1.14",
 ]
 
 [[package]]
@@ -3660,9 +3660,9 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.40.1"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2e7706e55836e8104c98149ec0796d20d5213fef972ac01b544657d410f1883"
+checksum = "4a775244756a5d97ff19b08071a946a4b4896904e35deb036bf215e80f2e703d"
 dependencies = [
  "candid",
  "hex",
@@ -5253,8 +5253,8 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "pocket-ic"
-version = "11.0.0"
-source = "git+https://github.com/dfinity/ic?rev=b0a37d0119a5df1dad84e50dc8717b77978d8f04#b0a37d0119a5df1dad84e50dc8717b77978d8f04"
+version = "12.0.0"
+source = "git+https://github.com/dfinity/ic?rev=142182f2ec4d916fa32e32da59239c4eb0c87bd3#142182f2ec4d916fa32e32da59239c4eb0c87bd3"
 dependencies = [
  "backoff",
  "base64 0.13.1",
@@ -5263,12 +5263,11 @@ dependencies = [
  "hex",
  "ic-certification 3.1.0",
  "ic-management-canister-types 0.5.0",
- "ic-transport-types 0.40.1",
+ "ic-transport-types 0.45.0",
  "reqwest 0.12.28",
  "schemars",
  "semver",
  "serde",
- "serde_bytes",
  "serde_cbor",
  "serde_json",
  "sha2 0.10.9",
