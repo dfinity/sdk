@@ -23,6 +23,6 @@
   "dependencies": {
     "pinia": "^2.1.6",
     "vue": "^3.3.4",
-    "@icp-sdk/core": "^5.0.0"
+    "@icp-sdk/core": "5.0.0"
   }
 }

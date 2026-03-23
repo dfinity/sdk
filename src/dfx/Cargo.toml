@@ -61,7 +61,7 @@ futures.workspace = true
 handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
-hyper-rustls = { version = "0.24.1", default-features = false, features = ["webpki-roots", "http2"] }
+hyper-rustls = { version = "0.27.7", default-features = false, features = ["webpki-roots", "http2"] }
 ic-agent.workspace = true
 ic-asset.workspace = true
 ic-cdk.workspace = true
@@ -90,7 +90,7 @@ regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 rust_decimal = "1.22.0"
-rustls-webpki = "0.101.4"
+rustls-webpki = "0.103.10"
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
 semver = { workspace = true }
