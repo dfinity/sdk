@@ -6,6 +6,10 @@ use thiserror::Error;
 /// Errors related to the sync process.
 #[derive(Error, Debug)]
 pub enum SyncError {
+    /// Failed when querying the asset canister for its API version.
+    #[error("Failed to query asset canister API version")]
+    ApiVersionQueryFailed(#[source] AgentError),
+
     /// Failed when calling commit_batch
     #[error("Failed to commit batch")]
     CommitBatchFailed(#[source] AgentError),

@@ -2,13 +2,11 @@
 
 # UNRELEASED
 
-## Dependencies
-
-## Fixes
-
 ### fix: correct `dfx sns` example commands in documentation
 
 Fixed incorrect commands `dfx sns config create` and `dfx sns config validate` in the `dfx sns` CLI reference examples. The correct commands are `dfx sns create` and `dfx sns validate`.
+
+### fix: Failure to query an asset canister's API version no longer gets misinterpreted as the canister being outdated
 
 ### Motoko
 
