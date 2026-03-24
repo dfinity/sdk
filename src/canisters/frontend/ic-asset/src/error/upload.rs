@@ -7,6 +7,10 @@ use thiserror::Error;
 /// Errors encountered during the upload process.
 #[derive(Error, Debug)]
 pub enum UploadError {
+    /// Failed when querying the asset canister for its API version.
+    #[error("Failed to query asset canister API version")]
+    ApiVersionQueryFailed(#[source] AgentError),
+
     /// Failed when calling commit_batch.
     #[error("Commit batch failed")]
     CommitBatchFailed(#[source] AgentError),
