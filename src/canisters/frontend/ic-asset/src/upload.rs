@@ -43,9 +43,7 @@ pub async fn upload(
     info!(logger, "Starting batch.");
 
     let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
-    let canister_api_version = api_version(canister)
-        .await
-        .map_err(ApiVersionQueryFailed)?;
+    let canister_api_version = api_version(canister).await.map_err(ApiVersionQueryFailed)?;
 
     info!(logger, "Staging contents of new and changed assets:");
 
@@ -73,9 +71,7 @@ pub async fn upload(
     .await
     .map_err(UploadError::AssembleCommitBatchArgumentFailed)?;
 
-    let canister_api_version = api_version(canister)
-        .await
-        .map_err(ApiVersionQueryFailed)?;
+    let canister_api_version = api_version(canister).await.map_err(ApiVersionQueryFailed)?;
     info!(logger, "Committing batch.");
     match canister_api_version {
         0 => {

@@ -155,9 +155,7 @@ pub async fn sync(
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), SyncError> {
-    let canister_api_version = api_version(canister)
-        .await
-        .map_err(ApiVersionQueryFailed)?;
+    let canister_api_version = api_version(canister).await.map_err(ApiVersionQueryFailed)?;
     let commit_batch_args = upload_content_and_assemble_sync_operations(
         canister,
         canister_api_version,
