@@ -51,6 +51,8 @@ jobs:
       # This step also handles Rust-specific caching
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-shared-key: rust
 
       - name: Run Lint
         run: cargo clippy --verbose --tests --benches --workspace -- -D warnings

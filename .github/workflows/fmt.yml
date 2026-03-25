@@ -47,6 +47,8 @@ jobs:
       # This step also handles Rust-specific caching
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
 
       - name: Run Cargo Fmt
         run: cargo fmt --all -- --check
