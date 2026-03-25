@@ -107,7 +107,7 @@ echo "$HOME/bin" >> "$GITHUB_PATH"
 # Exit temporary directory.
 popd
 
-if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
+if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ] && command -v cargo-audit &>/dev/null; then
     cargo uninstall cargo-audit
 fi
 
