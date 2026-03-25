@@ -1,4 +1,4 @@
-name: Publish
+name: Release
 
 # We have to use gtar on macOS because apple's tar is literally broken.
 # Yes, I know how stupid that sounds. But it's true:
@@ -156,6 +156,8 @@ jobs:
             ${{ env.SHA256_2_FILENAME }}
 
   aggregate:
+    # Keep the name "publishable:required" — it matches the branch protection rule configured in GitHub
+    # and cannot be changed without updating that rule in the repository settings.
     name: publishable:required
     if: ${{ always() }}
     needs: [build_dfx]
@@ -165,7 +167,7 @@ jobs:
         if: ${{ needs.build_dfx.result != 'success' }}
         run: exit 1
 
-  publish:
+  gh-release:
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag'
     needs: build_dfx
