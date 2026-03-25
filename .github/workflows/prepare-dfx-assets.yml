@@ -1,6 +1,8 @@
 name: Check dfx asset preparation
-# The cargo build steps in other workflows often benefit from caching of the results of this process,
-# so this workflow runs it separately.
+# This workflow is a stub. The original implementation attempted to pre-warm Cargo caches
+# for other workflows, but the cache keys never matched, so sharing never worked.
+# The workflow is kept as a no-op because "prepare-dfx-assets:required" is enforced
+# as a branch protection rule and cannot be removed without updating repository settings.
 
 on:
   pull_request:
@@ -12,41 +14,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # When getting Rust dependencies, retry on network error:
-  CARGO_NET_RETRY: 10
-  # Use the local .curlrc
-  CURL_HOME: .
-  # Disable DFX telemetry
-  DFX_TELEMETRY: 'off'
-
 jobs:
-  prepare:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest, ubuntu-24.04-arm, macos-14, macos-14-large ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-            !target/*/build/dfx-*/out/dfx-assets
-          key: ${{ matrix.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Run build script
-        run: |
-          cargo check
-
   aggregate:
     name: prepare-dfx-assets:required
-    if: ${{ always() }}
-    needs: prepare
     runs-on: ubuntu-latest
     steps:
-      - name: check step result directly
-        if: ${{ needs.prepare.result != 'success' }}
-        run: exit 1
+      - run: echo "ok"

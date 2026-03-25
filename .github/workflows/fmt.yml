@@ -44,14 +44,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-1
+      # This step also handles Rust-specific caching
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Run Cargo Fmt
         run: cargo fmt --all -- --check

@@ -48,13 +48,9 @@ jobs:
         os: [ ubuntu-latest, ubuntu-24.04-arm, macos-14, macos-14-large ]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      # This step also handles Rust-specific caching
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Check cargo test
         run: cargo test --workspace --all-features --no-fail-fast
 
