@@ -1,0 +1,69 @@
+name: Publish crates to crates.io
+
+on:
+  workflow_dispatch:
+    inputs:
+      dfx-core:
+        description: "Publish dfx-core"
+        type: boolean
+        default: false
+      ic-asset:
+        description: "Publish ic-asset"
+        type: boolean
+        default: false
+      icx-asset:
+        description: "Publish icx-asset"
+        type: boolean
+        default: false
+      ic-certified-assets:
+        description: "Publish ic-certified-assets"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    name: Publish selected crates
+    runs-on: ubuntu-24.04
+    if: >-
+      inputs.dfx-core || inputs.ic-asset ||
+      inputs.icx-asset || inputs.ic-certified-assets
+
+    permissions:
+      contents: read
+      id-token: write # Required for trusted publishing via OIDC
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
+      - name: Publish dfx-core
+        if: inputs.dfx-core
+        run: cargo publish -p dfx-core
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Publish ic-certified-assets
+        if: inputs.ic-certified-assets
+        run: cargo publish -p ic-certified-assets
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      # ic-asset must be published before icx-asset (icx-asset depends on ic-asset)
+      - name: Publish ic-asset
+        if: inputs.ic-asset
+        run: cargo publish -p ic-asset
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Publish icx-asset
+        if: inputs.icx-asset
+        run: cargo publish -p icx-asset
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
