@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.47.0
+
 ### fix: correct `dfx sns` example commands in documentation
 
 Fixed incorrect commands `dfx sns config create` and `dfx sns config validate` in the `dfx sns` CLI reference examples. The correct commands are `dfx sns create` and `dfx sns validate`.
