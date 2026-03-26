@@ -150,9 +150,7 @@ jobs:
             ${{ env.SHA256_2_FILENAME }}
 
   aggregate:
-    # Keep the name "publishable:required" — it matches the branch protection rule configured in GitHub
-    # and cannot be changed without updating that rule in the repository settings.
-    name: publishable:required
+    name: build-dfx:required
     if: ${{ always() }}
     needs: [build_dfx]
     runs-on: ubuntu-latest
