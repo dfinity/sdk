@@ -50,7 +50,7 @@ jobs:
             name: aarch64-linux
             tar: tar
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup environment variables
         run: |
@@ -134,7 +134,7 @@ jobs:
 
       - name: Upload Artifacts
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
           path: |
@@ -158,13 +158,13 @@ jobs:
     if: github.ref_type == 'tag'
     needs: build_dfx
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-*
           merge-multiple: true

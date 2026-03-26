@@ -25,9 +25,9 @@ jobs:
     outputs:
       sources: ${{ steps.filter.outputs.sources }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -47,7 +47,7 @@ jobs:
       matrix:
         os: [ ubuntu-24.04, ubuntu-24.04-arm, macos-15 ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # This step also handles Rust-specific caching
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
