@@ -1,200 +1,71 @@
-name: Publish
-
-# We have to use gtar on macOS because apple's tar is literally broken.
-# Yes, I know how stupid that sounds. But it's true:
-# https://github.com/actions/virtual-environments/issues/2619
+name: Publish crates to crates.io
 
 on:
-  push:
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+"
-      - "[0-9]+.[0-9]+.[0-9]+-[A-Za-z]+.[0-9]+"
-  pull_request:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  # When getting Rust dependencies, retry on network error:
-  CARGO_NET_RETRY: 10
-  # Use the local .curlrc
-  CURL_HOME: .
-  # Disable DFX telemetry
-  DFX_TELEMETRY: "off"
+  workflow_dispatch:
+    inputs:
+      dfx-core:
+        description: "Publish dfx-core"
+        type: boolean
+        default: false
+      ic-asset:
+        description: "Publish ic-asset"
+        type: boolean
+        default: false
+      icx-asset:
+        description: "Publish icx-asset"
+        type: boolean
+        default: false
+      ic-certified-assets:
+        description: "Publish ic-certified-assets"
+        type: boolean
+        default: false
 
 jobs:
-  build_dfx:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # We build a dynamic-linked linux binary because otherwise HSM support fails with:
-        #   Error: IO: Dynamic loading not supported
-        target:
-          [
-            x86_64-apple-darwin,
-            aarch64-apple-darwin,
-            x86_64-unknown-linux-gnu,
-            aarch64-unknown-linux-gnu,
-          ]
-        include:
-          - os: macos-14-large
-            target: x86_64-apple-darwin
-            binary_path: target/x86_64-apple-darwin/release
-            name: x86_64-darwin
-            tar: gtar
-          - os: macos-14
-            target: aarch64-apple-darwin
-            binary_path: target/aarch64-apple-darwin/release
-            name: aarch64-darwin
-            tar: gtar
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release
-            name: x86_64-linux
-            tar: tar
-          - os: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu
-            binary_path: target/aarch64-unknown-linux-gnu/release
-            name: aarch64-linux
-            tar: tar
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup environment variables
-        run: |
-          echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
-
-      # GITHUB_REF_NAME will be something link 2353/merge for branch builds, which isn't great as a dfx version
-      - name: Set dfx version (tag builds only)
-        if: github.ref_type == 'tag'
-        run: |
-          echo "DFX_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          echo "TARBALL_1_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
-          echo "SHA256_1_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
-          echo "TARBALL_2_FILENAME=dfx-${{ matrix.target }}.tar.gz" >> $GITHUB_ENV
-          echo "SHA256_2_FILENAME=dfx-${{ matrix.target }}.tar.gz.sha256" >> $GITHUB_ENV
-
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('rust-toolchain.toml') }}-publish-1
-
-      - name: Build
-        run: |
-          cargo clean --target ${{ matrix.target }} --release
-          cargo build --target ${{ matrix.target }} --locked --release
-
-      - name: Check dynamically-linked libraries (macos)
-        run: |
-          ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib /usr/lib/libobjc.A.dylib"
-          echo "Dynamically-linked libraries:"
-          echo "  Actual:   $ACTUAL"
-          echo "  Expected: $EXPECTED"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-              exit 1
-          fi
-        if: contains(matrix.os, 'macos')
-
-      - name: Check dynamically-linked libraries (ubuntu)
-        run: |
-          ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-
-          if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]]; then
-              EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libgcc_s.so.1 libm.so.6 libstdc++.so.6 linux-vdso.so.1"
-          elif [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]]; then
-              EXPECTED="/lib/ld-linux-aarch64.so.1 libc.so.6 libgcc_s.so.1 libm.so.6 libstdc++.so.6 linux-vdso.so.1"
-          else
-              echo "Unsupported target: ${{ matrix.target }}"
-              exit 1
-          fi
-
-          echo "Dynamically-linked libraries:"
-          echo "  Target:   ${{ matrix.target }}"
-          echo "  Actual:   $ACTUAL"
-          echo "  Expected: $EXPECTED"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-              exit 1
-          fi
-        if: contains(matrix.os, 'ubuntu')
-
-      - name: Strip binaries
-        run: |
-          cd ${{ matrix.binary_path }}
-          sudo chown -R $(whoami) .
-          strip dfx
-        if: contains(matrix.os, 'ubuntu')
-
-      - name: Create tarball of binaries and sha256 of tarball
-        if: github.ref_type == 'tag'
-        run: |
-          mkdir dfx-${{ matrix.target }}
-          cp ${{ matrix.binary_path }}/dfx dfx-${{ matrix.target }}
-          cp LICENSE dfx-${{ matrix.target }}
-          ${{ matrix.tar }} -zc -f ${{ env.TARBALL_2_FILENAME }} dfx-${{ matrix.target }}
-          shasum -a 256 ${{ env.TARBALL_2_FILENAME }} > ${{ env.SHA256_2_FILENAME }}
-          shasum -c ${{ env.SHA256_2_FILENAME }}
-
-          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_1_FILENAME }} dfx
-          shasum -a 256 ${{ env.TARBALL_1_FILENAME }} > $SHA256_1_FILENAME
-          shasum -c $SHA256_1_FILENAME
-
-      - name: Upload Artifacts
-        if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v4
-        with:
-          name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
-          path: |
-            ${{ env.TARBALL_1_FILENAME }}
-            ${{ env.SHA256_1_FILENAME }}
-            ${{ env.TARBALL_2_FILENAME }}
-            ${{ env.SHA256_2_FILENAME }}
-
-  aggregate:
-    name: publishable:required
-    if: ${{ always() }}
-    needs: [build_dfx]
-    runs-on: ubuntu-latest
-    steps:
-      - name: check build result
-        if: ${{ needs.build_dfx.result != 'success' }}
-        run: exit 1
-
   publish:
-    runs-on: ubuntu-latest
-    if: github.ref_type == 'tag'
-    needs: build_dfx
+    name: Publish selected crates
+    runs-on: ubuntu-24.04
+    if: >-
+      inputs.dfx-core || inputs.ic-asset ||
+      inputs.icx-asset || inputs.ic-certified-assets
+
+    permissions:
+      contents: read
+      id-token: write # Required for trusted publishing via OIDC
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: Setup environment variables
-        run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          pattern: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-*
-          merge-multiple: true
+          cache: false
 
-      - name: Upload dfx tarballs and sha256
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dfx-*.tar.*
-          file_glob: true
-          tag: ${{ env.VERSION }}
-          prerelease: true
-          make_latest: false
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
 
-      - name: Upload assets canister
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: src/distributed/assetstorage.{wasm.gz,did}
-          file_glob: true
-          tag: ${{ env.VERSION }}
+      - name: Publish dfx-core
+        if: inputs.dfx-core
+        run: cargo publish -p dfx-core
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Publish ic-certified-assets
+        if: inputs.ic-certified-assets
+        run: cargo publish -p ic-certified-assets
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      # ic-asset must be published before icx-asset (icx-asset depends on ic-asset)
+      - name: Publish ic-asset
+        if: inputs.ic-asset
+        run: cargo publish -p ic-asset
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Publish icx-asset
+        if: inputs.icx-asset
+        run: cargo publish -p icx-asset
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

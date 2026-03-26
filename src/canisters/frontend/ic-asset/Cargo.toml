@@ -1,6 +1,6 @@
 [package]
 name = "ic-asset"
-version = "0.28.0"                                              # sync with icx-asset
+version = "0.28.1"                                              # sync with icx-asset
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
