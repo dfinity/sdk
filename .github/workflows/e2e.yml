@@ -55,20 +55,7 @@ jobs:
       matrix:
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [macos-15, ubuntu-24.04, ubuntu-24.04-arm, windows-2025]
-        include:
-          - os: macos-15
-            target: aarch64-apple-darwin
-            binary_path: target/aarch64-apple-darwin/release/dfx
-          - os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
-          - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            binary_path: target/aarch64-unknown-linux-gnu/release/dfx
-          - os: windows-2025
-            target: x86_64-pc-windows-msvc
-            binary_path: target\x86_64-pc-windows-msvc\release\dfx.exe
+        os: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,15 +67,14 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: rust
+          cache-shared-key: release
       - name: Build
-        run: |
-          cargo build --target ${{ matrix.target }} --locked --release
+        run: cargo build --locked --release
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
-          path: ${{ matrix.binary_path }}
+          path: target/release/dfx
 
   list_tests:
     if: needs.changes.outputs.sources == 'true'

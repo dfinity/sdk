@@ -52,7 +52,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: rust
+          cache-shared-key: debug
       - name: Check cargo test
         run: cargo test --workspace --all-features --no-fail-fast
 

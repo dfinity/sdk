@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2025 ]
+        os: [ ubuntu-24.04, ubuntu-24.04-arm, macos-15 ]
 
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: rust
+          cache-shared-key: debug
 
       - name: Run Lint
         run: cargo clippy --verbose --tests --benches --workspace -- -D warnings

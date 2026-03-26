@@ -35,22 +35,18 @@ jobs:
         include:
           - os: macos-15-intel
             target: x86_64-apple-darwin
-            binary_path: target/x86_64-apple-darwin/release
             name: x86_64-darwin
             tar: gtar
           - os: macos-15
             target: aarch64-apple-darwin
-            binary_path: target/aarch64-apple-darwin/release
             name: aarch64-darwin
             tar: gtar
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release
             name: x86_64-linux
             tar: tar
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            binary_path: target/aarch64-unknown-linux-gnu/release
             name: aarch64-linux
             tar: tar
     steps:
@@ -74,16 +70,14 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: rust
+          cache-shared-key: release
 
       - name: Build
-        run: |
-          cargo clean --target ${{ matrix.target }} --release
-          cargo build --target ${{ matrix.target }} --locked --release
+        run: cargo build --locked --release
 
       - name: Check dynamically-linked libraries (macos)
         run: |
-          ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort)"
+          ACTUAL="$(otool -L target/release/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort)"
           EXPECTED="$(printf '/usr/lib/libSystem.B.dylib\n/usr/lib/libc++.1.dylib\n/usr/lib/libiconv.2.dylib\n/usr/lib/libobjc.A.dylib' | sort)"
           echo "Dynamically-linked libraries:"
           echo "  Actual:"
@@ -97,7 +91,7 @@ jobs:
 
       - name: Check dynamically-linked libraries (ubuntu)
         run: |
-          ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          ACTUAL="$(ldd target/release/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
 
           if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]]; then
               EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libgcc_s.so.1 libm.so.6 libstdc++.so.6 linux-vdso.so.1"
@@ -119,7 +113,7 @@ jobs:
 
       - name: Strip binaries
         run: |
-          cd ${{ matrix.binary_path }}
+          cd target/release
           sudo chown -R $(whoami) .
           strip dfx
         if: contains(matrix.os, 'ubuntu')
@@ -128,13 +122,13 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           mkdir dfx-${{ matrix.target }}
-          cp ${{ matrix.binary_path }}/dfx dfx-${{ matrix.target }}
+          cp target/release/dfx dfx-${{ matrix.target }}
           cp LICENSE dfx-${{ matrix.target }}
           ${{ matrix.tar }} -zc -f ${{ env.TARBALL_2_FILENAME }} dfx-${{ matrix.target }}
           shasum -a 256 ${{ env.TARBALL_2_FILENAME }} > ${{ env.SHA256_2_FILENAME }}
           shasum -c ${{ env.SHA256_2_FILENAME }}
 
-          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_1_FILENAME }} dfx
+          ${{ matrix.tar }} -zcC target/release -f ${{ env.TARBALL_1_FILENAME }} dfx
           shasum -a 256 ${{ env.TARBALL_1_FILENAME }} > $SHA256_1_FILENAME
           shasum -c $SHA256_1_FILENAME
 
