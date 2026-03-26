@@ -46,7 +46,9 @@ pub(crate) fn new_logger(level: Level) -> (Logger, slog_async::AsyncGuard) {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = TermLogFormat::new(decorator).fuse();
     let drain = slog::LevelFilter::new(drain, level).fuse();
-    let (drain, guard) = slog_async::Async::new(drain).build_with_guard();
+    let (drain, guard) = slog_async::Async::new(drain)
+        .overflow_strategy(slog_async::OverflowStrategy::Block)
+        .build_with_guard();
     let drain = drain.fuse();
     (Logger::root(drain, slog::o!()), guard)
 }
