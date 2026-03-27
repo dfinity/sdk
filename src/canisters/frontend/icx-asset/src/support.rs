@@ -42,10 +42,13 @@ impl<D: slog_term::Decorator> slog::Drain for TermLogFormat<D> {
     }
 }
 
-pub(crate) fn new_logger(level: Level) -> Logger {
+pub(crate) fn new_logger(level: Level) -> (Logger, slog_async::AsyncGuard) {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = TermLogFormat::new(decorator).fuse();
     let drain = slog::LevelFilter::new(drain, level).fuse();
-    let drain = slog_async::Async::new(drain).build().fuse();
-    Logger::root(drain, slog::o!())
+    let (drain, guard) = slog_async::Async::new(drain)
+        .overflow_strategy(slog_async::OverflowStrategy::Block)
+        .build_with_guard();
+    let drain = drain.fuse();
+    (Logger::root(drain, slog::o!()), guard)
 }

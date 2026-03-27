@@ -63,6 +63,12 @@ jobs:
       - name: Setup environment variables
         run: |
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
+      # Remove pre-installed stable toolchain so it doesn't pollute the
+      # rust-cache environment hash.  macOS (and sometimes Linux) runner
+      # images ship with varying stable versions, making the hash
+      # non-deterministic and causing constant cache misses.
+      - name: Remove pre-installed Rust stable toolchain
+        run: rustup toolchain remove stable 2>/dev/null || true
       # This step also handles Rust-specific caching
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1

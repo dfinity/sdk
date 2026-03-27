@@ -136,7 +136,7 @@ fn style() -> Styles {
 async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
 
-    let logger = support::new_logger(opts.log_level.into());
+    let (logger, _async_guard) = support::new_logger(opts.log_level.into());
 
     let agent = Agent::builder()
         .with_url(&opts.replica)
