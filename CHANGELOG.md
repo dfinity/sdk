@@ -14,7 +14,7 @@ Fixed incorrect commands `dfx sns config create` and `dfx sns config validate` i
 
 ### Motoko
 
-Updated Motoko to [1.3.0](https://github.com/dfinity/motoko/releases/tag/1.3.0)
+Updated Motoko to [1.4.0](https://github.com/dfinity/motoko/releases/tag/1.4.0)
 
 ### Replica
 
