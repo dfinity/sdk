@@ -12,7 +12,7 @@ env:
   # Use the local .curlrc
   CURL_HOME: .
   # Disable DFX telemetry
-  DFX_TELEMETRY: 'off'
+  DFX_TELEMETRY: "off"
 
 jobs:
   changes:
@@ -22,9 +22,9 @@ jobs:
     outputs:
       sources: ${{ steps.filter.outputs.sources }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -42,16 +42,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Cache Cargo
-        uses: actions/cache@v4
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-1
+          # Disable cache: fmt doesn't need target/ artifacts, so it would
+          # save an empty cache that evicts the real one used by other workflows
+          # (caches are shared across workflows on the same runner).
+          cache: false
 
       - name: Run Cargo Fmt
         run: cargo fmt --all -- --check

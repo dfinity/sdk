@@ -27,7 +27,7 @@ for test in all_tests:
     # Ubuntu: run everything
     include.append({
         "test": test,
-        "os": "ubuntu-22.04",
+        "os": "ubuntu-24.04",
         "serial": serial,
     })
 
@@ -35,17 +35,12 @@ for test in all_tests:
     if test in SELECTED_TESTS:
         include.append({
             "test": test,
-            "os": "macos-14",       # arm64 
+            "os": "macos-15",
             "serial": serial,
         })
         include.append({
             "test": test,
-            "os": "macos-14-large", # intel
-            "serial": serial,
-        })
-        include.append({
-            "test": test,
-            "os": "ubuntu-22.04-arm",
+            "os": "ubuntu-24.04-arm",
             "serial": serial,
         })
 

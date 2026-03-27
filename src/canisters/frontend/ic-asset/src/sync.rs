@@ -28,7 +28,7 @@ use crate::error::GatherAssetDescriptorsError::{
 };
 use crate::error::PrepareSyncForProposalError;
 use crate::error::SyncError;
-use crate::error::SyncError::CommitBatchFailed;
+use crate::error::SyncError::{ApiVersionQueryFailed, CommitBatchFailed};
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
 use crate::progress::{AssetSyncProgressRenderer, AssetSyncState};
@@ -155,7 +155,7 @@ pub async fn sync(
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), SyncError> {
-    let canister_api_version = api_version(canister).await;
+    let canister_api_version = api_version(canister).await.map_err(ApiVersionQueryFailed)?;
     let commit_batch_args = upload_content_and_assemble_sync_operations(
         canister,
         canister_api_version,
@@ -296,7 +296,9 @@ pub async fn prepare_sync_for_proposal(
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
-    let canister_api_version = api_version(canister).await;
+    let canister_api_version = api_version(canister)
+        .await
+        .map_err(PrepareSyncForProposalError::ApiVersionQueryFailed)?;
     let arg = upload_content_and_assemble_sync_operations(
         canister,
         canister_api_version,

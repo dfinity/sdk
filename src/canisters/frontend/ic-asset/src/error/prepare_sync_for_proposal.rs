@@ -5,6 +5,10 @@ use thiserror::Error;
 /// Errors related to preparing synchronization operations for a proposal.
 #[derive(Error, Debug)]
 pub enum PrepareSyncForProposalError {
+    /// Failed when querying the asset canister for its API version.
+    #[error("Failed to query asset canister API version")]
+    ApiVersionQueryFailed(#[source] AgentError),
+
     /// Failed while requesting that the asset canister compute evidence.
     #[error("Failed to compute evidence")]
     ComputeEvidence(#[source] AgentError),

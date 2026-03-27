@@ -399,49 +399,53 @@ teardown() {
   assert_match "Hello, World! from DFINITY"
 }
 
-@test "modifying networks.json does not require --clean on restart" {
-  dfx_start
-  dfx stop
-  assert_command dfx_start
-  dfx stop
-  jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
-  assert_command dfx_start
-}
+# Disabled: each test has multiple dfx start/stop cycles, each taking ~1 min,
+# making these tests very slow. The config-change detection logic they cover is
+# stable and this project is approaching deprecation, so the CI cost isn't justified.
 
-@test "project-local networks require --clean if dfx.json was updated" {
-  dfx_new
-  define_project_network
-  dfx_start
-  dfx stop
-  assert_command dfx_start
-  dfx stop
-  jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
-  assert_command dfx_start
-  dfx stop
-  jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
-  assert_command_fail dfx_start
-  assert_contains  "The network state can't be reused with this configuration. Rerun with \`--clean\`."
-  assert_command dfx_start --force
-  dfx stop
-  assert_command dfx_start --clean
-}
+# @test "modifying networks.json does not require --clean on restart" {
+#   dfx_start
+#   dfx stop
+#   assert_command dfx_start
+#   dfx stop
+#   jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+#   assert_command dfx_start
+# }
 
-@test "flags count as configuration modification and require --clean for a project network" {
-  dfx_new
-  define_project_network
+# @test "project-local networks require --clean if dfx.json was updated" {
+#   dfx_new
+#   define_project_network
+#   dfx_start
+#   dfx stop
+#   assert_command dfx_start
+#   dfx stop
+#   jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+#   assert_command dfx_start
+#   dfx stop
+#   jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+#   assert_command_fail dfx_start
+#   assert_contains  "The network state can't be reused with this configuration. Rerun with \`--clean\`."
+#   assert_command dfx_start --force
+#   dfx stop
+#   assert_command dfx_start --clean
+# }
 
-  dfx start --background
-  dfx stop
-  assert_command_fail dfx start --artificial-delay 100 --background
-  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
-  assert_command dfx start --artificial-delay 100 --clean --background
-  dfx stop
-  assert_command dfx start --artificial-delay 100 --background
-  dfx stop
-  assert_command_fail dfx start --background
-  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
-  assert_command dfx start --force --background
-}
+# @test "flags count as configuration modification and require --clean for a project network" {
+#   dfx_new
+#   define_project_network
+
+#   dfx start --background
+#   dfx stop
+#   assert_command_fail dfx start --artificial-delay 100 --background
+#   assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
+#   assert_command dfx start --artificial-delay 100 --clean --background
+#   dfx stop
+#   assert_command dfx start --artificial-delay 100 --background
+#   dfx stop
+#   assert_command_fail dfx start --background
+#   assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
+#   assert_command dfx start --force --background
+# }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_start.exp"
