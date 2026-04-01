@@ -26,6 +26,9 @@ Removed support for asset certification v1.
 
 Added customizable fallback behavior via the `configure` endpoint. The new `fallback` field in `ConfigureArguments` accepts a `FallbackConfiguration { path, status_code }` to control which asset is served (and with which HTTP status) for requests that don't match any stored asset. Defaults to `/index.html` with status 200, same as the previous unconfigurable behavior. Set to `null` to restore the default.
 
+- Module hash: b64a63223479870b900c700910d46a9c490003477c874a9de0900e992cd55ca9
+- https://github.com/dfinity/sdk/pull/4515
+
 # 0.31.0
 
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
