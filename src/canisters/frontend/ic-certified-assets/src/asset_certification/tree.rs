@@ -66,6 +66,32 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
         }
     }
 
+    /// Returns true if there is any leaf at or under the specified path
+    pub fn has_leaves(&self, path: &[K]) -> bool {
+        if let Some(key) = path.first() {
+            match self {
+                NestedTree::Leaf(_) => false,
+                NestedTree::Nested(tree) => tree
+                    .get(key.as_ref())
+                    .map(|child| child.has_leaves(&path[1..]))
+                    .unwrap_or(false),
+            }
+        } else {
+            match self {
+                NestedTree::Leaf(_) => true,
+                NestedTree::Nested(tree) => {
+                    let mut found = false;
+                    tree.for_each(|_, child| {
+                        if !found {
+                            found = child.has_leaves(&[]);
+                        }
+                    });
+                    found
+                }
+            }
+        }
+    }
+
     /// Returns true if there is a leaf or a subtree at the specified path
     pub fn contains_path(&self, path: &[K]) -> bool {
         if let Some(key) = path.first() {

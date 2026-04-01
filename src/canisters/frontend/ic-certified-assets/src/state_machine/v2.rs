@@ -11,7 +11,7 @@ use super::v1::{
 use crate::{
     asset_certification::types::{certification::CertificateExpression, rc_bytes::RcBytes},
     state_machine::Timestamp,
-    types::BatchId,
+    types::{BatchId, FallbackConfiguration},
 };
 
 /// Same as [StableStateV1] but serde-serializable
@@ -89,6 +89,8 @@ pub struct StableConfigurationV2 {
     pub max_batches: Option<u64>,
     pub max_chunks: Option<u64>,
     pub max_bytes: Option<u64>,
+    #[serde(default)]
+    pub fallback: Option<FallbackConfiguration>,
 }
 
 impl From<super::Configuration> for StableConfigurationV2 {
@@ -97,6 +99,7 @@ impl From<super::Configuration> for StableConfigurationV2 {
             max_batches: configuration.max_batches,
             max_chunks: configuration.max_chunks,
             max_bytes: configuration.max_bytes,
+            fallback: configuration.fallback,
         }
     }
 }
@@ -107,6 +110,7 @@ impl From<StableConfigurationV1> for StableConfigurationV2 {
             max_batches: configuration.max_batches,
             max_chunks: configuration.max_chunks,
             max_bytes: configuration.max_bytes,
+            fallback: None,
         }
     }
 }
@@ -117,6 +121,7 @@ impl From<StableConfigurationV2> for super::Configuration {
             max_batches: stable_configuration.max_batches,
             max_chunks: stable_configuration.max_chunks,
             max_bytes: stable_configuration.max_bytes,
+            fallback: stable_configuration.fallback,
         }
     }
 }

@@ -4187,6 +4187,7 @@ mod configuration_methods {
             max_batches: Some(Some(47)),
             max_chunks: None,
             max_bytes: None,
+            fallback: None,
         });
 
         let x = state.get_configuration();
@@ -4202,6 +4203,7 @@ mod configuration_methods {
             max_batches: Some(Some(47)),
             max_chunks: Some(Some(67)),
             max_bytes: Some(Some(77)),
+            fallback: None,
         });
         let x = state.get_configuration();
         assert_eq!(x.max_batches, Some(47));
@@ -4212,6 +4214,7 @@ mod configuration_methods {
             max_batches: Some(None),
             max_chunks: None,
             max_bytes: None,
+            fallback: None,
         });
 
         let x = state.get_configuration();
@@ -4227,6 +4230,7 @@ mod configuration_methods {
             max_batches: Some(Some(47)),
             max_chunks: Some(Some(67)),
             max_bytes: Some(Some(77)),
+            fallback: None,
         });
         let x = state.get_configuration();
         assert_eq!(x.max_batches, Some(47));
@@ -4237,6 +4241,7 @@ mod configuration_methods {
             max_batches: Some(Some(35)),
             max_chunks: None,
             max_bytes: None,
+            fallback: None,
         });
 
         let x = state.get_configuration();
@@ -4253,6 +4258,7 @@ mod configuration_methods {
             max_batches: None,
             max_chunks: Some(Some(23)),
             max_bytes: None,
+            fallback: None,
         });
 
         let x = state.get_configuration();
@@ -4268,6 +4274,7 @@ mod configuration_methods {
             max_batches: Some(Some(47)),
             max_chunks: Some(Some(67)),
             max_bytes: Some(Some(77)),
+            fallback: None,
         });
         let x = state.get_configuration();
         assert_eq!(x.max_batches, Some(47));
@@ -4278,6 +4285,7 @@ mod configuration_methods {
             max_batches: None,
             max_chunks: Some(None),
             max_bytes: None,
+            fallback: None,
         });
 
         let x = state.get_configuration();
@@ -4293,6 +4301,7 @@ mod configuration_methods {
             max_batches: Some(Some(47)),
             max_chunks: Some(Some(67)),
             max_bytes: Some(Some(77)),
+            fallback: None,
         });
         let x = state.get_configuration();
         assert_eq!(x.max_batches, Some(47));
@@ -4303,6 +4312,7 @@ mod configuration_methods {
             max_batches: None,
             max_chunks: Some(Some(54)),
             max_bytes: None,
+            fallback: None,
         });
 
         let x = state.get_configuration();
@@ -4337,6 +4347,7 @@ mod enforce_limits {
             max_batches: Some(max_batches),
             max_chunks: None,
             max_bytes: None,
+            fallback: None,
         });
 
         let batch_id = state.create_batch(&system_context).unwrap();
@@ -4378,6 +4389,7 @@ mod enforce_limits {
             max_batches: Some(Some(3)),
             max_chunks: None,
             max_bytes: None,
+            fallback: None,
         });
         state.create_batch(&system_context).unwrap();
         state.create_batch(&system_context).unwrap();
@@ -4397,6 +4409,7 @@ mod enforce_limits {
             max_batches: None,
             max_chunks: Some(Some(3)),
             max_bytes: None,
+            fallback: None,
         });
         let batch_1 = state.create_batch(&system_context).unwrap();
         let batch_2 = state.create_batch(&system_context).unwrap();
@@ -4476,6 +4489,7 @@ mod enforce_limits {
             max_batches: None,
             max_chunks: None,
             max_bytes: Some(Some(289)),
+            fallback: None,
         });
         let c0 = vec![0u8; 100];
         let c1 = vec![1u8; 100];
@@ -5336,5 +5350,591 @@ mod compute_state_hash {
         // Verify we can call it again
         let result = run_computation_until_completion(|_progress| state.compute_state_hash());
         assert!(result.is_ok());
+    }
+}
+
+#[cfg(test)]
+mod customizable_fallback {
+    use super::*;
+    use crate::types::{ConfigureArguments, FallbackConfiguration};
+
+    fn configure_fallback(state: &mut State, fallback: Option<Option<FallbackConfiguration>>) {
+        state.configure(ConfigureArguments {
+            max_batches: None,
+            max_chunks: None,
+            max_bytes: None,
+            fallback,
+        });
+    }
+
+    #[test]
+    fn default_fallback_serves_index_html() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        assert!(state.get_configuration().fallback.is_none());
+
+        const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn default_fallback_404_without_index_html() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        // required to trigger inital cert - will certify 404 response
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![AssetBuilder::new("/other.txt", "text/plain")],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/anything")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), b"not found");
+    }
+
+    #[test]
+    fn custom_fallback_path_serves_configured_file() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/404.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        const BODY_404: &[u8] = b"<html>custom 404</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![BODY_404]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), BODY_404);
+    }
+
+    #[test]
+    fn custom_fallback_path_ignores_index_html() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/404.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        const INDEX_BODY: &[u8] = b"<html>index</html>";
+        const BODY_404: &[u8] = b"<html>custom 404</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![BODY_404]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.body.as_ref(), BODY_404);
+    }
+
+    #[test]
+    fn custom_fallback_path_missing_file_returns_404() {
+        let mut state = State::default();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/404.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), b"not found");
+    }
+
+    #[test]
+    fn custom_fallback_status_code() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/not-found.html".to_string(),
+                status_code: 123,
+            })),
+        );
+
+        const NOT_FOUND_BODY: &[u8] = b"<html>not found page</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/not-found.html", "text/html")
+                    .with_encoding("identity", vec![NOT_FOUND_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 123);
+        assert_eq!(response.body.as_ref(), NOT_FOUND_BODY);
+    }
+
+    #[test]
+    fn custom_fallback_status_code_with_default_path() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/index.html".to_string(),
+                status_code: 404,
+            })),
+        );
+
+        const INDEX_BODY: &[u8] = b"<html>index</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn exact_match_unaffected_by_custom_fallback() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/404.html".to_string(),
+                status_code: 404,
+            })),
+        );
+
+        const BODY_404: &[u8] = b"<html>custom 404</html>";
+        const ABOUT_BODY: &[u8] = b"<html>about</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![BODY_404]),
+                AssetBuilder::new("/about.html", "text/html")
+                    .with_encoding("identity", vec![ABOUT_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/about.html")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), ABOUT_BODY);
+    }
+
+    #[test]
+    fn fallback_file_served_normally_at_its_own_path() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/404.html".to_string(),
+                status_code: 404,
+            })),
+        );
+
+        const BODY_404: &[u8] = b"<html>custom 404</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![BODY_404]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/404.html")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), BODY_404);
+    }
+
+    #[test]
+    fn recertify_on_fallback_change() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const INDEX_BODY: &[u8] = b"<html>index</html>";
+        const CUSTOM_BODY: &[u8] = b"<html>custom</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/custom.html", "text/html")
+                    .with_encoding("identity", vec![CUSTOM_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), INDEX_BODY);
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/custom.html".to_string(),
+                status_code: 123,
+            })),
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 123);
+        assert_eq!(response.body.as_ref(), CUSTOM_BODY);
+    }
+
+    #[test]
+    fn recertify_on_fallback_reset() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        const CUSTOM_BODY: &[u8] = b"<html>custom</html>";
+        const INDEX_BODY: &[u8] = b"<html>index</html>";
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/custom.html".to_string(),
+                status_code: 404,
+            })),
+        );
+
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/custom.html", "text/html")
+                    .with_encoding("identity", vec![CUSTOM_BODY]),
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), CUSTOM_BODY);
+
+        configure_fallback(&mut state, Some(None));
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn recertify_on_fallback_status_change() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/index.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        const INDEX_BODY: &[u8] = b"<html>index</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), INDEX_BODY);
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/index.html".to_string(),
+                status_code: 404,
+            })),
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn fallback_config_in_get_configuration() {
+        let mut state = State::default();
+
+        let fallback = FallbackConfiguration {
+            path: "/custom.html".to_string(),
+            status_code: 403,
+        };
+        configure_fallback(&mut state, Some(Some(fallback.clone())));
+
+        let config = state.get_configuration();
+        assert_eq!(config.fallback, Some(fallback));
+    }
+
+    #[test]
+    fn fallback_config_none_means_no_change() {
+        let mut state = State::default();
+
+        let fallback = FallbackConfiguration {
+            path: "/custom.html".to_string(),
+            status_code: 403,
+        };
+        configure_fallback(&mut state, Some(Some(fallback.clone())));
+        assert_eq!(state.get_configuration().fallback, Some(fallback.clone()));
+
+        configure_fallback(&mut state, None);
+        assert_eq!(state.get_configuration().fallback, Some(fallback));
+    }
+
+    #[test]
+    fn fallback_to_nonexistent_file_then_upload() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/custom.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), b"not found");
+
+        const CUSTOM_BODY: &[u8] = b"<html>custom</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/custom.html", "text/html")
+                    .with_encoding("identity", vec![CUSTOM_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), CUSTOM_BODY);
+    }
+
+    #[test]
+    fn delete_fallback_file_falls_back_to_404() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/custom.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        const CUSTOM_BODY: &[u8] = b"<html>custom</html>";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/custom.html", "text/html")
+                    .with_encoding("identity", vec![CUSTOM_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), CUSTOM_BODY);
+
+        state.delete_asset(DeleteAssetArguments {
+            key: "/custom.html".to_string(),
+        });
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), b"not found");
+    }
+
+    #[test]
+    fn fallback_with_multiple_encodings() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        configure_fallback(
+            &mut state,
+            Some(Some(FallbackConfiguration {
+                path: "/custom.html".to_string(),
+                status_code: 200,
+            })),
+        );
+
+        const IDENTITY_BODY: &[u8] = b"<html>custom identity</html>";
+        const GZIP_BODY: &[u8] = b"gzipped-content";
+        create_assets(
+            &mut state,
+            &system_context,
+            vec![
+                AssetBuilder::new("/custom.html", "text/html")
+                    .with_encoding("identity", vec![IDENTITY_BODY])
+                    .with_encoding("gzip", vec![GZIP_BODY]),
+            ],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "gzip, identity")
+                .build(),
+        );
+        assert_eq!(response.status_code, 200);
+        let encoding = lookup_header(&response, "Content-Encoding");
+        assert_eq!(encoding, Some("gzip"));
+        assert_eq!(response.body.as_ref(), GZIP_BODY);
     }
 }

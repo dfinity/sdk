@@ -22,7 +22,9 @@ Updated replica to commit 142182f2ec4d916fa32e32da59239c4eb0c87bd3.
 
 ### Frontend canister
 
-Removed support for asset certification v1
+Removed support for asset certification v1.
+
+Added customizable fallback behavior via the `configure` endpoint. The new `fallback` field in `ConfigureArguments` accepts a `FallbackConfiguration { path, status_code }` to control which asset is served (and with which HTTP status) for requests that don't match any stored asset. Defaults to `/index.html` with status 200, same as the previous unconfigurable behavior. Set to `null` to restore the default.
 
 # 0.31.0
 
