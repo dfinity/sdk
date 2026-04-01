@@ -432,7 +432,7 @@ fn can_create_assets_using_batch_api() {
 }
 
 #[test]
-fn serve_correct_encoding_v1() {
+fn serve_correct_encoding() {
     let mut state = State::default();
     let system_context = mock_system_context();
 
@@ -452,87 +452,10 @@ fn serve_correct_encoding_v1() {
         ],
     );
 
-    // Most important encoding is returned with certificate
     let identity_response = certified_http_request(
         &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "identity")
-            .build(),
-    );
-    assert_eq!(identity_response.status_code, 200);
-    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
-    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
-
-    // If only uncertified encoding is accepted, return it without any certificate
-    let gzip_response = state.http_request(
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "gzip")
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(gzip_response.status_code, 200);
-    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
-    assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
-
-    // If no encoding matches, return most important encoding with certificate
-    let unknown_encoding_response = certified_http_request(
-        &state,
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "unknown")
-            .build(),
-    );
-    assert_eq!(unknown_encoding_response.status_code, 200);
-    assert_eq!(unknown_encoding_response.body.as_ref(), IDENTITY_BODY);
-    assert!(lookup_header(&unknown_encoding_response, "IC-Certificate").is_some());
-
-    let unknown_encoding_response_2 = certified_http_request(
-        &state,
-        RequestBuilder::get("/only-identity.html")
-            .with_header("Accept-Encoding", "gzip")
-            .build(),
-    );
-    assert_eq!(unknown_encoding_response_2.status_code, 200);
-    assert_eq!(unknown_encoding_response_2.body.as_ref(), IDENTITY_BODY);
-    assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
-
-    // Serve 404 if the requested asset has no encoding uploaded at all
-    // certification v1 cannot certify 404
-    let no_encoding_response = state.http_request(
-        RequestBuilder::get("/no-encoding.html")
-            .with_header("Accept-Encoding", "identity")
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(no_encoding_response.status_code, 404);
-    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
-}
-
-#[test]
-fn serve_correct_encoding_v2() {
-    let mut state = State::default();
-    let system_context = mock_system_context();
-
-    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
-    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
-
-    create_assets(
-        &mut state,
-        &system_context,
-        vec![
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![IDENTITY_BODY])
-                .with_encoding("gzip", vec![GZIP_BODY]),
-            AssetBuilder::new("/no-encoding.html", "text/html"),
-        ],
-    );
-
-    let identity_response = certified_http_request(
-        &state,
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
             .build(),
     );
     assert_eq!(identity_response.status_code, 200);
@@ -543,23 +466,31 @@ fn serve_correct_encoding_v2() {
         &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip")
-            .with_certificate_version(2)
             .build(),
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
     assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
 
+    // Falls back to existing encoding when no requested encoding is available
+    let fallback_response = certified_http_request(
+        &state,
+        RequestBuilder::get("/only-identity.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+    );
+    assert_eq!(fallback_response.status_code, 200);
+    assert_eq!(fallback_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&fallback_response, "IC-Certificate").is_some());
+
     let no_encoding_response = certified_http_request(
         &state,
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
             .build(),
     );
     assert_eq!(no_encoding_response.status_code, 404);
     assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
-    assert!(lookup_header(&no_encoding_response, "IC-Certificate").is_some());
 }
 
 #[test]
@@ -635,7 +566,7 @@ fn serve_fallback_v2() {
 }
 
 #[test]
-fn serve_fallback_v1() {
+fn serve_fallback() {
     let mut state = State::default();
     let system_context = mock_system_context();
 
@@ -2328,34 +2259,21 @@ mod certificate_expression {
             ],
         );
 
-        let v1_response = certified_http_request(
-            &state,
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .build(),
-        );
-
-        assert!(
-            lookup_header(&v1_response, "ic-certificateexpression").is_none(),
-            "superfluous ic-certificateexpression header detected in cert v1"
-        );
-
         let response = certified_http_request(
             &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
                 .build(),
         );
 
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certifiedexpression header in response: {response:#?}",
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin", "Set-Cookie"]}}}})"#,
-            "Missing ic-certifiedexpression header in response: {response:#?}",
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
     }
 
@@ -2516,23 +2434,10 @@ mod certification_v2 {
             &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(1)
                 .build(),
         );
         assert_eq!(
-            lookup_header(&response, "etag").expect("ic-certificate header missing"),
-            "my-etag"
-        );
-
-        let response = certified_http_request(
-            &state,
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
-                .build(),
-        );
-        assert_eq!(
-            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            lookup_header(&response, "etag").expect("etag header missing"),
             "my-etag"
         );
     }

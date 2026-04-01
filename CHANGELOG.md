@@ -20,6 +20,10 @@ Updated Motoko to [1.4.0](https://github.com/dfinity/motoko/releases/tag/1.4.0)
 
 Updated replica to commit 142182f2ec4d916fa32e32da59239c4eb0c87bd3.
 
+### Frontend canister
+
+Removed support for asset certification v1
+
 # 0.31.0
 
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages

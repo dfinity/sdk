@@ -1,7 +1,4 @@
-use super::{
-    http::{FALLBACK_FILE, build_ic_certificate_expression_from_headers},
-    rc_bytes::RcBytes,
-};
+use super::{http::build_ic_certificate_expression_from_headers, rc_bytes::RcBytes};
 use candid::CandidType;
 use ic_representation_independent_hash::Value;
 use serde::{Deserialize, Serialize};
@@ -60,13 +57,6 @@ impl AssetPath {
         format!("/{}", self.0.join("/"))
     }
 
-    pub fn asset_hash_path_v1(&self) -> HashTreePath {
-        HashTreePath(vec![
-            "http_assets".into(),
-            self.reconstruct_asset_key().into(),
-        ])
-    }
-
     pub fn asset_hash_path_root_v2(&self) -> HashTreePath {
         let mut hash_path: Vec<NestedTreeKey> = self
             .0
@@ -109,10 +99,6 @@ impl AssetPath {
 
     pub fn fallback_path() -> Self {
         Self(vec!["http_expr".into(), "<*>".into()])
-    }
-
-    pub fn fallback_path_v1() -> Self {
-        Self::from(FALLBACK_FILE)
     }
 }
 
@@ -204,11 +190,6 @@ impl HashTreePath {
             NestedTreeKey::String("http_expr".into()),
             NestedTreeKey::String("<*>".into()),
         ]))
-    }
-
-    pub fn not_found_base_path_v1() -> Self {
-        let not_found_path = AssetPath::from(FALLBACK_FILE);
-        not_found_path.asset_hash_path_v1()
     }
 }
 

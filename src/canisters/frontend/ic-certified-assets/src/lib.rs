@@ -35,7 +35,7 @@ pub use ic_cdk::update as ic_certified_assets_update;
 #[doc(hidden)]
 pub use serde_bytes::ByteBuf as ic_certified_assets_ByteBuf;
 
-pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 1] = *b"2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
@@ -488,7 +488,7 @@ macro_rules! export_canister_methods {
 
         #[cfg(target_arch = "wasm32")]
         #[unsafe(link_section = "icp:public supported_certificate_versions")]
-        static CERTIFICATE_VERSIONS: [u8; 3] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
+        static CERTIFICATE_VERSIONS: [u8; 1] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
 
         // Query methods
         #[$crate::ic_certified_assets_query]
