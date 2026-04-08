@@ -25,9 +25,9 @@ jobs:
     outputs:
       sources: ${{ steps.filter.outputs.sources }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -57,7 +57,7 @@ jobs:
         #   Error: IO: Dynamic loading not supported
         os: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - name: Setup environment variables
@@ -71,13 +71,13 @@ jobs:
         run: rustup toolchain remove stable 2>/dev/null || true
       # This step also handles Rust-specific caching
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@150fca883cd4034361b621bd4e6a9d34e5143606 # v1.15.4
         with:
           cache-shared-key: release
       - name: Build
         run: cargo build --locked --release
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: target/release/dfx
@@ -89,7 +89,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - id: set-matrix
         run: echo "matrix=$(scripts/workflows/e2e-matrix.py)" >> $GITHUB_OUTPUT
 
@@ -102,9 +102,9 @@ jobs:
       matrix:
         os: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download dfx binary
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
@@ -132,9 +132,9 @@ jobs:
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Download dfx binary
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
@@ -155,7 +155,7 @@ jobs:
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
       - name: Cache mops files
-        uses: actions/cache@v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             e2e/assets/playground_backend/.mops
@@ -173,9 +173,9 @@ jobs:
         os: [macos-15, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - name: Checking out repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setting up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.9"
       - name: Installing playwright
@@ -184,7 +184,7 @@ jobs:
           playwright install
           playwright install-deps
       - name: Download dfx binary
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
