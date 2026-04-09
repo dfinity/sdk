@@ -23,7 +23,7 @@ jobs:
     name: install-script-shellcheck:required
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install shfmt
         run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Generate
@@ -37,7 +37,7 @@ jobs:
           cp public/manifest.json _out/manifest.json
       - name: Upload Artifacts
         if: github.event_name == 'push'
-        uses: JamesIves/github-pages-deploy-action@v4
+        uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f # v4.8.0
         with:
           single-commit: true
           branch: public-manifest

@@ -33,7 +33,7 @@ jobs:
         run: sudo apt-get install --yes moreutils
 
       - name: Checkout dfinity/sdk repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # workaround to fetch all tags: https://github.com/actions/checkout/issues/701
           path: sdk
@@ -47,14 +47,14 @@ jobs:
           echo "NEW_HASH=$(shasum -a 256 src/distributed/assetstorage.wasm.gz | cut -f1 -d" ")" >> $GITHUB_ENV
 
       - name: Create GitHub App Token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
         id: app-token
         with:
           app-id: ${{ vars.PR_AUTOMATION_BOT_PUBLIC_APP_ID }}
           private-key: ${{ secrets.PR_AUTOMATION_BOT_PUBLIC_PRIVATE_KEY }}
 
       - name: Checkout dfinity/motoko-playground repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ steps.app-token.outputs.token }}
           repository: ${{ env.PLAYGROUND_REPO }}
