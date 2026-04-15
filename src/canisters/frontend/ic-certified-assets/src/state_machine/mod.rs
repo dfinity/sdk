@@ -1408,7 +1408,7 @@ impl State {
                     if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                         fb_asset,
                         &requested_encodings,
-                        path,
+                        &fb_key,
                         chunk_index,
                         Some(&cert_header),
                         &callback,

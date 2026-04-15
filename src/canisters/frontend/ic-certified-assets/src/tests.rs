@@ -5843,4 +5843,90 @@ mod fallback {
         assert_eq!(resp.status_code, 404);
         assert_eq!(resp.body.as_ref(), b"not found");
     }
+
+    #[test]
+    fn multichunk_fallback_streams_correctly() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        const CHUNK_1: &[u8] = b"<!DOCTYPE html>";
+        const CHUNK_2: &[u8] = b"<html>Index page, continued</html>";
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![CHUNK_1, CHUNK_2]),
+            ],
+        );
+
+        let streaming_callback = CallbackFunc::new(some_principal(), "stream".to_string());
+        let response = state.http_request(
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            streaming_callback.clone(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), CHUNK_1);
+
+        let StreamingStrategy::Callback { callback, token } = response
+            .streaming_strategy
+            .expect("missing streaming strategy for multi-chunk fallback");
+        assert_eq!(callback, streaming_callback);
+        assert_eq!(
+            token.key, "/index.html",
+            "token must carry the real asset key, not the requested path"
+        );
+
+        let streaming_response = state.http_request_streaming_callback(token).unwrap();
+        assert_eq!(streaming_response.body.as_ref(), CHUNK_2);
+        assert!(streaming_response.token.is_none());
+    }
+
+    #[test]
+    fn multichunk_404_fallback_streams_correctly() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        const CHUNK_1: &[u8] = b"<!DOCTYPE html>";
+        const CHUNK_2: &[u8] = b"<html>404 page, continued</html>";
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![CHUNK_1, CHUNK_2]),
+            ],
+        );
+
+        let streaming_callback = CallbackFunc::new(some_principal(), "stream".to_string());
+        let response = state.http_request(
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            streaming_callback.clone(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), CHUNK_1);
+
+        let StreamingStrategy::Callback { callback, token } = response
+            .streaming_strategy
+            .expect("missing streaming strategy for multi-chunk 404 fallback");
+        assert_eq!(callback, streaming_callback);
+        assert_eq!(
+            token.key, "/404.html",
+            "token must carry the real asset key, not the requested path"
+        );
+
+        let streaming_response = state.http_request_streaming_callback(token).unwrap();
+        assert_eq!(streaming_response.body.as_ref(), CHUNK_2);
+        assert!(streaming_response.token.is_none());
+    }
 }
