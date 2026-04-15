@@ -12,6 +12,16 @@ use sha2::Digest;
 /// The file to serve if the requested file wasn't found.
 pub const FALLBACK_FILE: &str = "/index.html";
 
+pub fn is_404_html(key: &str) -> bool {
+    key == "/404.html" || key.ends_with("/404.html")
+}
+
+/// Returns the directory prefix of a 404.html key.
+/// e.g. "/blog/404.html" -> "/blog", "/404.html" -> ""
+pub fn fallback_directory(key: &str) -> &str {
+    &key[..key.len() - "/404.html".len()]
+}
+
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
 pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;
@@ -95,16 +105,11 @@ impl HttpRequest {
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
 
-    // Spec:
-    // If not set: assume version 1.
-    // If available: use requested certificate version.
-    // If requested version is not available: use latest available version.
+    // v1 certification has been removed; always use v2.
+    // The `certificate_version` field is retained in the Candid interface for
+    // backwards compatibility but is no longer consulted.
     pub fn get_certificate_version(&self) -> u16 {
-        if self.certificate_version.is_none() || self.certificate_version == Some(1) {
-            1
-        } else {
-            2 // latest available
-        }
+        2
     }
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
@@ -160,9 +165,9 @@ impl HttpResponse {
         certificate_header: Option<&HeaderField>,
         callback: &CallbackFunc,
         etags: &[Hash],
-        cert_version: u16,
+        base_status_code: u16,
     ) -> HttpResponse {
-        let mut headers = asset.get_headers_for_asset(enc_name, cert_version);
+        let mut headers = asset.get_headers_for_asset(enc_name);
         if let Some(head) = certificate_header {
             headers.insert(head.0.clone(), head.1.clone());
         }
@@ -179,19 +184,21 @@ impl HttpResponse {
             token,
         });
 
-        let (status_code, body) = if etags.contains(&enc.sha256) {
+        // 304 etag optimization only for 200 responses (not for fallback 404 responses)
+        let (status_code, body) = if base_status_code == 200 && etags.contains(&enc.sha256) {
             (304, RcBytes::default())
         } else {
-            if !headers
-                .iter()
-                .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
+            if base_status_code == 200
+                && !headers
+                    .iter()
+                    .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
             {
                 headers.insert(
                     "etag".to_string(),
                     format!("\"{}\"", hex::encode(enc.sha256)),
                 );
             }
-            (200, enc.content_chunks[chunk_index].clone())
+            (base_status_code, enc.content_chunks[chunk_index].clone())
         };
 
         HttpResponse {
@@ -212,20 +219,11 @@ impl HttpResponse {
         certificate_header: Option<&HeaderField>,
         callback: &CallbackFunc,
         etags: &[Hash],
-        cert_version: u16,
+        status_code: u16,
     ) -> Option<HttpResponse> {
-        let most_important_v1 = asset.most_important_encoding_v1();
-
-        // Return a requested encoding that is certified
         for enc_name in requested_encodings.iter() {
             if let Some(enc) = asset.encodings.get(enc_name) {
                 if enc.certified {
-                    if cert_version == 1 {
-                        // In v1, only the most important encoding is certified.
-                        if enc_name != &most_important_v1 {
-                            continue;
-                        }
-                    }
                     return Some(Self::build_ok(
                         asset,
                         enc_name,
@@ -235,41 +233,15 @@ impl HttpResponse {
                         certificate_header,
                         callback,
                         etags,
-                        cert_version,
+                        status_code,
                     ));
                 }
             }
         }
 
-        // None of the requested encodings are available with certification
-        // In v1, a first fall-back measure is to return a non-certified encoding, if a requested encoding is available
-        if cert_version == 1 {
-            for enc_name in requested_encodings.iter() {
-                if let Some(enc) = asset.encodings.get(enc_name) {
-                    return Some(Self::build_ok(
-                        asset,
-                        enc_name,
-                        enc,
-                        key,
-                        chunk_index,
-                        // we return the certificate anyways because then the service worker can try to convert the encoding (e.g. unzip)
-                        // and then try to match the response hash in other encoding formats
-                        certificate_header,
-                        callback,
-                        etags,
-                        cert_version,
-                    ));
-                }
-            }
-        }
-
-        // None of the requested encodings are available - fall back to the best we have
+        // No requested encoding found - fall back to the best certified encoding
         for enc_name in encoding_certification_order(asset.encodings.keys()) {
             if let Some(enc) = asset.encodings.get(&enc_name) {
-                // In v1, only the most important encoding is certified.
-                if enc_name != most_important_v1 {
-                    continue;
-                }
                 if enc.certified {
                     return Some(Self::build_ok(
                         asset,
@@ -280,7 +252,7 @@ impl HttpResponse {
                         certificate_header,
                         callback,
                         etags,
-                        cert_version,
+                        status_code,
                     ));
                 }
             }
@@ -298,16 +270,14 @@ impl HttpResponse {
         }
     }
 
-    pub fn build_404(certificate_header: HeaderField, cert_version: u16) -> HttpResponse {
+    pub fn build_404(certificate_header: HeaderField) -> HttpResponse {
         let base_404 = Self::uncertified_404();
         let mut headers = base_404.headers.clone();
         headers.push(certificate_header);
-        if cert_version == 2 {
-            let certificate_expression =
-                build_ic_certificate_expression_from_headers(&base_404.headers);
-            let cert_expr_header = build_ic_certificate_expression_header(&certificate_expression);
-            headers.push(cert_expr_header)
-        }
+        let certificate_expression =
+            build_ic_certificate_expression_from_headers(&base_404.headers);
+        let cert_expr_header = build_ic_certificate_expression_header(&certificate_expression);
+        headers.push(cert_expr_header);
         HttpResponse {
             headers,
             ..base_404

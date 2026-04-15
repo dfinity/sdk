@@ -103,15 +103,25 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
     }
 
     pub fn delete(&mut self, path: &[K]) {
-        if let Some(key) = path.first() {
-            match self {
-                NestedTree::Leaf(_) => {}
-                NestedTree::Nested(tree) => {
-                    tree.modify(key.as_ref(), |child| child.delete(&path[1..]));
+        if path.is_empty() {
+            *self = NestedTree::default();
+            return;
+        }
+        let key = &path[0];
+        if let NestedTree::Nested(tree) = self {
+            if path.len() == 1 {
+                tree.delete(key.as_ref());
+            } else {
+                tree.modify(key.as_ref(), |child| child.delete(&path[1..]));
+                // Prune child if it became an empty nested tree after deletion,
+                // so no ghost nodes remain in the hash tree.
+                let child_empty = tree.get(key.as_ref()).is_some_and(
+                    |child| matches!(child, NestedTree::Nested(inner) if inner.is_empty()),
+                );
+                if child_empty {
+                    tree.delete(key.as_ref());
                 }
             }
-        } else {
-            *self = NestedTree::default();
         }
     }
 

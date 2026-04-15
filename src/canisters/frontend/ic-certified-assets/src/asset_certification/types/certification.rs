@@ -1,7 +1,4 @@
-use super::{
-    http::{FALLBACK_FILE, build_ic_certificate_expression_from_headers},
-    rc_bytes::RcBytes,
-};
+use super::{http::build_ic_certificate_expression_from_headers, rc_bytes::RcBytes};
 use candid::CandidType;
 use ic_representation_independent_hash::Value;
 use serde::{Deserialize, Serialize};
@@ -60,13 +57,6 @@ impl AssetPath {
         format!("/{}", self.0.join("/"))
     }
 
-    pub fn asset_hash_path_v1(&self) -> HashTreePath {
-        HashTreePath(vec![
-            "http_assets".into(),
-            self.reconstruct_asset_key().into(),
-        ])
-    }
-
     pub fn asset_hash_path_root_v2(&self) -> HashTreePath {
         let mut hash_path: Vec<NestedTreeKey> = self
             .0
@@ -86,9 +76,10 @@ impl AssetPath {
     ) -> HashTreePath {
         let mut hash_path: Vec<NestedTreeKey> = vec![];
         if matches!(self.0.last(), Some(segment) if segment == "<*>") {
-            // it's a v2 fallback path
-            hash_path.push("http_expr".into());
-            hash_path.push("<*>".into());
+            // it's a v2 fallback path (root or directory-level)
+            for s in &self.0 {
+                hash_path.push(s.as_str().into());
+            }
         } else {
             hash_path.push("http_expr".into());
             hash_path = self.0.iter().fold(hash_path, |mut path, s| {
@@ -107,12 +98,14 @@ impl AssetPath {
         HashTreePath(hash_path)
     }
 
-    pub fn fallback_path() -> Self {
-        Self(vec!["http_expr".into(), "<*>".into()])
-    }
-
-    pub fn fallback_path_v1() -> Self {
-        Self::from(FALLBACK_FILE)
+    /// Fallback path at an arbitrary directory level.
+    /// e.g. `&["blog"]` -> `["http_expr", "blog", "<*>"]`
+    /// e.g. `&[]` -> `["http_expr", "<*>"]` (root)
+    pub fn fallback_path_at(dir_segments: &[&str]) -> Self {
+        let mut v: Vec<AssetKey> = vec!["http_expr".into()];
+        v.extend(dir_segments.iter().map(|s| s.to_string()));
+        v.push("<*>".into());
+        Self(v)
     }
 }
 
@@ -199,16 +192,15 @@ impl HashTreePath {
         AssetPath::from(path).hash_tree_path(&certificate_expression, &request_hash, response_hash)
     }
 
-    pub fn not_found_base_path_v2() -> Self {
-        HashTreePath::from(Vec::from([
-            NestedTreeKey::String("http_expr".into()),
-            NestedTreeKey::String("<*>".into()),
-        ]))
-    }
-
-    pub fn not_found_base_path_v1() -> Self {
-        let not_found_path = AssetPath::from(FALLBACK_FILE);
-        not_found_path.asset_hash_path_v1()
+    /// Base path for the fallback wildcard at a given directory level.
+    /// `&[]` -> `["http_expr", "<*>"]` (root), `&["blog"]` -> `["http_expr", "blog", "<*>"]`
+    pub fn not_found_base_path_v2(dir_segments: &[&str]) -> Self {
+        let mut v: Vec<NestedTreeKey> = vec![NestedTreeKey::String("http_expr".into())];
+        for s in dir_segments {
+            v.push(NestedTreeKey::String(s.to_string()));
+        }
+        v.push(NestedTreeKey::String("<*>".into()));
+        HashTreePath::from(v)
     }
 }
 

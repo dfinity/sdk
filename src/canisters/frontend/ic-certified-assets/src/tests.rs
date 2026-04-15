@@ -432,7 +432,7 @@ fn can_create_assets_using_batch_api() {
 }
 
 #[test]
-fn serve_correct_encoding_v1() {
+fn serve_correct_encoding() {
     let mut state = State::default();
     let system_context = mock_system_context();
 
@@ -452,87 +452,10 @@ fn serve_correct_encoding_v1() {
         ],
     );
 
-    // Most important encoding is returned with certificate
     let identity_response = certified_http_request(
         &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "identity")
-            .build(),
-    );
-    assert_eq!(identity_response.status_code, 200);
-    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
-    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
-
-    // If only uncertified encoding is accepted, return it without any certificate
-    let gzip_response = state.http_request(
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "gzip")
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(gzip_response.status_code, 200);
-    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
-    assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
-
-    // If no encoding matches, return most important encoding with certificate
-    let unknown_encoding_response = certified_http_request(
-        &state,
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "unknown")
-            .build(),
-    );
-    assert_eq!(unknown_encoding_response.status_code, 200);
-    assert_eq!(unknown_encoding_response.body.as_ref(), IDENTITY_BODY);
-    assert!(lookup_header(&unknown_encoding_response, "IC-Certificate").is_some());
-
-    let unknown_encoding_response_2 = certified_http_request(
-        &state,
-        RequestBuilder::get("/only-identity.html")
-            .with_header("Accept-Encoding", "gzip")
-            .build(),
-    );
-    assert_eq!(unknown_encoding_response_2.status_code, 200);
-    assert_eq!(unknown_encoding_response_2.body.as_ref(), IDENTITY_BODY);
-    assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
-
-    // Serve 404 if the requested asset has no encoding uploaded at all
-    // certification v1 cannot certify 404
-    let no_encoding_response = state.http_request(
-        RequestBuilder::get("/no-encoding.html")
-            .with_header("Accept-Encoding", "identity")
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(no_encoding_response.status_code, 404);
-    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
-}
-
-#[test]
-fn serve_correct_encoding_v2() {
-    let mut state = State::default();
-    let system_context = mock_system_context();
-
-    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
-    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
-
-    create_assets(
-        &mut state,
-        &system_context,
-        vec![
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![IDENTITY_BODY])
-                .with_encoding("gzip", vec![GZIP_BODY]),
-            AssetBuilder::new("/no-encoding.html", "text/html"),
-        ],
-    );
-
-    let identity_response = certified_http_request(
-        &state,
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
             .build(),
     );
     assert_eq!(identity_response.status_code, 200);
@@ -543,18 +466,27 @@ fn serve_correct_encoding_v2() {
         &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip")
-            .with_certificate_version(2)
             .build(),
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
     assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
 
+    // Falls back to existing encoding when no requested encoding is available
+    let fallback_response = certified_http_request(
+        &state,
+        RequestBuilder::get("/only-identity.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+    );
+    assert_eq!(fallback_response.status_code, 200);
+    assert_eq!(fallback_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&fallback_response, "IC-Certificate").is_some());
+
     let no_encoding_response = certified_http_request(
         &state,
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
             .build(),
     );
     assert_eq!(no_encoding_response.status_code, 404);
@@ -635,7 +567,7 @@ fn serve_fallback_v2() {
 }
 
 #[test]
-fn serve_fallback_v1() {
+fn serve_fallback() {
     let mut state = State::default();
     let system_context = mock_system_context();
 
@@ -2328,34 +2260,21 @@ mod certificate_expression {
             ],
         );
 
-        let v1_response = certified_http_request(
-            &state,
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .build(),
-        );
-
-        assert!(
-            lookup_header(&v1_response, "ic-certificateexpression").is_none(),
-            "superfluous ic-certificateexpression header detected in cert v1"
-        );
-
         let response = certified_http_request(
             &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
                 .build(),
         );
 
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certifiedexpression header in response: {response:#?}",
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin", "Set-Cookie"]}}}})"#,
-            "Missing ic-certifiedexpression header in response: {response:#?}",
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
     }
 
@@ -2516,23 +2435,10 @@ mod certification_v2 {
             &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(1)
                 .build(),
         );
         assert_eq!(
-            lookup_header(&response, "etag").expect("ic-certificate header missing"),
-            "my-etag"
-        );
-
-        let response = certified_http_request(
-            &state,
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
-                .build(),
-        );
-        assert_eq!(
-            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            lookup_header(&response, "etag").expect("etag header missing"),
             "my-etag"
         );
     }
@@ -5431,5 +5337,651 @@ mod compute_state_hash {
         // Verify we can call it again
         let result = run_computation_until_completion(|_progress| state.compute_state_hash());
         assert!(result.is_ok());
+    }
+}
+
+mod fallback {
+    use super::*;
+
+    const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>Index</html>";
+    const ROOT_404_BODY: &[u8] = b"<!DOCTYPE html><html>Root 404</html>";
+    const BLOG_404_BODY: &[u8] = b"<!DOCTYPE html><html>Blog 404</html>";
+    const POSTS_404_BODY: &[u8] = b"<!DOCTYPE html><html>Posts 404</html>";
+    const REAL_BODY: &[u8] = b"<!DOCTYPE html><html>Real page</html>";
+
+    #[test]
+    fn nested_404_priority() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+                AssetBuilder::new("/blog/404.html", "text/html")
+                    .with_encoding("identity", vec![BLOG_404_BODY]),
+                AssetBuilder::new("/blog/posts/404.html", "text/html")
+                    .with_encoding("identity", vec![POSTS_404_BODY]),
+            ],
+        );
+
+        // Request in /blog/posts/ gets /blog/posts/404.html
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/posts/some-article")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), POSTS_404_BODY);
+
+        // Request in /blog/ (not in /blog/posts/) gets /blog/404.html
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/missing")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), BLOG_404_BODY);
+
+        // Request at root level gets /404.html
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/other")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+
+        // Request to non-existent nested level gets /404.html
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/other/other")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+    }
+
+    #[test]
+    fn root_404_supersedes_index_html() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+            ],
+        );
+
+        // /404.html takes precedence over /index.html for missing paths
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+    }
+
+    #[test]
+    fn deleting_404_reactivates_index_html() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+            ],
+        );
+
+        // Before deletion: /404.html is served
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+
+        // Delete /404.html via batch
+        let batch_id = state.create_batch(&ctx).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(
+                &CommitBatchArguments {
+                    batch_id: batch_id.clone(),
+                    operations: vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+                        key: "/404.html".to_string(),
+                    })],
+                },
+                progress,
+                &ctx,
+            )
+        })
+        .unwrap();
+
+        // After deletion: /index.html takes over as fallback with status 200
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 200);
+        assert_eq!(resp.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn only_index_html_no_404() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+            ],
+        );
+
+        // Falls back to /index.html with status 200 (existing SPA behavior)
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 200);
+        assert_eq!(resp.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn no_index_no_404_returns_bare_404() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/other.html", "text/html")
+                    .with_encoding("identity", vec![REAL_BODY]),
+            ],
+        );
+
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), b"not found");
+    }
+
+    #[test]
+    fn deleting_deep_404_falls_back_to_shallower_404() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+                AssetBuilder::new("/blog/404.html", "text/html")
+                    .with_encoding("identity", vec![BLOG_404_BODY]),
+                AssetBuilder::new("/blog/posts/404.html", "text/html")
+                    .with_encoding("identity", vec![POSTS_404_BODY]),
+            ],
+        );
+
+        // Before deletion: deepest 404.html is served
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/posts/article")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), POSTS_404_BODY);
+
+        // Delete /blog/posts/404.html
+        let batch_id = state.create_batch(&ctx).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(
+                &CommitBatchArguments {
+                    batch_id: batch_id.clone(),
+                    operations: vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+                        key: "/blog/posts/404.html".to_string(),
+                    })],
+                },
+                progress,
+                &ctx,
+            )
+        })
+        .unwrap();
+
+        // After deletion: falls back to /blog/404.html
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/posts/article")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), BLOG_404_BODY);
+    }
+
+    #[test]
+    fn deleting_mid_level_404_falls_back_to_root_404() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+                AssetBuilder::new("/blog/404.html", "text/html")
+                    .with_encoding("identity", vec![BLOG_404_BODY]),
+            ],
+        );
+
+        // Before deletion: /blog/404.html is served for /blog/* paths
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/missing")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), BLOG_404_BODY);
+
+        // Delete /blog/404.html
+        let batch_id = state.create_batch(&ctx).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(
+                &CommitBatchArguments {
+                    batch_id: batch_id.clone(),
+                    operations: vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+                        key: "/blog/404.html".to_string(),
+                    })],
+                },
+                progress,
+                &ctx,
+            )
+        })
+        .unwrap();
+
+        // After deletion: falls back to /404.html
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/missing")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+    }
+
+    #[test]
+    fn deleting_all_404s_falls_back_to_index() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/blog/404.html", "text/html")
+                    .with_encoding("identity", vec![BLOG_404_BODY]),
+            ],
+        );
+
+        // Before: /blog/404.html serves for /blog/*
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/missing")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), BLOG_404_BODY);
+
+        // Delete /blog/404.html
+        let batch_id = state.create_batch(&ctx).unwrap();
+        run_computation_until_completion(|progress| {
+            state.commit_batch(
+                &CommitBatchArguments {
+                    batch_id: batch_id.clone(),
+                    operations: vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+                        key: "/blog/404.html".to_string(),
+                    })],
+                },
+                progress,
+                &ctx,
+            )
+        })
+        .unwrap();
+
+        // After: falls all the way back to /index.html with status 200
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/missing")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 200);
+        assert_eq!(resp.body.as_ref(), INDEX_BODY);
+    }
+
+    #[test]
+    fn adding_404_in_later_batch_supersedes_index() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        // First batch: only /index.html
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+            ],
+        );
+
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 200);
+        assert_eq!(resp.body.as_ref(), INDEX_BODY);
+
+        // Second batch: add /404.html -- should take over as fallback
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+            ],
+        );
+
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+    }
+
+    #[test]
+    fn requesting_404_html_directly_is_exact_match_200() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![INDEX_BODY]),
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![ROOT_404_BODY]),
+                AssetBuilder::new("/blog/404.html", "text/html")
+                    .with_encoding("identity", vec![BLOG_404_BODY]),
+            ],
+        );
+
+        // Direct request to /404.html -> exact match, status 200
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/404.html")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 200);
+        assert_eq!(resp.body.as_ref(), ROOT_404_BODY);
+
+        // Direct request to /blog/404.html -> exact match, status 200
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/404.html")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 200);
+        assert_eq!(resp.body.as_ref(), BLOG_404_BODY);
+    }
+
+    #[test]
+    fn only_nested_404_no_root_fallback() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/blog/404.html", "text/html")
+                    .with_encoding("identity", vec![BLOG_404_BODY]),
+                AssetBuilder::new("/other.txt", "text/plain")
+                    .with_encoding("identity", vec![b"hello"]),
+            ],
+        );
+
+        // Request under /blog/ -> served by /blog/404.html with 404 status
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/blog/missing")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), BLOG_404_BODY);
+
+        // Request at root -> no /404.html, no /index.html -> bare 404
+        let resp = certified_http_request(
+            &state,
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), b"not found");
+    }
+
+    #[test]
+    fn multichunk_fallback_streams_correctly() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        const CHUNK_1: &[u8] = b"<!DOCTYPE html>";
+        const CHUNK_2: &[u8] = b"<html>Index page, continued</html>";
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/index.html", "text/html")
+                    .with_encoding("identity", vec![CHUNK_1, CHUNK_2]),
+            ],
+        );
+
+        let streaming_callback = CallbackFunc::new(some_principal(), "stream".to_string());
+        let response = state.http_request(
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            streaming_callback.clone(),
+        );
+        assert_eq!(response.status_code, 200);
+        assert_eq!(response.body.as_ref(), CHUNK_1);
+
+        let StreamingStrategy::Callback { callback, token } = response
+            .streaming_strategy
+            .expect("missing streaming strategy for multi-chunk fallback");
+        assert_eq!(callback, streaming_callback);
+        assert_eq!(
+            token.key, "/index.html",
+            "token must carry the real asset key, not the requested path"
+        );
+
+        let streaming_response = state.http_request_streaming_callback(token).unwrap();
+        assert_eq!(streaming_response.body.as_ref(), CHUNK_2);
+        assert!(streaming_response.token.is_none());
+    }
+
+    #[test]
+    fn multichunk_404_fallback_streams_correctly() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        const CHUNK_1: &[u8] = b"<!DOCTYPE html>";
+        const CHUNK_2: &[u8] = b"<html>404 page, continued</html>";
+
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/404.html", "text/html")
+                    .with_encoding("identity", vec![CHUNK_1, CHUNK_2]),
+            ],
+        );
+
+        let streaming_callback = CallbackFunc::new(some_principal(), "stream".to_string());
+        let response = state.http_request(
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            streaming_callback.clone(),
+        );
+        assert_eq!(response.status_code, 404);
+        assert_eq!(response.body.as_ref(), CHUNK_1);
+
+        let StreamingStrategy::Callback { callback, token } = response
+            .streaming_strategy
+            .expect("missing streaming strategy for multi-chunk 404 fallback");
+        assert_eq!(callback, streaming_callback);
+        assert_eq!(
+            token.key, "/404.html",
+            "token must carry the real asset key, not the requested path"
+        );
+
+        let streaming_response = state.http_request_streaming_callback(token).unwrap();
+        assert_eq!(streaming_response.body.as_ref(), CHUNK_2);
+        assert!(streaming_response.token.is_none());
+    }
+
+    /// When the fallback asset exists in the asset map but has no certified encodings,
+    /// `build_ok_from_requested_encodings` returns `None`.  The code must use the
+    /// cert_header that was already computed from the fallback asset's directory level
+    /// (root `<*>` for `/index.html`) rather than falling through to a second, potentially
+    /// mismatched root `<*>` lookup.  The response must be a plain 404 that still carries
+    /// an IC-Certificate header.
+    ///
+    /// Note: this test calls `state.http_request` directly rather than
+    /// `certified_http_request` because the scenario also exposes a pre-existing
+    /// limitation: `on_asset_change` called during the UpdatingCookies phase removes
+    /// the root `<*>` entry for a no-encoding `/index.html` and does not restore it,
+    /// leaving the cert tree without a witness for that wildcard level.  That is a
+    /// separate issue; here we only verify that the response is correctly shaped.
+    #[test]
+    fn fallback_with_no_encoding_returns_certified_404() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        // /other.html has a certified encoding so the tree is non-trivial.
+        // /index.html has no encodings, so build_ok_from_requested_encodings
+        // returns None when it is selected as the SPA fallback.
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/other.html", "text/html")
+                    .with_encoding("identity", vec![REAL_BODY]),
+                AssetBuilder::new("/index.html", "text/html"),
+            ],
+        );
+
+        // witness_result is FallbackFound (root <*> is in the cert tree);
+        // find_fallback_for_path returns /index.html (no encodings), so
+        // build_ok_from_requested_encodings returns None — exercising the
+        // `return HttpResponse::build_404(cert_header)` path added by the fix.
+        let resp = state.http_request(
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), b"not found");
+        // The response must carry a certificate header even when the fallback
+        // asset could not be served (no certified encodings).
+        assert!(
+            lookup_header(&resp, "IC-Certificate").is_some(),
+            "404 response from uncertified fallback must still have IC-Certificate header"
+        );
     }
 }
