@@ -24,6 +24,14 @@ Updated replica to commit 142182f2ec4d916fa32e32da59239c4eb0c87bd3.
 
 Removed support for asset certification v1
 
+#### feat: hierarchical 404.html fallback support
+
+The asset canister now supports `404.html` files as directory-level fallbacks.
+When a requested path has no matching asset, the canister searches for the deepest
+`404.html` file that covers that path (e.g. `/blog/posts/404.html`, then `/blog/404.html`,
+then `/404.html`) and serves it with HTTP status 404. If no `404.html` is found,
+`/index.html` is still served as SPA-enabling fallback with status 200.
+
 # 0.31.0
 
 ### chore!: `dfx generate` now imports `@icp-sdk/core` instead of `@dfinity/` packages
