@@ -1422,6 +1422,9 @@ impl State {
                     ) {
                         return response;
                     }
+                    // Fallback asset exists but has no certified encoding; serve a plain 404
+                    // using the cert_header that already carries the correct expr_path.
+                    return HttpResponse::build_404(cert_header);
                 }
             }
             let expr_path = CertifiedResponses::expr_path_for_fallback(&[]);

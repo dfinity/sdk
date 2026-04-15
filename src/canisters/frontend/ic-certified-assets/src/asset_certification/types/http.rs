@@ -105,10 +105,9 @@ impl HttpRequest {
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
 
-    // Spec:
-    // If not set: assume version 1.
-    // If available: use requested certificate version.
-    // If requested version is not available: use latest available version.
+    // v1 certification has been removed; always use v2.
+    // The `certificate_version` field is retained in the Candid interface for
+    // backwards compatibility but is no longer consulted.
     pub fn get_certificate_version(&self) -> u16 {
         2
     }

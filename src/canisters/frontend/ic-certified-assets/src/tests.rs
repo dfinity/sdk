@@ -491,6 +491,7 @@ fn serve_correct_encoding() {
     );
     assert_eq!(no_encoding_response.status_code, 404);
     assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+    assert!(lookup_header(&no_encoding_response, "IC-Certificate").is_some());
 }
 
 #[test]
@@ -5928,5 +5929,59 @@ mod fallback {
         let streaming_response = state.http_request_streaming_callback(token).unwrap();
         assert_eq!(streaming_response.body.as_ref(), CHUNK_2);
         assert!(streaming_response.token.is_none());
+    }
+
+    /// When the fallback asset exists in the asset map but has no certified encodings,
+    /// `build_ok_from_requested_encodings` returns `None`.  The code must use the
+    /// cert_header that was already computed from the fallback asset's directory level
+    /// (root `<*>` for `/index.html`) rather than falling through to a second, potentially
+    /// mismatched root `<*>` lookup.  The response must be a plain 404 that still carries
+    /// an IC-Certificate header.
+    ///
+    /// Note: this test calls `state.http_request` directly rather than
+    /// `certified_http_request` because the scenario also exposes a pre-existing
+    /// limitation: `on_asset_change` called during the UpdatingCookies phase removes
+    /// the root `<*>` entry for a no-encoding `/index.html` and does not restore it,
+    /// leaving the cert tree without a witness for that wildcard level.  That is a
+    /// separate issue; here we only verify that the response is correctly shaped.
+    #[test]
+    fn fallback_with_no_encoding_returns_certified_404() {
+        let mut state = State::default();
+        let ctx = mock_system_context();
+
+        // /other.html has a certified encoding so the tree is non-trivial.
+        // /index.html has no encodings, so build_ok_from_requested_encodings
+        // returns None when it is selected as the SPA fallback.
+        create_assets(
+            &mut state,
+            &ctx,
+            vec![
+                AssetBuilder::new("/other.html", "text/html")
+                    .with_encoding("identity", vec![REAL_BODY]),
+                AssetBuilder::new("/index.html", "text/html"),
+            ],
+        );
+
+        // witness_result is FallbackFound (root <*> is in the cert tree);
+        // find_fallback_for_path returns /index.html (no encodings), so
+        // build_ok_from_requested_encodings returns None — exercising the
+        // `return HttpResponse::build_404(cert_header)` path added by the fix.
+        let resp = state.http_request(
+            RequestBuilder::get("/nonexistent")
+                .with_header("Accept-Encoding", "identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert_eq!(resp.status_code, 404);
+        assert_eq!(resp.body.as_ref(), b"not found");
+        // The response must carry a certificate header even when the fallback
+        // asset could not be served (no certified encodings).
+        assert!(
+            lookup_header(&resp, "IC-Certificate").is_some(),
+            "404 response from uncertified fallback must still have IC-Certificate header"
+        );
     }
 }

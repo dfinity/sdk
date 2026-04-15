@@ -192,22 +192,4 @@ impl CertifiedResponses {
                 + ":",
         )
     }
-
-    /// Same as `witness_path`, but produces a header suitable for exact-path or root-fallback responses.
-    pub fn witness_to_header(
-        &self,
-        path: &str,
-        certificate: &[u8],
-    ) -> (HeaderField, WitnessResult) {
-        let (witness, witness_result) = self.witness_path(path);
-        let expr_path = if witness_result == WitnessResult::PathFound {
-            self.expr_path(path)
-        } else {
-            HashTreePath::not_found_base_path_v2(&[]).expr_path()
-        };
-        (
-            Self::build_certificate_header(&witness, &expr_path, certificate),
-            witness_result,
-        )
-    }
 }
