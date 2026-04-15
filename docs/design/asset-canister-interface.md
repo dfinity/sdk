@@ -545,12 +545,11 @@ This operation deletes all assets.
 
 These are set by the [configure()](#method-configure) method.  All limits default to unlimited.
 
-| Configuration | Default                                    | Description                                                                         |
-|---------------|--------------------------------------------|-------------------------------------------------------------------------------------|
-| `max_batches` | unlimited                                  | The maximum number of batches being uploaded at one time.                           |
-| `max_chunks`  | unlimited                                  | The maximum number of chunks across all batches being uploaded.                     |
-| `max_bytes`   | unlimited                                  | The maximum number of total size of content bytes across all chunks being uploaded. |
-| `fallback`    | `{ path = "/index.html"; status_code = 200 }` | Which file to serve, and with what HTTP status code, when a requested path has no matching asset. If the configured file does not exist, a synthetic 404 response is served instead. Set to `null` to reset to default. |
+| Configuration | Description                                                                         |
+|---------------|-------------------------------------------------------------------------------------|
+| `max_batches` | The maximum number of batches being uploaded at one time.                           |
+| `max_chunks`  | The maximum number of chunks across all batches being uploaded.                     |
+| `max_bytes`   | The maximum number of total size of content bytes across all chunks being uploaded. |
 
 ## API Versions
 

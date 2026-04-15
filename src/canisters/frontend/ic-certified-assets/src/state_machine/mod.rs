@@ -18,8 +18,9 @@ use crate::{
                 RequestHash, ResponseHash, WitnessResult,
             },
             http::{
-                CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
-                StreamingCallbackToken, build_ic_certificate_expression_from_headers_and_encoding,
+                CallbackFunc, FALLBACK_FILE, HttpRequest, HttpResponse,
+                StreamingCallbackHttpResponse, StreamingCallbackToken,
+                build_ic_certificate_expression_from_headers_and_encoding,
                 build_ic_certificate_expression_header, response_hash,
             },
             rc_bytes::RcBytes,
@@ -95,11 +96,11 @@ impl AssetEncoding {
         })
     }
 
-    fn not_found_hash_path(&self, status_code: u16) -> Option<HashTreePath> {
+    fn not_found_hash_path(&self) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes
                 .as_ref()
-                .and_then(|hashes| hashes.get(&status_code))
+                .and_then(|hashes| hashes.get(&200))
                 .map(|response_hash| {
                     HashTreePath::from(Vec::<NestedTreeKey>::from([
                         "http_expr".into(),
@@ -112,18 +113,12 @@ impl AssetEncoding {
         })
     }
 
-    /// Computes a response hash for each status code this encoding may be served with.
-    ///
-    /// Every asset is certified for 200 (OK) and 304 (Not Modified). The fallback asset
-    /// is additionally served under the wildcard `<*>` route with the configured fallback
-    /// status code, so pass that code as `extra_status_code` to certify it as well.
     fn compute_response_hashes(
         &self,
         headers: &Option<BTreeMap<String, String>>,
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
-        extra_status_code: Option<u16>,
     ) -> HashMap<u16, [u8; 32]> {
         // Collect all user-defined headers
         let base_headers: Vec<(String, Value)> = build_headers(
@@ -147,13 +142,6 @@ impl AssetEncoding {
         let mut response_hashes = HashMap::new();
         response_hashes.insert(200, response_hash_200);
         response_hashes.insert(304, response_hash_304);
-
-        if let Some(code) = extra_status_code {
-            response_hashes.entry(code).or_insert_with(|| {
-                let ResponseHash(hash) = response_hash(&base_headers, code, &self.sha256);
-                hash
-            });
-        }
 
         debug_assert!(
             STATUS_CODES_TO_CERTIFY
@@ -300,21 +288,6 @@ pub struct Configuration {
     pub max_batches: Option<u64>,
     pub max_chunks: Option<u64>,
     pub max_bytes: Option<u64>,
-    pub fallback: Option<FallbackConfiguration>,
-}
-
-fn fallback_path(fallback: &Option<FallbackConfiguration>) -> &str {
-    match fallback {
-        Some(f) => &f.path,
-        None => FallbackConfiguration::DEFAULT_PATH,
-    }
-}
-
-fn fallback_status_code(fallback: &Option<FallbackConfiguration>) -> u16 {
-    match fallback {
-        Some(f) => f.status_code,
-        None => FallbackConfiguration::DEFAULT_STATUS_CODE,
-    }
 }
 
 #[derive(Default)]
@@ -541,7 +514,6 @@ impl State {
             asset,
             dependent_keys,
             Some(&self.encoded_canister_env),
-            &self.configuration.fallback,
         );
 
         Ok(())
@@ -561,7 +533,6 @@ impl State {
                 asset,
                 dependent_keys,
                 None,
-                &self.configuration.fallback,
             );
         }
 
@@ -569,15 +540,10 @@ impl State {
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
-        let fallback_path = fallback_path(&self.configuration.fallback);
         if self.assets.contains_key(&arg.key) {
-            self.asset_hashes.remove_responses_for_path(&arg.key);
-            if arg.key == fallback_path {
-                self.asset_hashes.remove_fallback_responses();
-            }
             for dependent in self.dependent_keys(&arg.key) {
                 self.asset_hashes.remove_responses_for_path(&dependent);
-                if dependent == fallback_path {
+                if dependent == FALLBACK_FILE {
                     self.asset_hashes.remove_fallback_responses();
                 }
             }
@@ -588,18 +554,10 @@ impl State {
             if self.assets.contains_key(&key) {
                 let dependent_keys = self.dependent_keys(&key);
                 if let Some(asset) = self.assets.get_mut(&key) {
-                    on_asset_change(
-                        &mut self.asset_hashes,
-                        &key,
-                        asset,
-                        dependent_keys,
-                        None,
-                        &self.configuration.fallback,
-                    );
+                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys, None);
                 }
             }
         }
-        self.certify_404_if_required();
     }
 
     pub fn clear(&mut self) {
@@ -677,7 +635,6 @@ impl State {
             asset,
             dependent_keys,
             Some(&self.encoded_canister_env),
-            &self.configuration.fallback,
         );
         self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
 
@@ -1034,11 +991,11 @@ impl State {
                         asset,
                         dependent_keys,
                         Some(&self.encoded_canister_env),
-                        &self.configuration.fallback,
                     );
                 }
 
                 // Update index and return progress
+                ;
                 let progress = CommitBatchProgress::UpdatingCookies {
                     html_keys,
                     operation_index: operation_index + 1,
@@ -1347,12 +1304,11 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        let fallback_path = fallback_path(&self.configuration.fallback).to_string();
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
-        } else if let Ok(asset) = self.get_asset(&fallback_path) {
+        } else if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
@@ -1362,8 +1318,8 @@ impl State {
             self.asset_hashes.witness_to_header(path, certificate);
 
         if witness_result == WitnessResult::FallbackFound {
-            if let Ok(asset) = self.get_asset(&fallback_path) {
-                if let Some(mut response) = HttpResponse::build_ok_from_requested_encodings(
+            if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
+                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                     asset,
                     &requested_encodings,
                     path,
@@ -1372,10 +1328,6 @@ impl State {
                     &callback,
                     &etags,
                 ) {
-                    // Do not modify etag responses
-                    if response.status_code != 304 {
-                        response.status_code = fallback_status_code(&self.configuration.fallback);
-                    }
                     return response;
                 }
             }
@@ -1516,7 +1468,6 @@ impl State {
             asset,
             dependent_keys,
             Some(&self.encoded_canister_env),
-            &self.configuration.fallback,
         );
 
         Ok(())
@@ -1540,11 +1491,13 @@ impl State {
     }
 
     pub fn get_configuration(&self) -> ConfigurationResponse {
+        let max_batches = self.configuration.max_batches;
+        let max_chunks = self.configuration.max_chunks;
+        let max_bytes = self.configuration.max_bytes;
         ConfigurationResponse {
-            max_batches: self.configuration.max_batches,
-            max_chunks: self.configuration.max_chunks,
-            max_bytes: self.configuration.max_bytes,
-            fallback: self.configuration.fallback.clone(),
+            max_batches,
+            max_chunks,
+            max_bytes,
         }
     }
 
@@ -1558,39 +1511,12 @@ impl State {
         if let Some(max_bytes) = args.max_bytes {
             self.configuration.max_bytes = max_bytes;
         }
-        if let Some(fallback) = args.fallback {
-            let old_fallback = self.configuration.fallback.take();
-            self.configuration.fallback = fallback;
-            if old_fallback != self.configuration.fallback {
-                self.recertify_fallback();
-            }
-        }
-    }
-
-    fn recertify_fallback(&mut self) {
-        self.asset_hashes.remove_fallback_responses();
-
-        let fallback_path = fallback_path(&self.configuration.fallback).to_string();
-        let dependent_keys = self.dependent_keys(&fallback_path);
-
-        if let Some(asset) = self.assets.get_mut(&fallback_path) {
-            on_asset_change(
-                &mut self.asset_hashes,
-                &fallback_path,
-                asset,
-                dependent_keys,
-                Some(&self.encoded_canister_env),
-                &self.configuration.fallback,
-            );
-        }
-
-        self.certify_404_if_required();
     }
 
     fn certify_404_if_required(&mut self) {
         if !self
             .asset_hashes
-            .has_leaves(HashTreePath::not_found_base_path_v2().as_vec())
+            .contains_path(HashTreePath::not_found_base_path_v2().as_vec())
         {
             let response = HttpResponse::uncertified_404();
             let headers: Vec<_> = response
@@ -1653,14 +1579,7 @@ impl From<StableStateV2> for State {
                     enc.certified = false;
                 }
                 // Do not pass the canister env here, because we want to load the assets as they are (with the old cookie value)
-                on_asset_change(
-                    &mut state.asset_hashes,
-                    &key,
-                    asset,
-                    dependent_keys,
-                    None,
-                    &state.configuration.fallback,
-                );
+                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys, None);
             } else {
                 // shouldn't reach this
             }
@@ -1702,13 +1621,11 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
     encoded_canister_env: Option<&String>,
-    fallback: &Option<FallbackConfiguration>,
 ) {
     let mut affected_keys = dependent_keys;
     affected_keys.push(key.to_string());
 
-    let fallback_path = fallback_path(fallback);
-    delete_preexisting_asset_hashes(asset_hashes, &affected_keys, fallback_path);
+    delete_preexisting_asset_hashes(asset_hashes, &affected_keys);
 
     if asset.encodings.is_empty() {
         return;
@@ -1728,9 +1645,6 @@ fn on_asset_change(
 
     asset.update_ic_certificate_expressions();
 
-    let is_fallback = affected_keys.iter().any(|k| k == fallback_path);
-    let fallback_status = fallback_status_code(fallback);
-
     let Asset {
         content_type,
         encodings,
@@ -1739,28 +1653,11 @@ fn on_asset_change(
         ..
     } = asset;
 
-    let extra_status_code = if is_fallback {
-        Some(fallback_status)
-    } else {
-        None
-    };
-
     for (enc_name, enc) in encodings.iter_mut() {
-        enc.response_hashes = Some(enc.compute_response_hashes(
-            headers,
-            max_age,
-            content_type,
-            enc_name,
-            extra_status_code,
-        ));
+        enc.response_hashes =
+            Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
 
-        insert_new_response_hashes_for_encoding(
-            asset_hashes,
-            enc,
-            &affected_keys,
-            fallback_path,
-            fallback_status,
-        );
+        insert_new_response_hashes_for_encoding(asset_hashes, enc, &affected_keys);
         enc.certified = true;
     }
 }
@@ -1768,11 +1665,10 @@ fn on_asset_change(
 fn delete_preexisting_asset_hashes(
     asset_hashes: &mut CertifiedResponses,
     affected_keys: &[String],
-    fallback_path: &str,
 ) {
     for key in affected_keys.iter() {
         asset_hashes.remove_responses_for_path(key);
-        if key == fallback_path {
+        if key == FALLBACK_FILE {
             asset_hashes.remove_fallback_responses();
         }
     }
@@ -1781,24 +1677,22 @@ fn delete_preexisting_asset_hashes(
 fn insert_new_response_hashes_for_encoding(
     asset_hashes: &mut CertifiedResponses,
     enc: &AssetEncoding,
-    affected_keys: &[String],
-    fallback_path: &str,
-    fallback_status: u16,
+    affected_keys: &Vec<String>,
 ) {
     for key in affected_keys {
-        let key_path = AssetPath::from(key);
+        let key_path = AssetPath::from(&key);
         for status_code in STATUS_CODES_TO_CERTIFY {
             if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
                 asset_hashes.certify_response_precomputed(&hash_path);
             } else {
                 unreachable!(
                     "Could not create a hash path for a status code {} and key {} - did you forget to compute a response hash for this status code?",
-                    status_code, key
+                    status_code, &key
                 );
             }
         }
-        if key == fallback_path {
-            if let Some(not_found_hash_path) = enc.not_found_hash_path(fallback_status) {
+        if key == FALLBACK_FILE {
+            if let Some(not_found_hash_path) = enc.not_found_hash_path() {
                 asset_hashes.certify_response_precomputed(&not_found_hash_path);
             }
         }

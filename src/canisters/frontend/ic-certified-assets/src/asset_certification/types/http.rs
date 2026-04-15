@@ -9,6 +9,9 @@ use ic_representation_independent_hash::{Value, representation_independent_hash}
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
+/// The file to serve if the requested file wasn't found.
+pub const FALLBACK_FILE: &str = "/index.html";
+
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
 pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;

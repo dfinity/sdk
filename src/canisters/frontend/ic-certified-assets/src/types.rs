@@ -2,7 +2,6 @@
 //! endpoints.
 use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{CandidType, Deserialize, Nat, Principal};
-use serde::Serialize;
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
 
@@ -11,23 +10,11 @@ pub type ChunkId = Nat;
 
 // IDL Types
 
-#[derive(Clone, Debug, PartialEq, Eq, CandidType, Deserialize, Serialize)]
-pub struct FallbackConfiguration {
-    pub path: String,
-    pub status_code: u16,
-}
-
-impl FallbackConfiguration {
-    pub const DEFAULT_PATH: &str = "/index.html";
-    pub const DEFAULT_STATUS_CODE: u16 = 200;
-}
-
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct ConfigureArguments {
     pub max_batches: Option<Option<u64>>,
     pub max_chunks: Option<Option<u64>>,
     pub max_bytes: Option<Option<u64>>,
-    pub fallback: Option<Option<FallbackConfiguration>>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -35,7 +22,6 @@ pub struct ConfigurationResponse {
     pub max_batches: Option<u64>,
     pub max_chunks: Option<u64>,
     pub max_bytes: Option<u64>,
-    pub fallback: Option<FallbackConfiguration>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
