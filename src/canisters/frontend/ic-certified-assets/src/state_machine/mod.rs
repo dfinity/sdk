@@ -1328,18 +1328,23 @@ impl State {
     }
 
     /// Searches deepest-first for a 404.html fallback, then /index.html.
+    /// For `/blog/posts/foo` the search order is:
+    ///   `/blog/posts/foo/404.html`, `/blog/posts/404.html`, `/blog/404.html`,
+    ///   `/404.html`, `/index.html`
+    ///
     /// Returns `(fallback_key, asset, status_code)`.
     fn find_fallback_for_path(&self, path: &str) -> Option<(String, &Asset, u16)> {
-        let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-        for depth in (0..=segments.len()).rev() {
-            let dir = if depth == 0 {
-                String::new()
-            } else {
-                format!("/{}", segments[..depth].join("/"))
-            };
-            let key_404 = format!("{dir}/404.html");
+        let mut dir = path.strip_suffix('/').unwrap_or(path);
+        loop {
+            let mut key_404 = String::with_capacity(dir.len() + "/404.html".len());
+            key_404.push_str(dir);
+            key_404.push_str("/404.html");
             if let Ok(asset) = self.get_asset(&key_404) {
                 return Some((key_404, asset, 404));
+            }
+            match dir.rfind('/') {
+                Some(i) => dir = &dir[..i],
+                None => break,
             }
         }
         self.get_asset(&FALLBACK_FILE.to_string())
