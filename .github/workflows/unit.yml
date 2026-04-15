@@ -25,9 +25,9 @@ jobs:
     outputs:
       sources: ${{ steps.filter.outputs.sources }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -47,7 +47,7 @@ jobs:
       matrix:
         os: [ ubuntu-24.04, ubuntu-24.04-arm, macos-15 ]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       # Remove pre-installed stable toolchain so it doesn't pollute the
       # rust-cache environment hash.  macOS (and sometimes Linux) runner
       # images ship with varying stable versions, making the hash
@@ -56,7 +56,7 @@ jobs:
         run: rustup toolchain remove stable 2>/dev/null || true
       # This step also handles Rust-specific caching
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@150fca883cd4034361b621bd4e6a9d34e5143606 # v1.15.4
         with:
           cache-shared-key: debug
       - name: Check cargo test
