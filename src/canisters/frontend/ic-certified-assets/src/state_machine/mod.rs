@@ -14,8 +14,8 @@ use crate::{
         CertifiedResponses,
         types::{
             certification::{
-                AssetKey, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
-                RequestHash, ResponseHash, WitnessResult,
+                AssetKey, AssetPath, CertificateExpression, HashTreePath, RequestHash,
+                ResponseHash, WitnessResult,
             },
             http::{
                 CallbackFunc, FALLBACK_FILE, HttpRequest, HttpResponse,
@@ -97,19 +97,17 @@ impl AssetEncoding {
         })
     }
 
-    fn not_found_hash_path(&self) -> Option<HashTreePath> {
+    /// Hash path for certifying this encoding as a fallback at a `<*>` level.
+    /// `dir_segments` selects the directory level (`&[]` = root).
+    /// `status_code` selects which precomputed response hash to use (e.g. 200 or 404).
+    fn fallback_hash_path(&self, dir_segments: &[&str], status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes
                 .as_ref()
-                .and_then(|hashes| hashes.get(&200))
-                .map(|response_hash| {
-                    HashTreePath::from(Vec::<NestedTreeKey>::from([
-                        "http_expr".into(),
-                        "<*>".into(), // 404 not found wildcard segment
-                        ce.expression_hash.as_slice().into(),
-                        "".into(), // no request certification - use empty node
-                        response_hash.as_slice().into(),
-                    ]))
+                .and_then(|hashes| hashes.get(&status_code))
+                .map(|rh| {
+                    let asset_path = AssetPath::fallback_path_at(dir_segments);
+                    asset_path.hash_tree_path(ce, &RequestHash::default(), rh.into())
                 })
         })
     }
@@ -156,19 +154,6 @@ impl AssetEncoding {
         );
 
         response_hashes
-    }
-
-    /// Hash path for certifying this encoding as a 404.html fallback at a directory's `<*>` level.
-    fn fallback_404_hash_path(&self, dir_segments: &[&str]) -> Option<HashTreePath> {
-        self.certificate_expression.as_ref().and_then(|ce| {
-            self.response_hashes
-                .as_ref()
-                .and_then(|hashes| hashes.get(&404))
-                .map(|rh| {
-                    let asset_path = AssetPath::fallback_path_at(dir_segments);
-                    asset_path.hash_tree_path(ce, &RequestHash::default(), rh.into())
-                })
-        })
     }
 }
 
@@ -1390,9 +1375,6 @@ impl State {
             let cert_header =
                 CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
             if let Ok(asset) = self.get_asset(&path.into()) {
-                if !asset.allow_raw_access() && req.is_raw_domain() {
-                    return req.redirect_from_raw_to_certified_domain();
-                }
                 if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                     asset,
                     &requested_encodings,
@@ -1407,36 +1389,36 @@ impl State {
                 }
             }
             HttpResponse::build_404(cert_header)
-        } else if witness_result == WitnessResult::FallbackFound {
-            if let Some((fb_key, fb_asset, status_code)) = self.find_fallback_for_path(path) {
-                let dir = if is_404_html(&fb_key) {
-                    fallback_directory(&fb_key)
-                } else {
-                    ""
-                };
-                let dir_segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
-                let expr_path = CertifiedResponses::expr_path_for_fallback(&dir_segments);
-                let cert_header =
-                    CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
-                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
-                    fb_asset,
-                    &requested_encodings,
-                    path,
-                    chunk_index,
-                    Some(&cert_header),
-                    &callback,
-                    &etags,
-                    status_code,
-                ) {
-                    return response;
+        } else {
+            if witness_result == WitnessResult::FallbackFound {
+                if let Some((fb_key, fb_asset, status_code)) = self.find_fallback_for_path(path) {
+                    let dir = if is_404_html(&fb_key) {
+                        fallback_directory(&fb_key)
+                    } else {
+                        ""
+                    };
+                    let dir_segments: Vec<&str> =
+                        dir.split('/').filter(|s| !s.is_empty()).collect();
+                    let expr_path = CertifiedResponses::expr_path_for_fallback(&dir_segments);
+                    let cert_header = CertifiedResponses::build_certificate_header(
+                        &witness,
+                        &expr_path,
+                        certificate,
+                    );
+                    if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
+                        fb_asset,
+                        &requested_encodings,
+                        path,
+                        chunk_index,
+                        Some(&cert_header),
+                        &callback,
+                        &etags,
+                        status_code,
+                    ) {
+                        return response;
+                    }
                 }
             }
-            // No usable fallback found -- build header for root <*> and return 404
-            let expr_path = CertifiedResponses::expr_path_for_fallback(&[]);
-            let cert_header =
-                CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
-            HttpResponse::build_404(cert_header)
-        } else {
             let expr_path = CertifiedResponses::expr_path_for_fallback(&[]);
             let cert_header =
                 CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
@@ -1619,7 +1601,7 @@ impl State {
                 asset
                     .encodings
                     .values()
-                    .filter_map(|enc| enc.fallback_404_hash_path(&[]))
+                    .filter_map(|enc| enc.fallback_hash_path(&[], 404))
                     .collect()
             })
             .unwrap_or_default();
@@ -1639,7 +1621,7 @@ impl State {
                 asset
                     .encodings
                     .values()
-                    .filter_map(|enc| enc.not_found_hash_path())
+                    .filter_map(|enc| enc.fallback_hash_path(&[], 200))
                     .collect()
             })
             .unwrap_or_default();
@@ -1855,11 +1837,11 @@ fn insert_new_response_hashes_for_encoding(
     }
     // Root <*>: /404.html takes precedence; /index.html only if /404.html absent
     if asset_key == "/404.html" {
-        if let Some(path) = enc.fallback_404_hash_path(&[]) {
+        if let Some(path) = enc.fallback_hash_path(&[], 404) {
             asset_hashes.certify_response_precomputed(&path);
         }
     } else if asset_key == FALLBACK_FILE && !has_root_404 {
-        if let Some(path) = enc.not_found_hash_path() {
+        if let Some(path) = enc.fallback_hash_path(&[], 200) {
             asset_hashes.certify_response_precomputed(&path);
         }
     }
@@ -1867,7 +1849,7 @@ fn insert_new_response_hashes_for_encoding(
     if is_404_html(asset_key) && asset_key != "/404.html" {
         let dir = fallback_directory(asset_key);
         let segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
-        if let Some(path) = enc.fallback_404_hash_path(&segments) {
+        if let Some(path) = enc.fallback_hash_path(&segments, 404) {
             asset_hashes.certify_response_precomputed(&path);
         }
     }

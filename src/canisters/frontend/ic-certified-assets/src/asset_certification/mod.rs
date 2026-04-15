@@ -83,7 +83,7 @@ impl CertifiedResponses {
         let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
         let response_hash = response_hash(&certified_headers, status_code, &body_hash);
 
-        let asset_path = AssetPath::fallback_path();
+        let asset_path = AssetPath::fallback_path_at(&[]);
         let hash_tree_path =
             asset_path.hash_tree_path(&certificate_expression, &request_hash, response_hash);
         self.certify_response_precomputed(&hash_tree_path);

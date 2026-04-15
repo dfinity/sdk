@@ -98,10 +98,6 @@ impl AssetPath {
         HashTreePath(hash_path)
     }
 
-    pub fn fallback_path() -> Self {
-        Self(vec!["http_expr".into(), "<*>".into()])
-    }
-
     /// Fallback path at an arbitrary directory level.
     /// e.g. `&["blog"]` -> `["http_expr", "blog", "<*>"]`
     /// e.g. `&[]` -> `["http_expr", "<*>"]` (root)
