@@ -12,6 +12,16 @@ use sha2::Digest;
 /// The file to serve if the requested file wasn't found.
 pub const FALLBACK_FILE: &str = "/index.html";
 
+pub fn is_404_html(key: &str) -> bool {
+    key == "/404.html" || key.ends_with("/404.html")
+}
+
+/// Returns the directory prefix of a 404.html key.
+/// e.g. "/blog/404.html" -> "/blog", "/404.html" -> ""
+pub fn fallback_directory(key: &str) -> &str {
+    &key[..key.len() - "/404.html".len()]
+}
+
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
 pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;
@@ -156,6 +166,7 @@ impl HttpResponse {
         certificate_header: Option<&HeaderField>,
         callback: &CallbackFunc,
         etags: &[Hash],
+        base_status_code: u16,
     ) -> HttpResponse {
         let mut headers = asset.get_headers_for_asset(enc_name);
         if let Some(head) = certificate_header {
@@ -174,19 +185,21 @@ impl HttpResponse {
             token,
         });
 
-        let (status_code, body) = if etags.contains(&enc.sha256) {
+        // 304 etag optimization only for 200 responses (not for fallback 404 responses)
+        let (status_code, body) = if base_status_code == 200 && etags.contains(&enc.sha256) {
             (304, RcBytes::default())
         } else {
-            if !headers
-                .iter()
-                .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
+            if base_status_code == 200
+                && !headers
+                    .iter()
+                    .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
             {
                 headers.insert(
                     "etag".to_string(),
                     format!("\"{}\"", hex::encode(enc.sha256)),
                 );
             }
-            (200, enc.content_chunks[chunk_index].clone())
+            (base_status_code, enc.content_chunks[chunk_index].clone())
         };
 
         HttpResponse {
@@ -207,6 +220,7 @@ impl HttpResponse {
         certificate_header: Option<&HeaderField>,
         callback: &CallbackFunc,
         etags: &[Hash],
+        status_code: u16,
     ) -> Option<HttpResponse> {
         for enc_name in requested_encodings.iter() {
             if let Some(enc) = asset.encodings.get(enc_name) {
@@ -220,6 +234,7 @@ impl HttpResponse {
                         certificate_header,
                         callback,
                         etags,
+                        status_code,
                     ));
                 }
             }
@@ -238,6 +253,7 @@ impl HttpResponse {
                         certificate_header,
                         callback,
                         etags,
+                        status_code,
                     ));
                 }
             }

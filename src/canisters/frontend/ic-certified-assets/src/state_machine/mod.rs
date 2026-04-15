@@ -21,7 +21,8 @@ use crate::{
                 CallbackFunc, FALLBACK_FILE, HttpRequest, HttpResponse,
                 StreamingCallbackHttpResponse, StreamingCallbackToken,
                 build_ic_certificate_expression_from_headers_and_encoding,
-                build_ic_certificate_expression_header, response_hash,
+                build_ic_certificate_expression_header, fallback_directory, is_404_html,
+                response_hash,
             },
             rc_bytes::RcBytes,
         },
@@ -119,8 +120,8 @@ impl AssetEncoding {
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
+        is_404_file: bool,
     ) -> HashMap<u16, [u8; 32]> {
-        // Collect all user-defined headers
         let base_headers: Vec<(String, Value)> = build_headers(
             headers.as_ref().map(|h| h.iter()),
             max_age,
@@ -143,6 +144,11 @@ impl AssetEncoding {
         response_hashes.insert(200, response_hash_200);
         response_hashes.insert(304, response_hash_304);
 
+        if is_404_file {
+            let ResponseHash(response_hash_404) = response_hash(&base_headers, 404, &self.sha256);
+            response_hashes.insert(404, response_hash_404);
+        }
+
         debug_assert!(
             STATUS_CODES_TO_CERTIFY
                 .iter()
@@ -150,6 +156,19 @@ impl AssetEncoding {
         );
 
         response_hashes
+    }
+
+    /// Hash path for certifying this encoding as a 404.html fallback at a directory's `<*>` level.
+    fn fallback_404_hash_path(&self, dir_segments: &[&str]) -> Option<HashTreePath> {
+        self.certificate_expression.as_ref().and_then(|ce| {
+            self.response_hashes
+                .as_ref()
+                .and_then(|hashes| hashes.get(&404))
+                .map(|rh| {
+                    let asset_path = AssetPath::fallback_path_at(dir_segments);
+                    asset_path.hash_tree_path(ce, &RequestHash::default(), rh.into())
+                })
+        })
     }
 }
 
@@ -491,6 +510,7 @@ impl State {
             }
         }
 
+        let has_root_404 = self.assets.contains_key("/404.html");
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -514,6 +534,7 @@ impl State {
             asset,
             dependent_keys,
             Some(&self.encoded_canister_env),
+            has_root_404,
         );
 
         Ok(())
@@ -521,6 +542,7 @@ impl State {
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
+        let has_root_404 = self.assets.contains_key("/404.html");
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -533,6 +555,7 @@ impl State {
                 asset,
                 dependent_keys,
                 None,
+                has_root_404,
             );
         }
 
@@ -541,20 +564,40 @@ impl State {
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
         if self.assets.contains_key(&arg.key) {
+            // Remove dependents' certifications
             for dependent in self.dependent_keys(&arg.key) {
                 self.asset_hashes.remove_responses_for_path(&dependent);
-                if dependent == FALLBACK_FILE {
-                    self.asset_hashes.remove_fallback_responses();
-                }
             }
+            // Remove the main key's own exact-path certifications
+            self.asset_hashes.remove_responses_for_path(&arg.key);
+            // Remove fallback wildcard certifications
+            if is_404_html(&arg.key) && arg.key != "/404.html" {
+                let dir = fallback_directory(&arg.key);
+                let segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
+                self.asset_hashes.remove_fallback_responses(&segments);
+            }
+
             self.assets.remove(&arg.key);
+
+            // Re-certify root <*> if a root-level fallback contributor was deleted
+            if arg.key == FALLBACK_FILE || arg.key == "/404.html" {
+                self.certify_root_fallback();
+            }
         }
+        let has_root_404 = self.assets.contains_key("/404.html");
         for key in aliases_of(&arg.key) {
             // if an existing file can be aliased to the deleted file it has to become a valid alias again
             if self.assets.contains_key(&key) {
                 let dependent_keys = self.dependent_keys(&key);
                 if let Some(asset) = self.assets.get_mut(&key) {
-                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys, None);
+                    on_asset_change(
+                        &mut self.asset_hashes,
+                        &key,
+                        asset,
+                        dependent_keys,
+                        None,
+                        has_root_404,
+                    );
                 }
             }
         }
@@ -612,6 +655,8 @@ impl State {
 
     pub fn store(&mut self, arg: StoreArg, system_context: &SystemContext) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
+        // Must check before `entry().or_default()` borrows `self.assets` mutably.
+        let has_root_404 = self.assets.contains_key("/404.html") || arg.key == "/404.html";
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
         asset.is_aliased = arg.aliased;
@@ -635,6 +680,7 @@ impl State {
             asset,
             dependent_keys,
             Some(&self.encoded_canister_env),
+            has_root_404,
         );
         self.last_state_update_timestamp_ns = system_context.current_timestamp_ns;
 
@@ -825,7 +871,7 @@ impl State {
                 if operation_index >= arg.operations.len() {
                     // All operations processed
                     self.batches.remove(&batch_id);
-                    self.certify_404_if_required();
+                    self.certify_root_fallback();
 
                     // Move to cookie update phase if needed
                     if needs_cookie_update {
@@ -984,6 +1030,7 @@ impl State {
                 // Update one cookie
                 let key = &html_keys[operation_index];
                 let dependent_keys = self.dependent_keys(key);
+                let has_root_404 = self.assets.contains_key("/404.html");
                 if let Some(asset) = self.assets.get_mut(key) {
                     on_asset_change(
                         &mut self.asset_hashes,
@@ -991,6 +1038,7 @@ impl State {
                         asset,
                         dependent_keys,
                         Some(&self.encoded_canister_env),
+                        has_root_404,
                     );
                 }
 
@@ -1294,6 +1342,26 @@ impl State {
         Ok(enc.content_chunks[index].clone())
     }
 
+    /// Searches deepest-first for a 404.html fallback, then /index.html.
+    /// Returns `(fallback_key, asset, status_code)`.
+    fn find_fallback_for_path(&self, path: &str) -> Option<(String, &Asset, u16)> {
+        let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+        for depth in (0..=segments.len()).rev() {
+            let dir = if depth == 0 {
+                String::new()
+            } else {
+                format!("/{}", segments[..depth].join("/"))
+            };
+            let key_404 = format!("{dir}/404.html");
+            if let Ok(asset) = self.get_asset(&key_404) {
+                return Some((key_404, asset, 404));
+            }
+        }
+        self.get_asset(&FALLBACK_FILE.to_string())
+            .ok()
+            .map(|a| (FALLBACK_FILE.to_string(), a, 200))
+    }
+
     fn build_http_response(
         &self,
         certificate: &[u8],
@@ -1304,34 +1372,23 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
+        // Raw-domain redirect check for the exact path or its fallback
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
-        } else if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
-            if !asset.allow_raw_access() && req.is_raw_domain() {
+        } else if let Some((_, fb_asset, _)) = self.find_fallback_for_path(path) {
+            if !fb_asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
         }
 
-        let (certificate_header, witness_result) =
-            self.asset_hashes.witness_to_header(path, certificate);
+        let (witness, witness_result) = self.asset_hashes.witness_path(path);
 
-        if witness_result == WitnessResult::FallbackFound {
-            if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
-                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
-                    asset,
-                    &requested_encodings,
-                    path,
-                    chunk_index,
-                    Some(&certificate_header),
-                    &callback,
-                    &etags,
-                ) {
-                    return response;
-                }
-            }
-        } else if witness_result == WitnessResult::PathFound {
+        if witness_result == WitnessResult::PathFound {
+            let expr_path = self.asset_hashes.expr_path(path);
+            let cert_header =
+                CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
             if let Ok(asset) = self.get_asset(&path.into()) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
@@ -1341,15 +1398,50 @@ impl State {
                     &requested_encodings,
                     path,
                     chunk_index,
-                    Some(&certificate_header),
+                    Some(&cert_header),
                     &callback,
                     &etags,
+                    200,
                 ) {
                     return response;
                 }
             }
+            HttpResponse::build_404(cert_header)
+        } else if witness_result == WitnessResult::FallbackFound {
+            if let Some((fb_key, fb_asset, status_code)) = self.find_fallback_for_path(path) {
+                let dir = if is_404_html(&fb_key) {
+                    fallback_directory(&fb_key)
+                } else {
+                    ""
+                };
+                let dir_segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
+                let expr_path = CertifiedResponses::expr_path_for_fallback(&dir_segments);
+                let cert_header =
+                    CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
+                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
+                    fb_asset,
+                    &requested_encodings,
+                    path,
+                    chunk_index,
+                    Some(&cert_header),
+                    &callback,
+                    &etags,
+                    status_code,
+                ) {
+                    return response;
+                }
+            }
+            // No usable fallback found -- build header for root <*> and return 404
+            let expr_path = CertifiedResponses::expr_path_for_fallback(&[]);
+            let cert_header =
+                CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
+            HttpResponse::build_404(cert_header)
+        } else {
+            let expr_path = CertifiedResponses::expr_path_for_fallback(&[]);
+            let cert_header =
+                CertifiedResponses::build_certificate_header(&witness, &expr_path, certificate);
+            HttpResponse::build_404(cert_header)
         }
-        HttpResponse::build_404(certificate_header)
     }
 
     pub fn http_request(
@@ -1443,6 +1535,7 @@ impl State {
 
     pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
+        let has_root_404 = self.assets.contains_key("/404.html");
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -1468,6 +1561,7 @@ impl State {
             asset,
             dependent_keys,
             Some(&self.encoded_canister_env),
+            has_root_404,
         );
 
         Ok(())
@@ -1513,24 +1607,63 @@ impl State {
         }
     }
 
-    fn certify_404_if_required(&mut self) {
-        if !self
-            .asset_hashes
-            .contains_path(HashTreePath::not_found_base_path_v2().as_vec())
-        {
-            let response = HttpResponse::uncertified_404();
-            let headers: Vec<_> = response
-                .headers
-                .into_iter()
-                .map(|(k, v)| (k, Value::String(v)))
-                .collect();
-            self.asset_hashes.certify_fallback_response(
-                response.status_code,
-                &headers,
-                &response.body,
-                None,
-            );
+    /// Single authority for root `<*>` level: /404.html > /index.html > bare 404.
+    fn certify_root_fallback(&mut self) {
+        self.asset_hashes.remove_fallback_responses(&[]);
+
+        // /404.html takes precedence
+        let root_404_paths: Vec<HashTreePath> = self
+            .assets
+            .get("/404.html")
+            .map(|asset| {
+                asset
+                    .encodings
+                    .values()
+                    .filter_map(|enc| enc.fallback_404_hash_path(&[]))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        if !root_404_paths.is_empty() {
+            for path in &root_404_paths {
+                self.asset_hashes.certify_response_precomputed(path);
+            }
+            return;
         }
+
+        // /index.html as last-resort SPA fallback
+        let index_paths: Vec<HashTreePath> = self
+            .assets
+            .get(FALLBACK_FILE)
+            .map(|asset| {
+                asset
+                    .encodings
+                    .values()
+                    .filter_map(|enc| enc.not_found_hash_path())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        if !index_paths.is_empty() {
+            for path in &index_paths {
+                self.asset_hashes.certify_response_precomputed(path);
+            }
+            return;
+        }
+
+        // Neither exists: bare "not found" 404
+        let response = HttpResponse::uncertified_404();
+        let headers: Vec<_> = response
+            .headers
+            .into_iter()
+            .map(|(k, v)| (k, Value::String(v)))
+            .collect();
+        self.asset_hashes.certify_fallback_response(
+            response.status_code,
+            &headers,
+            &response.body,
+            None,
+        );
     }
 }
 
@@ -1571,6 +1704,7 @@ impl From<StableStateV2> for State {
             ..Self::default()
         };
 
+        let has_root_404 = state.assets.contains_key("/404.html");
         let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
         for key in assets_keys {
             let dependent_keys = state.dependent_keys(&key);
@@ -1579,11 +1713,19 @@ impl From<StableStateV2> for State {
                     enc.certified = false;
                 }
                 // Do not pass the canister env here, because we want to load the assets as they are (with the old cookie value)
-                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys, None);
+                on_asset_change(
+                    &mut state.asset_hashes,
+                    &key,
+                    asset,
+                    dependent_keys,
+                    None,
+                    has_root_404,
+                );
             } else {
                 // shouldn't reach this
             }
         }
+        state.certify_root_fallback();
         state
     }
 }
@@ -1621,11 +1763,12 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
     encoded_canister_env: Option<&String>,
+    has_root_404: bool,
 ) {
     let mut affected_keys = dependent_keys;
     affected_keys.push(key.to_string());
 
-    delete_preexisting_asset_hashes(asset_hashes, &affected_keys);
+    delete_preexisting_asset_hashes(asset_hashes, &affected_keys, key, has_root_404);
 
     if asset.encodings.is_empty() {
         return;
@@ -1653,11 +1796,18 @@ fn on_asset_change(
         ..
     } = asset;
 
+    let key_is_404 = is_404_html(key);
     for (enc_name, enc) in encodings.iter_mut() {
         enc.response_hashes =
-            Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
+            Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name, key_is_404));
 
-        insert_new_response_hashes_for_encoding(asset_hashes, enc, &affected_keys);
+        insert_new_response_hashes_for_encoding(
+            asset_hashes,
+            enc,
+            &affected_keys,
+            key,
+            has_root_404,
+        );
         enc.certified = true;
     }
 }
@@ -1665,36 +1815,60 @@ fn on_asset_change(
 fn delete_preexisting_asset_hashes(
     asset_hashes: &mut CertifiedResponses,
     affected_keys: &[String],
+    key: &str,
+    has_root_404: bool,
 ) {
-    for key in affected_keys.iter() {
-        asset_hashes.remove_responses_for_path(key);
-        if key == FALLBACK_FILE {
-            asset_hashes.remove_fallback_responses();
-        }
+    for k in affected_keys.iter() {
+        asset_hashes.remove_responses_for_path(k);
+    }
+    // Root <*>: only clear if this key owns it
+    if key == "/404.html" || (key == FALLBACK_FILE && !has_root_404) {
+        asset_hashes.remove_fallback_responses(&[]);
+    }
+    // Non-root 404.html: clear directory-level <*>
+    if is_404_html(key) && key != "/404.html" {
+        let dir = fallback_directory(key);
+        let segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
+        asset_hashes.remove_fallback_responses(&segments);
     }
 }
 
 fn insert_new_response_hashes_for_encoding(
     asset_hashes: &mut CertifiedResponses,
     enc: &AssetEncoding,
-    affected_keys: &Vec<String>,
+    affected_keys: &[String],
+    asset_key: &str,
+    has_root_404: bool,
 ) {
     for key in affected_keys {
-        let key_path = AssetPath::from(&key);
+        let key_path = AssetPath::from(key);
         for status_code in STATUS_CODES_TO_CERTIFY {
             if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
                 asset_hashes.certify_response_precomputed(&hash_path);
             } else {
                 unreachable!(
                     "Could not create a hash path for a status code {} and key {} - did you forget to compute a response hash for this status code?",
-                    status_code, &key
+                    status_code, key
                 );
             }
         }
-        if key == FALLBACK_FILE {
-            if let Some(not_found_hash_path) = enc.not_found_hash_path() {
-                asset_hashes.certify_response_precomputed(&not_found_hash_path);
-            }
+    }
+    // Root <*>: /404.html takes precedence; /index.html only if /404.html absent
+    if asset_key == "/404.html" {
+        if let Some(path) = enc.fallback_404_hash_path(&[]) {
+            asset_hashes.certify_response_precomputed(&path);
+        }
+    } else if asset_key == FALLBACK_FILE && !has_root_404 {
+        if let Some(path) = enc.not_found_hash_path() {
+            asset_hashes.certify_response_precomputed(&path);
+        }
+    }
+    // Non-root 404.html: certify at directory-level <*>
+    if is_404_html(asset_key) && asset_key != "/404.html" {
+        let dir = fallback_directory(asset_key);
+        let segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
+        if let Some(path) = enc.fallback_404_hash_path(&segments) {
+            asset_hashes.certify_response_precomputed(&path);
         }
     }
 }

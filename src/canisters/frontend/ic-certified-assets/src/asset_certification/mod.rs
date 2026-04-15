@@ -101,9 +101,10 @@ impl CertifiedResponses {
         self.delete(key.asset_hash_path_root_v2().as_vec());
     }
 
-    /// Removes all certified fallback responses for certification v2
-    pub fn remove_fallback_responses(&mut self) {
-        self.delete(HashTreePath::not_found_base_path_v2().as_vec());
+    /// Removes all certified fallback responses at the given `<*>` level for certification v2.
+    /// Use `&[]` for the root level.
+    pub fn remove_fallback_responses(&mut self, dir_segments: &[&str]) {
+        self.delete(HashTreePath::not_found_base_path_v2(dir_segments).as_vec());
     }
 
     /// Removes a specific response from the certified responses. Expects a finished `HashTreePath`, skipping the (sometimes expensive) computation of the `HashTreePath`.
@@ -118,17 +119,15 @@ impl CertifiedResponses {
     ///
     /// If the path has no certified responses this function creates a hash tree that proves...
     /// * The absence of the path in the CertifiedResponses hash tree
-    /// * The presence/absence of a 404 response
-    ///
-    /// The hash tree then includes certification for all valid responses for a 404 response.
+    /// * The presence/absence of fallback responses at any `<*>` level
     ///
     /// # Return Value
-    /// `(found, tree)`
-    /// * `found`:
-    ///   * WitnessResult::Found if `path` has a certified response.
-    ///   * `WitnessResult::FallbackFound` if the path has no certified response, but the fallback path has.
-    ///   * `WitnessResult::NoneFound` if both `path` and the fallback path have no certified response.
-    /// * `tree`: The `HashTree` as described above.
+    /// `(tree, result)`
+    /// * `result`:
+    ///   * `WitnessResult::PathFound` if `path` has a certified response.
+    ///   * `WitnessResult::FallbackFound` if the path has no certified response, but some `<*>` level has.
+    ///   * `WitnessResult::NoneFound` if neither `path` nor any fallback level has a certified response.
+    /// * `tree`: The `HashTree` proving the above.
     pub fn witness_path(&self, path: &str) -> (HashTree, WitnessResult) {
         let path = AssetPath::from(path);
         let hash_tree_path_root = path.asset_hash_path_root_v2();
@@ -141,16 +140,18 @@ impl CertifiedResponses {
             let absence_proof = self.witness(hash_tree_path_root.as_vec());
             let fallback_paths = hash_tree_path_root.fallback_paths_v2();
 
-            let combined_proof =
-                fallback_paths
-                    .into_iter()
-                    .fold(absence_proof, |accumulator, path| {
-                        let new_proof = self.witness(path.as_vec());
-                        merge_hash_trees(accumulator, new_proof)
-                    });
+            let combined_proof = fallback_paths
+                .iter()
+                .fold(absence_proof, |accumulator, path| {
+                    let new_proof = self.witness(path.as_vec());
+                    merge_hash_trees(accumulator, new_proof)
+                });
 
-            let fallback_path = HashTreePath::not_found_base_path_v2();
-            if self.contains_path(fallback_path.as_vec()) {
+            let fallback_found = fallback_paths
+                .iter()
+                .any(|p| self.contains_path(p.as_vec()));
+
+            if fallback_found {
                 (combined_proof, WitnessResult::FallbackFound)
             } else {
                 (combined_proof, WitnessResult::NoneFound)
@@ -158,41 +159,54 @@ impl CertifiedResponses {
         }
     }
 
+    /// Returns the `expr_path` for an exact-match path.
     pub fn expr_path(&self, path: &str) -> String {
         let path = AssetPath::from(path);
-        let hash_tree_path_root = path.asset_hash_path_root_v2();
-        if self.contains_path(hash_tree_path_root.as_vec()) {
-            path.asset_hash_path_root_v2().expr_path()
-        } else {
-            HashTreePath::not_found_base_path_v2().expr_path()
-        }
+        path.asset_hash_path_root_v2().expr_path()
     }
 
-    /// Same as `witness_path`, but produces a header that can be returned as a `HttpResponse` header instead of a witness `HashTree`.
+    /// Returns the `expr_path` for a fallback at a given directory level.
+    pub fn expr_path_for_fallback(dir_segments: &[&str]) -> String {
+        HashTreePath::not_found_base_path_v2(dir_segments).expr_path()
+    }
+
+    /// Builds the IC-Certificate header from a witness tree, expr_path, and certificate.
+    pub fn build_certificate_header(
+        witness: &HashTree,
+        expr_path: &str,
+        certificate: &[u8],
+    ) -> HeaderField {
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        witness.serialize(&mut serializer).unwrap();
+
+        (
+            "IC-Certificate".to_string(),
+            String::from("version=2, ")
+                + "certificate=:"
+                + &base64::encode(certificate)
+                + ":, tree=:"
+                + &base64::encode(serializer.into_inner())
+                + ":, expr_path=:"
+                + expr_path
+                + ":",
+        )
+    }
+
+    /// Same as `witness_path`, but produces a header suitable for exact-path or root-fallback responses.
     pub fn witness_to_header(
         &self,
         path: &str,
         certificate: &[u8],
     ) -> (HeaderField, WitnessResult) {
         let (witness, witness_result) = self.witness_path(path);
-        let expr_path = self.expr_path(path);
-
-        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-        serializer.self_describe().unwrap();
-        witness.serialize(&mut serializer).unwrap();
-
+        let expr_path = if witness_result == WitnessResult::PathFound {
+            self.expr_path(path)
+        } else {
+            HashTreePath::not_found_base_path_v2(&[]).expr_path()
+        };
         (
-            (
-                "IC-Certificate".to_string(),
-                String::from("version=2, ")
-                    + "certificate=:"
-                    + &base64::encode(certificate)
-                    + ":, tree=:"
-                    + &base64::encode(serializer.into_inner())
-                    + ":, expr_path=:"
-                    + &expr_path
-                    + ":",
-            ),
+            Self::build_certificate_header(&witness, &expr_path, certificate),
             witness_result,
         )
     }
