@@ -32,7 +32,7 @@ When a requested path has no matching asset, the canister searches for the deepe
 then `/404.html`) and serves it with HTTP status 404. If no `404.html` is found,
 `/index.html` is still served as SPA-enabling fallback with status 200.
  
-- Module hash: 84b95666adf82f6a9d4bb4c92d0bd763734e69da04b714e189f520aa9fda0c48
+- Module hash: d0f7a198d1ee6d7b1384c787ca0974bbd7c6b2ecec207ff2dca21543df568a63
 - https://github.com/dfinity/sdk/pull/4515
 
 # 0.31.0
