@@ -6,6 +6,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::logger::{LoggingMode, create_root_logger};
 use crate::lib::project::templates::builtin_templates;
 use crate::lib::telemetry::Telemetry;
+use crate::lib::warning::{DfxWarning, is_warning_disabled};
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
 use dfx_core::config::model::dfinity::ToolConfig;
@@ -193,6 +194,16 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
         env.get_logger(),
         "Trace mode enabled. Lots of logs coming up."
     );
+
+    if !matches!(cli_opts.command, commands::DfxCommand::Extension(_))
+        && !is_warning_disabled(DfxWarning::Deprecation)
+    {
+        slog::warn!(
+            env.get_logger(),
+            "dfx is deprecated, use icp-cli https://cli.internetcomputer.org. LLM skills can be found at https://skills.internetcomputer.org/llms.txt"
+        );
+    }
+
     commands::exec(&env, cli_opts.command)
 }
 
