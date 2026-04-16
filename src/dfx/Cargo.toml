@@ -90,7 +90,7 @@ regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 rust_decimal = "1.22.0"
-rustls-webpki = "0.103.10"
+rustls-webpki = "0.103.12"
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
 semver = { workspace = true }
