@@ -8,7 +8,7 @@ use crate::lib::project::templates::builtin_templates;
 use crate::lib::telemetry::Telemetry;
 use crate::lib::warning::{DfxWarning, is_warning_disabled};
 use anyhow::Error;
-use clap::{ArgAction, CommandFactory, Parser};
+use clap::{ArgAction, CommandFactory, FromArgMatches, Parser};
 use dfx_core::config::model::dfinity::ToolConfig;
 use dfx_core::config::project_templates;
 use dfx_core::extension::installed::InstalledExtensionManifests;
@@ -131,6 +131,17 @@ fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis
     }
 }
 
+const DEPRECATION_NOTICE: &str = "WARNING: dfx is deprecated, use icp-cli https://cli.internetcomputer.org. LLM skills can be found at https://skills.internetcomputer.org/llms.txt";
+
+fn add_deprecation_notices(cmd: &mut clap::Command) {
+    *cmd = cmd.clone().before_help(DEPRECATION_NOTICE);
+    for subcmd in cmd.get_subcommands_mut() {
+        if subcmd.get_name() != "extension" {
+            add_deprecation_notices(subcmd);
+        }
+    }
+}
+
 fn get_args_altered_for_extension_run(
     installed: &InstalledExtensionManifests,
 ) -> DfxResult<Vec<OsString>> {
@@ -169,7 +180,14 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     Telemetry::set_platform();
     Telemetry::set_week();
 
-    let cli_opts = CliOpts::parse_from(args);
+    let cli_opts = {
+        let mut cmd = CliOpts::command();
+        if !is_warning_disabled(DfxWarning::Deprecation) {
+            add_deprecation_notices(&mut cmd);
+        }
+        let matches = cmd.get_matches_from(&args);
+        CliOpts::from_arg_matches(&matches).unwrap_or_else(|e| e.exit())
+    };
 
     if matches!(
         cli_opts.command,
