@@ -18,7 +18,8 @@ Updated Motoko to [1.4.1](https://github.com/dfinity/motoko/releases/tag/1.4.1)
 
 ### Replica
 
-Updated replica to commit 142182f2ec4d916fa32e32da59239c4eb0c87bd3.
+Updated replica to elected commit 17d483c60a09b393ad82a2091b68a242ac69c72d.
+This incorporates the following executed proposals:
 
 # 0.31.0
 
