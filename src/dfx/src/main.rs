@@ -216,10 +216,7 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     if !matches!(cli_opts.command, commands::DfxCommand::Extension(_))
         && !is_warning_disabled(DfxWarning::Deprecation)
     {
-        slog::warn!(
-            env.get_logger(),
-            "dfx is deprecated, use icp-cli https://cli.internetcomputer.org. LLM skills can be found at https://skills.internetcomputer.org/llms.txt"
-        );
+        eprintln!("{}", DEPRECATION_NOTICE);
     }
 
     commands::exec(&env, cli_opts.command)
