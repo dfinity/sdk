@@ -2333,7 +2333,7 @@ mod certificate_expression {
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
             r#"default_certification(ValidationArgs{certification:Certification{no_request_certification:Empty{},response_certification:ResponseCertification{certified_response_headers:ResponseHeaderList{headers:["content-type","content-encoding","Set-Cookie","custom-header"]}}}})"#,
-            "Missing ic-certifiedexpression header in response: {response:#?}",
+            "Missing ic-certificateexpression header in response: {response:#?}",
         );
     }
 }
