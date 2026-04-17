@@ -1,11 +1,11 @@
 use super::rc_bytes::RcBytes;
 use crate::{
-    asset_certification::types::certification::{CertificateExpression, ResponseHash},
+    asset_certification::types::certification::CertificateExpression,
     state_machine::{Asset, AssetEncoding, encoding_certification_order},
 };
 use candid::{CandidType, Deserialize, Nat, define_function};
 use ic_certification::Hash;
-use ic_representation_independent_hash::{Value, representation_independent_hash};
+use ic_http_certification::{DefaultCelBuilder, DefaultResponseCertification};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
@@ -23,8 +23,6 @@ pub fn fallback_directory(key: &str) -> &str {
 }
 
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
-
-pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;
 
 pub type HeaderField = (String, String);
 
@@ -274,8 +272,8 @@ impl HttpResponse {
         let base_404 = Self::uncertified_404();
         let mut headers = base_404.headers.clone();
         headers.push(certificate_header);
-        let certificate_expression =
-            build_ic_certificate_expression_from_headers(&base_404.headers);
+        let header_names: Vec<&str> = base_404.headers.iter().map(|(k, _)| k.as_str()).collect();
+        let certificate_expression = build_cel_expression(&header_names);
         let cert_expr_header = build_ic_certificate_expression_header(&certificate_expression);
         headers.push(cert_expr_header);
         HttpResponse {
@@ -305,67 +303,17 @@ impl HttpResponse {
     }
 }
 
-pub fn response_hash(
-    certified_headers: &[(String, Value)],
-    status_code: u16,
-    body_hash: &[u8; 32],
-) -> ResponseHash {
-    // certification v2 spec:
-    // Response hash is the hash of the concatenation of
-    //   - representation-independent hash of headers
-    //   - hash of the response body
-    //
-    // The representation-independent hash of headers consist of
-    //    - all certified headers (here all headers), plus
-    //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
-
-    let mut headers = Vec::from(certified_headers);
-    headers.push((
-        ":ic-cert-status".to_string(),
-        Value::Number(status_code.into()),
-    ));
-    let header_hash = representation_independent_hash(&headers);
-    let hash: [u8; 32] = sha2::Sha256::digest([header_hash.as_ref(), body_hash].concat()).into();
-    ResponseHash(hash)
-}
-
-pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
-    headers: &[(String, T)],
-    encoding_name: Option<&str>,
-) -> CertificateExpression {
-    let mut headers = headers
-        .iter()
-        .map(|(h, _)| format!(", \"{h}\""))
-        .collect::<Vec<_>>()
-        .join("");
-    if let Some(encoding) = encoding_name {
-        if encoding != "identity" {
-            headers = format!(", \"content-encoding\"{headers}");
-        }
-    }
-
-    let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
-    let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
+pub fn build_cel_expression(header_names: &[&str]) -> CertificateExpression {
+    let expr = DefaultCelBuilder::response_only_certification()
+        .with_response_certification(DefaultResponseCertification::certified_response_headers(
+            header_names.to_vec(),
+        ))
+        .build();
+    let expression = expr.to_string();
+    let expression_hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
     CertificateExpression {
         expression,
-        expression_hash: hash,
-    }
-}
-
-pub fn build_ic_certificate_expression_from_headers<T>(
-    headers: &[(String, T)],
-) -> CertificateExpression {
-    let headers = headers
-        .iter()
-        .map(|(h, _)| format!(", \"{h}\""))
-        .collect::<Vec<_>>()
-        .join("");
-
-    let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
-    let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
-    CertificateExpression {
-        expression,
-        expression_hash: hash,
+        expression_hash,
     }
 }
 
