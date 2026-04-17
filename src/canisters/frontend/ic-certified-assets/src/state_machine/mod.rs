@@ -65,7 +65,7 @@ pub fn encoding_certification_order<'a>(
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
 
-const STATUS_CODES_TO_CERTIFY: [u16; 2] = [200, 304];
+const STATUS_CODES_TO_CERTIFY: [u16; 1] = [200];
 
 const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
@@ -117,14 +117,8 @@ impl AssetEncoding {
         let response_hash_200 =
             ic_http_certification::response_hash_from_headers(&base_headers, 200, &self.sha256);
 
-        // HTTP 304
-        let empty_body_hash: [u8; 32] = sha2::Sha256::digest([]).into();
-        let response_hash_304 =
-            ic_http_certification::response_hash_from_headers(&base_headers, 304, &empty_body_hash);
-
         let mut response_hashes = HashMap::new();
         response_hashes.insert(200, response_hash_200);
-        response_hashes.insert(304, response_hash_304);
 
         if is_404_file {
             let response_hash_404 =
@@ -1340,7 +1334,6 @@ impl State {
         requested_encodings: Vec<String>,
         chunk_index: usize,
         callback: CallbackFunc,
-        etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
         // Raw-domain redirect check for the exact path or its fallback
@@ -1357,13 +1350,7 @@ impl State {
         // Try exact path
         if let Ok(asset) = self.get_asset(&path.into()) {
             if let Some((enc_name, enc)) = select_certified_encoding(asset, &requested_encodings) {
-                let status_code = if etags.contains(&enc.sha256) {
-                    304
-                } else {
-                    200
-                };
-                if let Some(entry) = enc.tree_entry(HttpCertificationPath::exact(path), status_code)
-                {
+                if let Some(entry) = enc.tree_entry(HttpCertificationPath::exact(path), 200) {
                     if let Ok(witness) = self.asset_hashes.witness(&entry, path) {
                         let cert_header = build_certificate_header(certificate, &witness, &entry);
                         return HttpResponse::build_ok(
@@ -1374,7 +1361,6 @@ impl State {
                             chunk_index,
                             Some(&cert_header),
                             &callback,
-                            &etags,
                             200,
                         );
                     }
@@ -1392,13 +1378,8 @@ impl State {
             let wildcard = wildcard_path_for_dir(&dir);
             if let Some((enc_name, enc)) = select_certified_encoding(fb_asset, &requested_encodings)
             {
-                let status_code = if fb_status == 200 && etags.contains(&enc.sha256) {
-                    304
-                } else {
-                    fb_status
-                };
                 if let Some(entry) =
-                    enc.tree_entry(HttpCertificationPath::wildcard(&*wildcard), status_code)
+                    enc.tree_entry(HttpCertificationPath::wildcard(&*wildcard), fb_status)
                 {
                     if let Ok(witness) = self.asset_hashes.witness(&entry, path) {
                         let cert_header = build_certificate_header(certificate, &witness, &entry);
@@ -1410,7 +1391,6 @@ impl State {
                             chunk_index,
                             Some(&cert_header),
                             &callback,
-                            &etags,
                             fb_status,
                         );
                     }
@@ -1457,8 +1437,6 @@ impl State {
         callback: CallbackFunc,
     ) -> HttpResponse {
         let mut encodings = vec![];
-        // waiting for https://dfinity.atlassian.net/browse/BOUN-446
-        let etags = Vec::new();
         for (name, value) in req.headers.iter() {
             if name.eq_ignore_ascii_case("Accept-Encoding") {
                 for v in value.split(',') {
@@ -1473,9 +1451,7 @@ impl State {
         };
 
         match url_decode(path) {
-            Ok(path) => {
-                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
-            }
+            Ok(path) => self.build_http_response(certificate, &path, encodings, 0, callback, req),
             Err(err) => HttpResponse {
                 status_code: 400,
                 headers: vec![],
@@ -1904,10 +1880,8 @@ fn insert_new_tree_entries(
             asset_hashes.insert(&entry);
         }
     } else if asset_key == FALLBACK_FILE && !has_root_404 {
-        for code in [200, 304] {
-            if let Some(entry) = enc.tree_entry(HttpCertificationPath::wildcard(""), code) {
-                asset_hashes.insert(&entry);
-            }
+        if let Some(entry) = enc.tree_entry(HttpCertificationPath::wildcard(""), 200) {
+            asset_hashes.insert(&entry);
         }
     }
     if is_404_html(asset_key) && asset_key != "/404.html" {

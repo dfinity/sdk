@@ -2406,8 +2406,7 @@ mod certification_v2 {
 
     #[test]
     fn etag() {
-        // For now only checks that defining a custom etag doesn't break certification.
-        // Serving HTTP 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
+        // Checks that defining a custom etag header doesn't break certification.
 
         let mut state = State::default();
         let system_context = mock_system_context();
@@ -5925,11 +5924,8 @@ mod fallback {
     }
 
     /// When the fallback asset exists in the asset map but has no certified encodings,
-    /// `build_ok_from_requested_encodings` returns `None`.  The code must use the
-    /// cert_header that was already computed from the fallback asset's directory level
-    /// (root `<*>` for `/index.html`) rather than falling through to a second, potentially
-    /// mismatched root `<*>` lookup.  The response must be a plain 404 that still carries
-    /// an IC-Certificate header.
+    /// `select_certified_encoding` returns `None`.  The code must serve a plain 404
+    /// that still carries an IC-Certificate header.
     ///
     /// Note: this test calls `state.http_request` directly rather than
     /// `certified_http_request` because the scenario also exposes a pre-existing
@@ -5943,7 +5939,7 @@ mod fallback {
         let ctx = mock_system_context();
 
         // /other.html has a certified encoding so the tree is non-trivial.
-        // /index.html has no encodings, so build_ok_from_requested_encodings
+        // /index.html has no encodings, so select_certified_encoding
         // returns None when it is selected as the SPA fallback.
         create_assets(
             &mut state,
@@ -5955,10 +5951,9 @@ mod fallback {
             ],
         );
 
-        // witness_result is FallbackFound (root <*> is in the cert tree);
         // find_fallback_for_path returns /index.html (no encodings), so
-        // build_ok_from_requested_encodings returns None — exercising the
-        // `return HttpResponse::build_404(cert_header)` path added by the fix.
+        // select_certified_encoding returns None — exercising the
+        // `return HttpResponse::build_404(...)` path.
         let resp = state.http_request(
             RequestBuilder::get("/nonexistent")
                 .with_header("Accept-Encoding", "identity")

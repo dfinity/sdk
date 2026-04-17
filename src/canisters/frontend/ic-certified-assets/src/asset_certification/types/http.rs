@@ -4,7 +4,6 @@ use crate::{
     state_machine::{Asset, AssetEncoding},
 };
 use candid::{CandidType, Deserialize, Nat, define_function};
-use ic_certification::Hash;
 use ic_http_certification::{DefaultCelBuilder, DefaultResponseCertification};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
@@ -162,8 +161,7 @@ impl HttpResponse {
         chunk_index: usize,
         certificate_header: Option<&HeaderField>,
         callback: &CallbackFunc,
-        etags: &[Hash],
-        base_status_code: u16,
+        status_code: u16,
     ) -> HttpResponse {
         let mut headers = asset.get_headers_for_asset(enc_name);
         if let Some(head) = certificate_header {
@@ -182,27 +180,10 @@ impl HttpResponse {
             token,
         });
 
-        // 304 etag optimization only for 200 responses (not for fallback 404 responses)
-        let (status_code, body) = if base_status_code == 200 && etags.contains(&enc.sha256) {
-            (304, RcBytes::default())
-        } else {
-            if base_status_code == 200
-                && !headers
-                    .iter()
-                    .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
-            {
-                headers.insert(
-                    "etag".to_string(),
-                    format!("\"{}\"", hex::encode(enc.sha256)),
-                );
-            }
-            (base_status_code, enc.content_chunks[chunk_index].clone())
-        };
-
         HttpResponse {
             status_code,
             headers: headers.into_iter().collect::<_>(),
-            body,
+            body: enc.content_chunks[chunk_index].clone(),
             upgrade: None,
             streaming_strategy,
         }
