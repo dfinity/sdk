@@ -1392,8 +1392,13 @@ impl State {
             let wildcard = wildcard_path_for_dir(&dir);
             if let Some((enc_name, enc)) = select_certified_encoding(fb_asset, &requested_encodings)
             {
+                let status_code = if fb_status == 200 && etags.contains(&enc.sha256) {
+                    304
+                } else {
+                    fb_status
+                };
                 if let Some(entry) =
-                    enc.tree_entry(HttpCertificationPath::wildcard(&*wildcard), fb_status)
+                    enc.tree_entry(HttpCertificationPath::wildcard(&*wildcard), status_code)
                 {
                     if let Ok(witness) = self.asset_hashes.witness(&entry, path) {
                         let cert_header = build_certificate_header(certificate, &witness, &entry);
@@ -1899,8 +1904,10 @@ fn insert_new_tree_entries(
             asset_hashes.insert(&entry);
         }
     } else if asset_key == FALLBACK_FILE && !has_root_404 {
-        if let Some(entry) = enc.tree_entry(HttpCertificationPath::wildcard(""), 200) {
-            asset_hashes.insert(&entry);
+        for code in [200, 304] {
+            if let Some(entry) = enc.tree_entry(HttpCertificationPath::wildcard(""), code) {
+                asset_hashes.insert(&entry);
+            }
         }
     }
     if is_404_html(asset_key) && asset_key != "/404.html" {
