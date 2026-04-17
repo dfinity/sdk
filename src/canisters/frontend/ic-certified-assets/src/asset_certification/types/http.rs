@@ -1,7 +1,7 @@
 use super::rc_bytes::RcBytes;
 use crate::{
     asset_certification::types::certification::CertificateExpression,
-    state_machine::{Asset, AssetEncoding, encoding_certification_order},
+    state_machine::{Asset, AssetEncoding},
 };
 use candid::{CandidType, Deserialize, Nat, define_function};
 use ic_certification::Hash;
@@ -206,56 +206,6 @@ impl HttpResponse {
             upgrade: None,
             streaming_strategy,
         }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn build_ok_from_requested_encodings(
-        asset: &Asset,
-        requested_encodings: &[String],
-        key: &str,
-        chunk_index: usize,
-        certificate_header: Option<&HeaderField>,
-        callback: &CallbackFunc,
-        etags: &[Hash],
-        status_code: u16,
-    ) -> Option<HttpResponse> {
-        for enc_name in requested_encodings.iter() {
-            if let Some(enc) = asset.encodings.get(enc_name) {
-                if enc.certified {
-                    return Some(Self::build_ok(
-                        asset,
-                        enc_name,
-                        enc,
-                        key,
-                        chunk_index,
-                        certificate_header,
-                        callback,
-                        etags,
-                        status_code,
-                    ));
-                }
-            }
-        }
-
-        // No requested encoding found - fall back to the best certified encoding
-        for enc_name in encoding_certification_order(asset.encodings.keys()) {
-            if let Some(enc) = asset.encodings.get(&enc_name) {
-                if enc.certified {
-                    return Some(Self::build_ok(
-                        asset,
-                        &enc_name,
-                        enc,
-                        key,
-                        chunk_index,
-                        certificate_header,
-                        callback,
-                        etags,
-                        status_code,
-                    ));
-                }
-            }
-        }
-        None
     }
 
     pub fn build_400(err_msg: &str) -> Self {
