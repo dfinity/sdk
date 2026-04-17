@@ -401,7 +401,7 @@ impl State {
     }
 
     pub fn root_hash(&self) -> Hash {
-        self.asset_hashes.root_hash().into()
+        self.asset_hashes.root_hash()
     }
 
     pub fn last_state_update_timestamp_ns(&self) -> u64 {
@@ -542,9 +542,7 @@ impl State {
             if is_404_html(&arg.key) && arg.key != "/404.html" {
                 let dir = fallback_directory(&arg.key);
                 self.asset_hashes
-                    .delete_by_path(&HttpCertificationPath::wildcard(wildcard_path_for_dir(
-                        &dir,
-                    )));
+                    .delete_by_path(&HttpCertificationPath::wildcard(wildcard_path_for_dir(dir)));
             }
 
             self.assets.remove(&arg.key);
@@ -1420,8 +1418,7 @@ impl State {
         }
 
         // No asset and no fallback -- serve a bare 404 with root wildcard proof
-        let fallback_cert_header =
-            self.build_fallback_cert_header(certificate, path, &String::new());
+        let fallback_cert_header = self.build_fallback_cert_header(certificate, path, "");
         HttpResponse::build_404(fallback_cert_header)
     }
 
@@ -1874,9 +1871,7 @@ fn delete_preexisting_asset_hashes(
     }
     if is_404_html(key) && key != "/404.html" {
         let dir = fallback_directory(key);
-        asset_hashes.delete_by_path(&HttpCertificationPath::wildcard(wildcard_path_for_dir(
-            &dir,
-        )));
+        asset_hashes.delete_by_path(&HttpCertificationPath::wildcard(wildcard_path_for_dir(dir)));
     }
 }
 
@@ -1910,7 +1905,7 @@ fn insert_new_tree_entries(
     }
     if is_404_html(asset_key) && asset_key != "/404.html" {
         let dir = fallback_directory(asset_key);
-        let wc = wildcard_path_for_dir(&dir);
+        let wc = wildcard_path_for_dir(dir);
         if let Some(entry) = enc.tree_entry(HttpCertificationPath::wildcard(&*wc), 404) {
             asset_hashes.insert(&entry);
         }
