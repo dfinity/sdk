@@ -1407,6 +1407,12 @@ impl State {
         HttpResponse::build_404(fallback_cert_header)
     }
 
+    /// Builds an `IC-Certificate` header that witnesses the wildcard path for `dir`.
+    ///
+    /// The certification value on the entry is irrelevant here: `HttpCertificationTree::witness`
+    /// for wildcard paths only uses `entry.path` (to prove absence of the exact request path
+    /// and presence/absence of the wildcard), never `entry.certification`.
+    /// `HttpCertification::skip()` serves as a cheap placeholder.
     fn build_fallback_cert_header(
         &self,
         certificate: &[u8],
@@ -1415,8 +1421,6 @@ impl State {
     ) -> HeaderField {
         let wildcard = wildcard_path_for_dir(dir);
         let wc_path = HttpCertificationPath::wildcard(&*wildcard);
-        // Build a dummy entry for witnessing. The certification value doesn't matter for
-        // the witness -- only the path does. Use skip() as a placeholder.
         let dummy_entry =
             HttpCertificationTreeEntry::new(wc_path.clone(), HttpCertification::skip());
         let witness = match self.asset_hashes.witness(&dummy_entry, request_path) {
@@ -1754,6 +1758,8 @@ fn select_certified_encoding<'a>(
     None
 }
 
+/// Converts a directory string into the prefix expected by `HttpCertificationPath::wildcard`.
+/// `""` (root) -> `""`, `"/blog"` or `"/blog/"` -> `"/blog"`.
 fn wildcard_path_for_dir(dir: &str) -> String {
     let segments: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
     if segments.is_empty() {
