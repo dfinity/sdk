@@ -99,17 +99,17 @@ setup_onchain() {
   assert_contains "Fetching dependencies of canister $CANISTER_ID_B...
 Fetching dependencies of canister $CANISTER_ID_C...
 Fetching dependencies of canister $CANISTER_ID_A...
-Found 3 dependencies:" # Then canister IDs will be listed, but order doesn't matter
-  assert_occurs 1 "Fetching dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
+Found 3 dependencies:" "$output" # Then canister IDs will be listed, but order doesn't matter
+  assert_occurs 1 "Fetching dependencies of canister $CANISTER_ID_A..." "$output" # common dependency onchain_a is pulled only once
   assert_contains "Pulling canister $CANISTER_ID_A...
 ERROR: Failed to pull canister $CANISTER_ID_A.
-Failed to download from url: http://httpbin.org/status/404."
+Failed to download from url: http://httpbin.org/status/404." "$output"
   assert_contains "Pulling canister $CANISTER_ID_B...
 ERROR: Failed to pull canister $CANISTER_ID_B.
-Failed to download from url: http://httpbin.org/status/404."
+Failed to download from url: http://httpbin.org/status/404." "$output"
   assert_contains "Pulling canister $CANISTER_ID_C...
 ERROR: Failed to pull canister $CANISTER_ID_C.
-Failed to download from url: http://httpbin.org/status/404."
+Failed to download from url: http://httpbin.org/status/404." "$output"
 
   # 3. sad path: if the canister is not present on-chain
   cd ../onchain
@@ -119,7 +119,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   cd ../app
   assert_command_fail dfx deps pull --network local
-  assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
+  assert_contains "Failed to get dependencies of canister $CANISTER_ID_A." "$output"
 
   cd ../onchain
   dfx canister stop a
@@ -127,7 +127,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   cd ../app
   assert_command_fail dfx deps pull --network local
-  assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
+  assert_contains "Failed to get dependencies of canister $CANISTER_ID_A." "$output"
 }
 
 @test "dfx deps pull can download wasm and candids to shared cache and generate pulled.json" {
@@ -172,7 +172,7 @@ Failed to download from url: http://httpbin.org/status/404."
   cd ../
 
   assert_command dfx deps pull --network local -vvv
-  assert_contains "The canister wasm was found in the cache." # cache hit
+  assert_contains "The canister wasm was found in the cache." "$output" # cache hit
 
   # hash mismatch is ok
   # the expected hash is written to pulled.json wasm_hash field
@@ -185,7 +185,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   cd ../app
   assert_command dfx deps pull --network local
-  assert_not_contains "WARN"
+  assert_not_contains "WARN" "$output"
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".wasm_hash' deps/pulled.json
   assert_match "$WASM_HASH_A" "$output"
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".wasm_hash_download' deps/pulled.json
@@ -196,8 +196,8 @@ Failed to download from url: http://httpbin.org/status/404."
   rm ../www/a.wasm
 
   assert_command_fail dfx deps pull --network local
-  assert_contains "Failed to pull canister $CANISTER_ID_A."
-  assert_contains "Failed to download from url:"
+  assert_contains "Failed to pull canister $CANISTER_ID_A." "$output"
+  assert_contains "Failed to download from url:" "$output"
 }
 
 @test "dfx deps pull works when wasm_hash or wasm_hash_url specified" {
@@ -250,9 +250,9 @@ Failed to download from url: http://httpbin.org/status/404."
   assert_file_not_exists "deps/pulled.json"
 
   assert_command dfx deps pull --network local -vvv
-  assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-  assert_contains "Canister $CANISTER_ID_B specified a custom hash via url:"
-  assert_contains "Canister $CANISTER_ID_C specified a custom hash via url:"
+  assert_contains "Canister $CANISTER_ID_A specified a custom hash:" "$output"
+  assert_contains "Canister $CANISTER_ID_B specified a custom hash via url:" "$output"
+  assert_contains "Canister $CANISTER_ID_C specified a custom hash via url:" "$output"
  
   # warning: specified both `wasm_hash` and `wasm_hash_url`. Providers should avoid this.
   PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
@@ -264,7 +264,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   cd ../app
   assert_command dfx deps pull --network local -vvv
-  assert_contains "WARNING: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
+  assert_contains "WARNING: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used." "$output"
 
   # hash mismatch is ok
   rm -r "${PULLED_DIR:?}/"
@@ -273,7 +273,7 @@ Failed to download from url: http://httpbin.org/status/404."
 
   cd ../app
   assert_command dfx deps pull --network local -vvv
-  assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
+  assert_contains "Canister $CANISTER_ID_A specified a custom hash:" "$output"
 }
 
 @test "dfx deps init works" {
@@ -292,9 +292,9 @@ Failed to download from url: http://httpbin.org/status/404."
   dfx_stop
 
   assert_command dfx deps init
-  assert_contains "Canister $CANISTER_ID_C (dep_c) set init argument with \"(null)\"."
+  assert_contains "Canister $CANISTER_ID_C (dep_c) set init argument with \"(null)\"." "$output"
   assert_contains "WARNING: The following canister(s) require an init argument. Please run \`dfx deps init <NAME/PRINCIPAL>\` to set them individually:
-$CANISTER_ID_A"
+$CANISTER_ID_A" "$output"
 
   assert_command dfx deps init "$CANISTER_ID_A" --argument 11
 
@@ -317,7 +317,7 @@ $CANISTER_ID_A"
 
   # Canister A has been set, set again without --argument will prompt a info message
   assert_command dfx deps init "$CANISTER_ID_A"
-  assert_contains "Canister $CANISTER_ID_A already set init argument."
+  assert_contains "Canister $CANISTER_ID_A already set init argument." "$output"
   
   # error cases
   rm deps/init.json
@@ -325,19 +325,19 @@ $CANISTER_ID_A"
   assert_command_fail dfx deps init "$CANISTER_ID_A"
   assert_contains "Canister $CANISTER_ID_A requires an init argument. The following info might be helpful:
 init_guide => A natural number, e.g. 10.
-candid:args => (nat)"
+candid:args => (nat)" "$output"
 
   ## wrong type
   assert_command_fail dfx deps init "$CANISTER_ID_A" --argument '("abc")'
-  assert_contains "Invalid data: Unable to serialize Candid values: type mismatch: \"abc\" cannot be of type nat"
+  assert_contains "Invalid data: Unable to serialize Candid values: type mismatch: \"abc\" cannot be of type nat" "$output"
 
   ## require no init argument but provide
   assert_command_fail dfx deps init dep_b --argument 1
-  assert_contains "Canister $CANISTER_ID_B (dep_b) takes no init argument. Please rerun without \`--argument\`"
+  assert_contains "Canister $CANISTER_ID_B (dep_b) takes no init argument. Please rerun without \`--argument\`" "$output"
 
   ## canister ID not in pulled.json
   assert_command_fail dfx deps init aaaaa-aa
-  assert_contains "Could not find aaaaa-aa in pulled.json"
+  assert_contains "Could not find aaaaa-aa in pulled.json" "$output"
 }
 
 @test "dfx deps init can handle init_arg in pullable metadata" {
@@ -397,7 +397,7 @@ candid:args => (nat)"
 Please try to set an init argument with \`--argument\` option.
 The following info might be helpful:
 init_guide => A natural number, e.g. 10.
-candid:args => (nat)"
+candid:args => (nat)" "$output"
 
   # Consumer set correct init_arg
   assert_command dfx deps init "$CANISTER_ID_A" --argument 10
@@ -428,19 +428,19 @@ candid:args => (nat)"
   # deploy all
   assert_command dfx deps deploy
   assert_contains "Creating canister: $CANISTER_ID_A
-Installing canister: $CANISTER_ID_A"
+Installing canister: $CANISTER_ID_A" "$output"
   assert_contains "Creating canister: $CANISTER_ID_B (dep_b)
-Installing canister: $CANISTER_ID_B (dep_b)"
+Installing canister: $CANISTER_ID_B (dep_b)" "$output"
   assert_contains "Creating canister: $CANISTER_ID_C (dep_c)
-Installing canister: $CANISTER_ID_C (dep_c)"
+Installing canister: $CANISTER_ID_C (dep_c)" "$output"
 
   # by name in dfx.json
   assert_command dfx deps deploy dep_b
-  assert_contains "Installing canister: $CANISTER_ID_B (dep_b)" # dep_p has been created before, so we only see "Installing ..." here
+  assert_contains "Installing canister: $CANISTER_ID_B (dep_b)" "$output" # dep_p has been created before, so we only see "Installing ..." here
 
   # by canister id
   assert_command dfx deps deploy $CANISTER_ID_A
-  assert_contains "Installing canister: $CANISTER_ID_A"
+  assert_contains "Installing canister: $CANISTER_ID_A" "$output"
 
   # deployed pull dependencies can be stopped and deleted
   assert_command dfx canister stop dep_b --identity anonymous
@@ -453,22 +453,22 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   ## set wrong init argument
   assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
   assert_command_fail dfx deps deploy
-  assert_contains "Failed to install canister $CANISTER_ID_A"
+  assert_contains "Failed to install canister $CANISTER_ID_A" "$output"
 
   ## canister ID not in pulled.json
   assert_command_fail dfx deps deploy aaaaa-aa
-  assert_contains "Could not find aaaaa-aa in pulled.json"
+  assert_contains "Could not find aaaaa-aa in pulled.json" "$output"
 
   ## no init.json
   rm deps/init.json
   assert_command_fail dfx deps deploy
-  assert_contains "Failed to read init.json. Please run \`dfx deps init\`."
+  assert_contains "Failed to read init.json. Please run \`dfx deps init\`." "$output"
 
   ## forgot to set init argument for some dependencies
   assert_command dfx deps init # b is set here
   assert_command_fail dfx deps deploy "$CANISTER_ID_A"
-  assert_contains "Failed to create and install canister $CANISTER_ID_A"
-  assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
+  assert_contains "Failed to create and install canister $CANISTER_ID_A" "$output"
+  assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`." "$output"
 }
 
 @test "dfx deps init/deploy works when hash mismatch" {
@@ -515,25 +515,25 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   ## 1.1. missing pull dependency in pulled.json
   jq 'del(.canisters."'"$CANISTER_ID_B"'")' deps/pulled.json.bak > deps/pulled.json
   assert_command_fail dfx deps init
-  assert_contains "Failed to find dep_b:$CANISTER_ID_B in pulled.json."
-  assert_contains "Please rerun \`dfx deps pull\`."
+  assert_contains "Failed to find dep_b:$CANISTER_ID_B in pulled.json." "$output"
+  assert_contains "Please rerun \`dfx deps pull\`." "$output"
   assert_command_fail dfx deps deploy
-  assert_contains "Failed to find dep_b:$CANISTER_ID_B in pulled.json."
-  assert_contains "Please rerun \`dfx deps pull\`."
+  assert_contains "Failed to find dep_b:$CANISTER_ID_B in pulled.json." "$output"
+  assert_contains "Please rerun \`dfx deps pull\`." "$output"
 
   ## 1.2. name mismatch in pulled.json and dfx.json
   jq '.canisters."'"$CANISTER_ID_B"'".name="not_dep_b"' deps/pulled.json.bak > deps/pulled.json
   assert_command_fail dfx deps init
-  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it has name \"not_dep_b\" in pulled.json."
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it has name \"not_dep_b\" in pulled.json." "$output"
   assert_command_fail dfx deps deploy
-  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it has name \"not_dep_b\" in pulled.json."
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it has name \"not_dep_b\" in pulled.json." "$output"
 
   ## 1.3. no name in pulled.json
   jq 'del(.canisters."'"$CANISTER_ID_B"'".name)' deps/pulled.json.bak > deps/pulled.json
   assert_command_fail dfx deps init
-  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it doesn't have name in pulled.json."
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it doesn't have name in pulled.json." "$output"
   assert_command_fail dfx deps deploy
-  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it doesn't have name in pulled.json."
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it doesn't have name in pulled.json." "$output"
 
   cp deps/pulled.json.bak deps/pulled.json
 
@@ -543,30 +543,30 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   WASM_PATH_A="$DFX_CACHE_ROOT/.cache/dfinity/pulled/$CANISTER_ID_A/canister.wasm"
   mv "$WASM_PATH_A" "$WASM_PATH_A.bak"
   assert_command_fail dfx deps init
-  assert_contains "failed to read from $WASM_PATH_A"
+  assert_contains "failed to read from $WASM_PATH_A" "$output"
   assert_command_fail dfx deps deploy
-  assert_contains "failed to read from $WASM_PATH_A"
+  assert_contains "failed to read from $WASM_PATH_A" "$output"
   mv "$WASM_PATH_A.bak" "$WASM_PATH_A"
 
   ## 2.2. wasm_hash_download is not valid hex string
   jq '.canisters."'"$CANISTER_ID_B"'".wasm_hash_download="xyz"' deps/pulled.json.bak > deps/pulled.json
   assert_command_fail dfx deps init
-  assert_contains "In pulled.json, the \`wasm_hash_download\` field of $CANISTER_ID_B is invalid."
+  assert_contains "In pulled.json, the \`wasm_hash_download\` field of $CANISTER_ID_B is invalid." "$output"
   assert_command_fail dfx deps deploy
-  assert_contains "In pulled.json, the \`wasm_hash_download\` field of $CANISTER_ID_B is invalid."
+  assert_contains "In pulled.json, the \`wasm_hash_download\` field of $CANISTER_ID_B is invalid." "$output"
 
   ## 2.3. hash mismatch
   jq '.canisters."'"$CANISTER_ID_A"'".wasm_hash_download="0123456789abcdef"' deps/pulled.json.bak > deps/pulled.json
   assert_command_fail dfx deps init
-  assert_contains "The wasm of $CANISTER_ID_A in pulled cache has different hash than in pulled.json:"
-  assert_contains "The pulled cache is at \"$WASM_PATH_A\". Its hash is:"
-  assert_contains "The hash (wasm_hash_download) in pulled.json is:"
-  assert_contains "The pulled cache may be modified manually or the same canister was pulled in different projects."
+  assert_contains "The wasm of $CANISTER_ID_A in pulled cache has different hash than in pulled.json:" "$output"
+  assert_contains "The pulled cache is at \"$WASM_PATH_A\". Its hash is:" "$output"
+  assert_contains "The hash (wasm_hash_download) in pulled.json is:" "$output"
+  assert_contains "The pulled cache may be modified manually or the same canister was pulled in different projects." "$output"
   assert_command_fail dfx deps deploy
-  assert_contains "The wasm of $CANISTER_ID_A in pulled cache has different hash than in pulled.json:"
-  assert_contains "The pulled cache is at \"$WASM_PATH_A\". Its hash is:"
-  assert_contains "The hash (wasm_hash_download) in pulled.json is:"
-  assert_contains "The pulled cache may be modified manually or the same canister was pulled in different projects."
+  assert_contains "The wasm of $CANISTER_ID_A in pulled cache has different hash than in pulled.json:" "$output"
+  assert_contains "The pulled cache is at \"$WASM_PATH_A\". Its hash is:" "$output"
+  assert_contains "The hash (wasm_hash_download) in pulled.json is:" "$output"
+  assert_contains "The pulled cache may be modified manually or the same canister was pulled in different projects." "$output"
 }
 
 @test "dfx deps pulled dependencies work with app canister" {
@@ -586,18 +586,18 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   dfx_start --clean
 
   assert_command_fail dfx canister create dep_b
-  assert_contains "dep_b is a pull dependency. Please deploy it using \`dfx deps deploy dep_b\`"
+  assert_contains "dep_b is a pull dependency. Please deploy it using \`dfx deps deploy dep_b\`" "$output"
   assert_command dfx canister create app
 
   assert_command dfx canister create --all
-  assert_contains "There are pull dependencies defined in dfx.json. Please deploy them using \`dfx deps deploy\`."
+  assert_contains "There are pull dependencies defined in dfx.json. Please deploy them using \`dfx deps deploy\`." "$output"
 
   assert_command dfx build app
   assert_command dfx canister install app
 
   # pulled dependency dep_b hasn't been deployed on local replica
   assert_command_fail dfx canister call app get_b
-  assert_contains "Canister $CANISTER_ID_B not found"
+  assert_contains "Canister $CANISTER_ID_B not found" "$output"
 
   assert_command dfx deps init
   assert_command dfx deps init "$CANISTER_ID_A" --argument 11
@@ -624,15 +624,15 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # verify the help message
   assert_command dfx deps pull -h
-  assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default."
-  assert_contains "You can still choose other network by setting \`--network\`"
+  assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default." "$output"
+  assert_contains "You can still choose other network by setting \`--network\`" "$output"
 
   assert_command dfx deps pull
-  assert_contains "There are no pull dependencies defined in dfx.json"
+  assert_contains "There are no pull dependencies defined in dfx.json" "$output"
   assert_command dfx deps init
-  assert_contains "There are no pull dependencies defined in dfx.json"
+  assert_contains "There are no pull dependencies defined in dfx.json" "$output"
   assert_command dfx deps deploy
-  assert_contains "There are no pull dependencies defined in dfx.json"
+  assert_contains "There are no pull dependencies defined in dfx.json" "$output"
 
   assert_directory_not_exists "deps"
 }
@@ -666,12 +666,12 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   dfx_start
   assert_command dfx deps pull --network local
-  assert_contains "Using facade dependencies for canister ryjl3-tyaaa-aaaaa-aaaba-cai."
+  assert_contains "Using facade dependencies for canister ryjl3-tyaaa-aaaaa-aaaba-cai." "$output"
 
   dfx identity new --storage-mode plaintext minter
   assert_command_fail dfx deps init icp_ledger
   assert_contains "1. Create a 'minter' identity: dfx identity new minter
-2. Run the following multi-line command:"
+2. Run the following multi-line command:" "$output"
 
   assert_command dfx deps init ryjl3-tyaaa-aaaaa-aaaba-cai --argument "(variant { 
     Init = record {
@@ -701,7 +701,7 @@ Installing canister: $CANISTER_ID_C (dep_c)"
     owner = principal \"$(dfx --identity default identity get-principal)\";
   },
 )"
-  assert_eq "(1_000_000 : nat)"
+  assert_eq "(1_000_000 : nat)" "$output"
 }
 
 @test "dfx deps can facade pull ckBTC ledger" {
@@ -715,12 +715,12 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   dfx_start
   assert_command dfx deps pull --network local
-  assert_contains "Using facade dependencies for canister mxzaz-hqaaa-aaaar-qaada-cai."
+  assert_contains "Using facade dependencies for canister mxzaz-hqaaa-aaaar-qaada-cai." "$output"
 
   dfx identity new --storage-mode plaintext minter
   assert_command_fail dfx deps init ckbtc_ledger
   assert_contains "1. Create a 'minter' identity: dfx identity new minter
-2. Run the following multi-line command:"
+2. Run the following multi-line command:" "$output"
 
   assert_command dfx deps init mxzaz-hqaaa-aaaar-qaada-cai --argument "(variant {
     Init = record {
@@ -759,7 +759,7 @@ Installing canister: $CANISTER_ID_C (dep_c)"
     owner = principal \"$(dfx --identity default identity get-principal)\";
   },
 )"
-  assert_eq "(1_000_000 : nat)"
+  assert_eq "(1_000_000 : nat)" "$output"
 }
 
 
@@ -774,12 +774,12 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   dfx_start
   assert_command dfx deps pull --network local
-  assert_contains "Using facade dependencies for canister ss2fx-dyaaa-aaaar-qacoq-cai."
+  assert_contains "Using facade dependencies for canister ss2fx-dyaaa-aaaar-qacoq-cai." "$output"
 
   dfx identity new --storage-mode plaintext minter
   assert_command_fail dfx deps init cketh_ledger
   assert_contains "1. Create a 'minter' identity: dfx identity new minter
-2. Run the following multi-line command:"
+2. Run the following multi-line command:" "$output"
 
   assert_command dfx deps init ss2fx-dyaaa-aaaar-qacoq-cai --argument "(variant {
     Init = record {
@@ -820,5 +820,5 @@ Installing canister: $CANISTER_ID_C (dep_c)"
     owner = principal \"$(dfx --identity default identity get-principal)\";
   },
 )"
-  assert_eq "(1_000_000 : nat)"
+  assert_eq "(1_000_000 : nat)" "$output"
 }

@@ -34,7 +34,7 @@ teardown() {
 
     # The migration will take a few minutes to complete.
     assert_command dfx canister migrate-id migrated --replace replaced --yes
-    assert_contains "Migration succeeded"
+    assert_contains "Migration succeeded" "$output"
 
     assert_command dfx canister status migrated
     assert_command_fail dfx canister status replaced

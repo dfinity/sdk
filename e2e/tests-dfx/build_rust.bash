@@ -21,7 +21,7 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_match "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed."
+  assert_match "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed." "$output"
 }
 
 @test "build with vulnerabilities in rust dependencies emits a warning" {
@@ -33,8 +33,8 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_match "Audit found vulnerabilities"
+  assert_match "Audit found vulnerabilities" "$output"
   jq '.canisters.hello.skip_cargo_audit=true' dfx.json | sponge dfx.json
   assert_command dfx build
-  assert_not_match "Audit found vulnerabilities"
+  assert_not_match "Audit found vulnerabilities" "$output"
 }

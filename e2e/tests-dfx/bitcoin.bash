@@ -82,7 +82,7 @@ set_local_network_bitcoin_enabled() {
     min_confirmations = opt (1 : nat32);
   }
 )'
-  assert_eq "(0 : nat64)"
+  assert_eq "(0 : nat64)" "$output"
 
   # bitcoin_get_utxos
   assert_command dfx canister call --with-cycles 10000000000 --wallet default aaaaa-aa --candid bitcoin.did bitcoin_get_utxos '(
@@ -92,7 +92,7 @@ set_local_network_bitcoin_enabled() {
     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
   }
 )'
-  assert_contains "tip_height = 0 : nat32;"
+  assert_contains "tip_height = 0 : nat32;" "$output"
 
   # bitcoin_get_current_fee_percentiles
   assert_command dfx canister call --with-cycles 100000000 --wallet default aaaaa-aa --candid bitcoin.did bitcoin_get_current_fee_percentiles '(record { network = variant { regtest } })'
@@ -101,5 +101,5 @@ set_local_network_bitcoin_enabled() {
   # It's hard to test this without a real transaction, but we can at least check that the call fails.
   # The error message indicates that the argument is in correct format, only the inner transaction is malformed.
   assert_command_fail dfx canister call --with-cycles 5020000000 --wallet default aaaaa-aa --candid bitcoin.did bitcoin_send_transaction '(record { transaction = vec {0:nat8}; network = variant { regtest } })'
-  assert_contains "send_transaction failed: MalformedTransaction"
+  assert_contains "send_transaction failed: MalformedTransaction" "$output"
 }

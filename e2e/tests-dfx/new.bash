@@ -45,10 +45,10 @@ teardown() {
 
 @test "dfx new --type <bad type> shows possible values" {
   assert_command_fail dfx new --type bad_type
-  assert_match "\[possible values.*motoko.*\]"
-  assert_match "\[possible values.*rust.*\]"
-  assert_match "\[possible values.*kybra.*\]"
-  assert_match "\[possible values.*azle.*\]"
+  assert_match "\[possible values.*motoko.*\]" "$output"
+  assert_match "\[possible values.*rust.*\]" "$output"
+  assert_match "\[possible values.*kybra.*\]" "$output"
+  assert_match "\[possible values.*azle.*\]" "$output"
 }
 
 @test "dfx new readmes contain appropriate links" {
@@ -155,28 +155,28 @@ EOF
   # neither node nor npm are installed (no binaries)
   PATH="/usr/bin:/bin:$DFX_ONLY_DIR" \
     assert_command dfx new e2e_project1 --type motoko --frontend sveltekit
-  assert_contains "Node could not be found. Skipping installing the frontend example code."
-  assert_contains "npm could not be found. Skipping installing the frontend example code."
-  assert_contains "You can bypass this check by using the --frontend flag."
+  assert_contains "Node could not be found. Skipping installing the frontend example code." "$output"
+  assert_contains "npm could not be found. Skipping installing the frontend example code." "$output"
+  assert_contains "You can bypass this check by using the --frontend flag." "$output"
 
   # node is installable, but not installed
   PATH="/usr/bin:/bin:$DFX_ONLY_DIR:$NODE_INSTALLABLE_DIR" \
     assert_command dfx new e2e_project2 --type motoko --frontend sveltekit
-  assert_contains "Node could not be found. Skipping installing the frontend example code."
-  assert_contains "npm could not be found. Skipping installing the frontend example code."
-  assert_contains "You can bypass this check by using the --frontend flag."
+  assert_contains "Node could not be found. Skipping installing the frontend example code." "$output"
+  assert_contains "npm could not be found. Skipping installing the frontend example code." "$output"
+  assert_contains "You can bypass this check by using the --frontend flag." "$output"
 
   # node is installed, but there is no npm binary
   PATH="/usr/bin:/bin:$DFX_ONLY_DIR:$NODE_ONLY_DIR" \
     assert_command dfx new e2e_project3 --type motoko --frontend sveltekit
-  assert_not_contains "Node could not be found"
-  assert_contains "npm could not be found. Skipping installing the frontend example code."
-  assert_contains "You can bypass this check by using the --frontend flag."
+  assert_not_contains "Node could not be found" "$output"
+  assert_contains "npm could not be found. Skipping installing the frontend example code." "$output"
+  assert_contains "You can bypass this check by using the --frontend flag." "$output"
 
   # node is installed; npm is not, but a stub reports that it is installable
   PATH="/usr/bin:/bin:$DFX_ONLY_DIR:$NODE_ONLY_DIR:$NPM_INSTALLABLE_DIR" \
     assert_command dfx new e2e_project4 --type motoko --frontend sveltekit
-  assert_not_contains "Node could not be found"
-  assert_contains "npm could not be found. Skipping installing the frontend example code."
-  assert_contains "You can bypass this check by using the --frontend flag."
+  assert_not_contains "Node could not be found" "$output"
+  assert_contains "npm could not be found. Skipping installing the frontend example code." "$output"
+  assert_contains "You can bypass this check by using the --frontend flag." "$output"
 }

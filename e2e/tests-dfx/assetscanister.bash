@@ -38,7 +38,7 @@ delete_batch() {
 }
 
 check_permission_failure() {
-  assert_contains "$1"
+  assert_contains "$1" "$output"
 }
 
 @test "commit_batch is atomic" {
@@ -51,9 +51,9 @@ check_permission_failure() {
   SET_ASSET_CONTENT="variant { SetAssetContent = record { key=\"/abd.txt\"; content_encoding = \"identity\"; chunk_ids=vec { $CHUNK_ID } } }"
   OPERATIONS="vec { $CREATE_ASSET ; $SET_ASSET_CONTENT }"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "(record { batch_id=$BATCH_ID; operations = $OPERATIONS })"
-  assert_contains "asset not found"
+  assert_contains "asset not found" "$output"
   assert_command dfx canister call e2e_project_frontend list '(record {})'
-  assert_not_contains "/abc.txt"
+  assert_not_contains "/abc.txt" "$output"
 }
 
 @test "batch id persists through upgrade" {
@@ -78,7 +78,7 @@ check_permission_failure() {
   echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
 
   assert_command_fail dfx deploy --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 }
 
 @test "deploy --by-proposal extravaganza" {
@@ -135,10 +135,10 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it." "$output"
 
   assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another."
+  assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another." "$output"
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
@@ -148,43 +148,43 @@ check_permission_failure() {
   PORT=$(get_webserver_port)
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
-  assert_contains "The requested URL returned error: 404"
+  assert_contains "The requested URL returned error: 404" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
 
   assert_command curl --fail -vv --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_match "content-encoding: gzip"
+  assert_match "content-encoding: gzip" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/update-my-properties.txt?canisterId="$ID"
-  assert_not_contains "x-extra-header: x-extra-value"
+  assert_not_contains "x-extra-header: x-extra-value" "$output"
 
   wrong_commit_args='(record { batch_id = 2; evidence = blob "\31\e0\bf\26\2c\ab\cb\bb\eb\65\a9\54\4b\a2\3c\7c\af\88\42\3f\e0\3f\68\14\8d\31\b2\e4\ca\50\cd\b1" } )'
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
-  assert_match "batch computed evidence .* does not match presented evidence"
+  assert_match "batch computed evidence .* does not match presented evidence" "$output"
 
   commit_args='(record { batch_id = 2; evidence = blob "\16\4f\cc\4d\93\3f\f9\99\2a\b6\ab\90\9a\4b\f3\50\01\0f\a0\f4\a3\e1\e2\47\bf\c6\79\d3\f4\52\54\e1" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 164f"
+  assert_contains "commit proposed batch 2 with evidence 164f" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
-  assert_eq "()"
+  assert_eq "()" "$output"
 
   # show this asset was created and its content set
   assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "new file content"
+  assert_match "new file content" "$output"
 
   # show the DeleteAsset operation was applied
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
 
   # show the UnsetAssetContent was applied (gzip content encoding was removed)
   assert_command curl --fail -vv -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_not_contains "content-encoding"
+  assert_not_contains "content-encoding" "$output"
   assert_eq "will not compress" "$stdout"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/update-my-properties.txt?canisterId="$ID"
-  assert_contains "x-extra-header: x-extra-value"
-  assert_contains "cache-control: max-age=888"
+  assert_contains "x-extra-header: x-extra-value" "$output"
+  assert_contains "cache-control: max-age=888" "$output"
 }
 
 @test "deploy --by-proposal lots of small assets should not overflow message limits" {
@@ -213,7 +213,7 @@ check_permission_failure() {
   done
 
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_match "Proposed commit of batch 2 with evidence [0-9a-z]*.  Either commit it by proposal, or delete it."
+  assert_match "Proposed commit of batch 2 with evidence [0-9a-z]*.  Either commit it by proposal, or delete it." "$output"
 }
 
 @test "deploy --by-proposal all assets" {
@@ -244,7 +244,7 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b.  Either commit it by proposal, or delete it." "$output"
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
@@ -254,20 +254,20 @@ check_permission_failure() {
   PORT=$(get_webserver_port)
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
-  assert_contains "The requested URL returned error: 404"
+  assert_contains "The requested URL returned error: 404" "$output"
 
   commit_args='(record { batch_id = 2; evidence = blob "\9b\72\ee\e7\f0\d7\af\2a\9b\41\23\3c\34\1b\1c\aa\0c\90\5e\f9\14\05\f5\f5\13\ff\b5\8f\68\af\ee\5b" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b"
+  assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
-  assert_eq "()"
+  assert_eq "()" "$output"
 
   dfx canister call --query e2e_project_frontend list '(record{})'
 
   assert_command curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "This is a sample asset!"
+  assert_match "This is a sample asset!" "$output"
 }
 
 @test "validation methods" {
@@ -283,21 +283,21 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
 
   assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })"
-  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
+  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"' "$output"
 
   assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity prepare
-  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
+  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"' "$output"
 
   assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
-  assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
+  assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"' "$output"
 
   assert_command dfx canister call e2e_project_frontend validate_take_ownership "()"
-  assert_contains 'Ok = "revoke all permissions, then gives the caller Commit permissions"'
+  assert_contains 'Ok = "revoke all permissions, then gives the caller Commit permissions"' "$output"
 
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
-  assert_contains "FlyBeFree not found"
+  assert_contains "FlyBeFree not found" "$output"
 }
 
 @test "access control - fine-grained" {
@@ -324,15 +324,15 @@ check_permission_failure() {
 
   # initialization: the deploying controller has Commit permissions, no one else has permissions
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_eq "(vec {})"
+  assert_eq "(vec {})" "$output"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_eq "(
   vec {
     principal \"$CONTROLLER_PRINCIPAL\";
   },
-)"
+)" "$output"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
-  assert_eq "(vec {})"
+  assert_eq "(vec {})" "$output"
 
   # granting permissions
 
@@ -357,28 +357,28 @@ check_permission_failure() {
   vec {
     principal \"$MANAGE_PERMISSIONS_PRINCIPAL\";
   },
-)"
+)" "$output"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
-  assert_contains "$CONTROLLER_PRINCIPAL"
-  assert_contains "$COMMIT_PRINCIPAL"
+  assert_contains "$CONTROLLER_PRINCIPAL" "$output"
+  assert_contains "$COMMIT_PRINCIPAL" "$output"
 
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
   assert_eq "(
   vec {
     principal \"$PREPARE_PRINCIPAL\";
   },
-)"
+)" "$output"
 
   # create batch
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity manage-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity no-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
   # create chunk
   BATCH_ID="$(create_batch)"
@@ -389,11 +389,11 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend create_chunk "$args" --identity commit
   assert_command      dfx canister call e2e_project_frontend create_chunk "$args" --identity prepare
   assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity manage-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity no-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
   # create_asset
   args='(record { key="/a.txt"; content_type="text/plain" })'
@@ -402,13 +402,13 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend delete_asset "$delete_args"
   assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity manage-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity no-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity anonymous
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
 
   # commit_batch
   BATCH_ID="$(create_batch)"
@@ -418,13 +418,13 @@ check_permission_failure() {
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend commit_batch "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity prepare
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity manage-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity no-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity anonymous
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
 
   # propose_commit_batch
   BATCH_ID="$(create_batch)"
@@ -443,11 +443,11 @@ check_permission_failure() {
   delete_batch "$BATCH_ID"
 
   assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity manage-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity no-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
 
   # delete_batch
@@ -464,11 +464,11 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend delete_batch "$args" --identity prepare
 
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity no-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
 
   # compute_evidence
@@ -495,11 +495,11 @@ check_permission_failure() {
 
   assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity manage-permissions
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity no-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
 
   # commit_proposed_batch
@@ -522,13 +522,13 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity commit
 
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity prepare
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity manage-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity no-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity anonymous
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
 
   # get_configuration()
   args="()"
@@ -536,24 +536,24 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend get_configuration "$args" --identity prepare
 
   assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity manage-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity no-permissions
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity anonymous
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
   # configure()
   args="(record { })"
   assert_command      dfx canister call e2e_project_frontend configure "$args" --identity commit
 
   assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity prepare
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity manage-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity no-permissions
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity anonymous
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
 
   # validate_configure()
   args="(record { })"
@@ -571,7 +571,7 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
   args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
   assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args"
-  assert_contains "commit proposed batch $BATCH_ID with evidence"
+  assert_contains "commit proposed batch $BATCH_ID with evidence" "$output"
   assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity commit
   assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity prepare
   assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity manage-permissions
@@ -585,23 +585,23 @@ check_permission_failure() {
   # controller w/o permissions can revoke
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity non-permissioned-controller
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "(record { batch_id=7; operations=vec{} })" --identity commit
-  assert_contains "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission" "$output"
 
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
   # principal with only ManagePermissions can revoke
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity manage-permissions
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
-  assert_contains "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission" "$output"
 
   # can revoke your own permissions even without ManagePermissions
   assert_command      dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity manage-permissions
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
-  assert_contains "$COMMIT_PRINCIPAL"
+  assert_contains "$COMMIT_PRINCIPAL" "$output"
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity commit
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
-  assert_not_contains "$COMMIT_PRINCIPAL"
+  assert_not_contains "$COMMIT_PRINCIPAL" "$output"
 
 
 }
@@ -666,7 +666,7 @@ check_permission_failure() {
 
   # deployer is automatically authorized
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$CONTROLLER_PRINCIPAL" "$output"
 
   # non-controller is not allowed to deauthorize principals
   assert_command dfx identity use stranger
@@ -676,7 +676,7 @@ check_permission_failure() {
   assert_command dfx identity use controller
   assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$CONTROLLER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_not_contains "$CONTROLLER_PRINCIPAL"
+  assert_not_contains "$CONTROLLER_PRINCIPAL" "$output"
 
   # while not authorized, dfx deploy fails, even as controller
   echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
@@ -685,7 +685,7 @@ check_permission_failure() {
   # canister controllers may always authorize principals, even if they're not authorized themselves
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$STRANGER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$STRANGER_PRINCIPAL"
+  assert_contains "$STRANGER_PRINCIPAL" "$output"
 
   # authorized principals, that are not controllers, cannot authorize other principals
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity controller
@@ -694,30 +694,30 @@ check_permission_failure() {
   check_permission_failure "Caller does not have ManagePermissions permission and is not a controller."
 
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_not_contains "$BACKDOOR_PRINCIPAL"
+  assert_not_contains "$BACKDOOR_PRINCIPAL" "$output"
 
   # authorized principals, that are not controllers, cannot deauthorize others
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity controller
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$BACKDOOR_PRINCIPAL"
+  assert_contains "$BACKDOOR_PRINCIPAL" "$output"
   assert_command_fail dfx canister call e2e_project_frontend deauthorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
 
   check_permission_failure "Caller is not a controller"
 
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$BACKDOOR_PRINCIPAL"
+  assert_contains "$BACKDOOR_PRINCIPAL" "$output"
 
   # authorized principals, that are not controllers, can deauthorize themselves
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$AUTHORIZED_PRINCIPAL"
+  assert_contains "$AUTHORIZED_PRINCIPAL" "$output"
   assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity authorized
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_not_contains "$AUTHORIZED_PRINCIPAL"
+  assert_not_contains "$AUTHORIZED_PRINCIPAL" "$output"
 
   # canister controller may always deauthorize, even if they're not authorized themselves
   assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$STRANGER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_not_contains "$STRANGER_PRINCIPAL"
+  assert_not_contains "$STRANGER_PRINCIPAL" "$output"
 
   # after authorizing, deploy works again, even for non-controller
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$STRANGER_PRINCIPAL\")"
@@ -740,14 +740,14 @@ check_permission_failure() {
 
   # decode as expected - %c3%a6 is the utf-8 encoding of the ae symbol
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
-  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+  assert_match "filename is an ae symbol" "$output" # candid looks like blob "filename is \c3\a6\0a"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
-  assert_match "filename is an ae symbol"
+  assert_match "filename is an ae symbol" "$output"
 
   # fails with because %e6 is not valid utf-8 percent encoding
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  assert_contains "503 Service Unavailable"
+  assert_contains "503 Service Unavailable" "$output"
 }
 
 @test "http_request percent-decodes urls" {
@@ -768,20 +768,20 @@ check_permission_failure() {
 
   # decode as expected
   assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
-  assert_match "contents of file with space in filename"
+  assert_match "contents of file with space in filename" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2bplus.txt";headers=vec{};method="GET";body=vec{}})'
-  assert_match "contents of file with plus in filename"
+  assert_match "contents of file with plus in filename" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
-  assert_match "contents of file with plus in filename"
+  assert_match "contents of file with plus in filename" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%25percent.txt";headers=vec{};method="GET";body=vec{}})'
-  assert_match "contents of file with percent in filename"
+  assert_match "contents of file with percent in filename" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
-  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+  assert_match "filename is an ae symbol" "$output" # candid looks like blob "filename is \c3\a6\0a"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%25";headers=vec{};method="GET";body=vec{}})'
-  assert_match "filename is percent"
+  assert_match "filename is percent" "$output"
    # this test ensures url decoding happens after removing the query string
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
-  assert_match "filename contains question mark"
+  assert_match "filename contains question mark" "$output"
 
   # these error conditions can't be tested with curl, because something responds first with Bad Request.
   # THESE TESTS WERE REMOVED BECAUSE THE RUST CANISTER DOES NOT SUPPORT REJECTING MESSAGES
@@ -805,27 +805,27 @@ check_permission_failure() {
   assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "contents of file with space in filename"
+  assert_match "contents of file with space in filename" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/has%2bplus.txt?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "contents of file with plus in filename"
+  assert_match "contents of file with plus in filename" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/has%25percent.txt?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "contents of file with percent in filename"
+  assert_match "contents of file with percent in filename" "$output"
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # fails because %e6 is not valid utf-8 percent encoding
-  assert_contains "503 Service Unavailable"
+  assert_contains "503 Service Unavailable" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "filename is percent symbol"
+  assert_match "filename is percent symbol" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/filename%3fwithqmark.txt?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "filename contains question mark"
+  assert_match "filename contains question mark" "$output"
 
   assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
   diff 'src/e2e_project_frontend/assets/large with spaces.bin' lws-curl-output.bin
@@ -849,17 +849,17 @@ check_permission_failure() {
   PORT=$(get_webserver_port)
 
   assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_not_match "content-encoding:"
+  assert_not_match "content-encoding:" "$output"
   diff not-compressed src/e2e_project_frontend/assets/notreally.js
 
   assert_command curl -v --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_match "content-encoding: gzip"
+  assert_match "content-encoding: gzip" "$output"
   gunzip encoded-compressed-1.gz
   diff encoded-compressed-1 src/e2e_project_frontend/assets/notreally.js
 
   # should split up accept-encoding lines with more than one encoding
   assert_command curl -v --output encoded-compressed-2.gz -H "Accept-Encoding: gzip, deflate, br" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_match "content-encoding: gzip"
+  assert_match "content-encoding: gzip" "$output"
   gunzip encoded-compressed-2.gz
   diff encoded-compressed-2 src/e2e_project_frontend/assets/notreally.js
 }
@@ -884,17 +884,17 @@ check_permission_failure() {
   PORT=$(get_webserver_port)
 
   assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_not_match "content-encoding:"
+  assert_not_match "content-encoding:" "$output"
   diff not-compressed src/e2e_project_frontend/assets/notreally.js
 
   assert_command curl -v --output encoded-compressed-1.br -H "Accept-Encoding: br" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_match "content-encoding: br"
+  assert_match "content-encoding: br" "$output"
   brotli --decompress encoded-compressed-1.br
   diff encoded-compressed-1 src/e2e_project_frontend/assets/notreally.js
 
   # should split up accept-encoding lines with more than one encoding
   assert_command curl -v --output encoded-compressed-2.br -H "Accept-Encoding: br, deflate, gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-  assert_match "content-encoding: br"
+  assert_match "content-encoding: br" "$output"
   brotli --decompress encoded-compressed-2.br
   diff encoded-compressed-2 src/e2e_project_frontend/assets/notreally.js
 }
@@ -907,14 +907,14 @@ check_permission_failure() {
   dfx_start
   assert_command dfx deploy -v
 
-  assert_match '/asset1.bin 1/1'
-  assert_match '/asset2.bin 1/1'
+  assert_match '/asset1.bin 1/1' "$output"
+  assert_match '/asset2.bin 1/1' "$output"
 
   dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
   assert_command dfx deploy -v
-  assert_match '/asset1.bin.*is already installed'
-  assert_match '/asset2.bin 1/1'
+  assert_match '/asset1.bin.*is already installed' "$output"
+  assert_match '/asset2.bin 1/1' "$output"
 }
 
 @test "unsets asset encodings that are removed from project" {
@@ -944,13 +944,13 @@ check_permission_failure() {
 
   assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0" })'
   assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
-  assert_match 'sha256 required'
+  assert_match 'sha256 required' "$output"
   assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "XWV" })'
-  assert_match 'sha256 mismatch'
+  assert_match 'sha256 mismatch' "$output"
 
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0"})'
   assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
-  assert_match 'sha256 mismatch'
+  assert_match 'sha256 mismatch' "$output"
 
 }
 
@@ -1023,17 +1023,17 @@ CHERRIES" "$stdout"
 
   # retrieve() refuses to serve just part of an asset
   assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("/large-asset.bin")'
-  assert_match 'Asset too large.'
+  assert_match 'Asset too large.' "$output"
 
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
-  assert_match 'total_length = 6_000_051'
-  assert_match 'content_type = "application/octet-stream"'
-  assert_match 'content_encoding = "identity"'
+  assert_match 'total_length = 6_000_051' "$output"
+  assert_match 'content_type = "application/octet-stream"' "$output"
+  assert_match 'content_encoding = "identity"' "$output"
 
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
 
   assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2;sha256=opt blob "\4f\a1\0f\f7\41\9f\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
-  assert_contains "sha256 mismatch"
+  assert_contains "sha256 mismatch" "$output"
 
   assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2;sha256=opt blob "\4f\a1\0f\f7\41\9c\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
 
@@ -1078,36 +1078,36 @@ CHERRIES" "$stdout"
 
   # Initial deploy should sync all 150 assets
   assert_command dfx deploy -v
-  assert_match 'test001.txt.*1/1'
-  assert_match 'test100.txt.*1/1'
-  assert_match 'test150.txt.*1/1'
+  assert_match 'test001.txt.*1/1' "$output"
+  assert_match 'test100.txt.*1/1' "$output"
+  assert_match 'test150.txt.*1/1' "$output"
 
   # Verify all assets were uploaded by checking a few across the range
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test001.txt";accept_encodings=vec{"identity"}})'
-  assert_match "test content 1"
+  assert_match "test content 1" "$output"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test100.txt";accept_encodings=vec{"identity"}})'
-  assert_match "test content 100"
+  assert_match "test content 100" "$output"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test150.txt";accept_encodings=vec{"identity"}})'
-  assert_match "test content 150"
+  assert_match "test content 150" "$output"
 
   # Modify only one asset
   echo "modified content 075" > "src/e2e_project_frontend/assets/test075.txt"
 
   # Redeploy - should only sync the modified asset
   assert_command dfx deploy -v
-  assert_match 'test075.txt.*1/1'
-  assert_match 'test001.txt.*is already installed'
-  assert_match 'test150.txt.*is already installed'
+  assert_match 'test075.txt.*1/1' "$output"
+  assert_match 'test001.txt.*is already installed' "$output"
+  assert_match 'test150.txt.*is already installed' "$output"
 
   # Verify the modified asset was updated
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test075.txt";accept_encodings=vec{"identity"}})'
-  assert_match "modified content 075"
+  assert_match "modified content 075" "$output"
 
   # Verify other assets remain unchanged
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test074.txt";accept_encodings=vec{"identity"}})'
-  assert_match "test content 74"
+  assert_match "test content 74" "$output"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/test076.txt";accept_encodings=vec{"identity"}})'
-  assert_match "test content 76"
+  assert_match "test content 76" "$output"
 }
 
 @test "identifies content type" {
@@ -1368,17 +1368,17 @@ EOF
   PORT=$(get_webserver_port)
 
   assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_match "cache-control: max-age=2000"
+  assert_match "cache-control: max-age=2000" "$output"
   assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-  assert_match "cache-control: max-age=2000"
-  assert_match "x-header: x-value"
+  assert_match "cache-control: max-age=2000" "$output"
+  assert_match "x-header: x-value" "$output"
 
   assert_command curl -vv "http://localhost:$PORT/.ignored-by-default.txt?canisterId=$ID"
-  assert_match "404 Not Found"
+  assert_match "404 Not Found" "$output"
   assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
-  assert_match "404 Not Found"
+  assert_match "404 Not Found" "$output"
   assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
-  assert_match "404 Not Found"
+  assert_match "404 Not Found" "$output"
 }
 
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
@@ -1429,10 +1429,10 @@ EOF
   echo '[]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project does not define a security policy for any assets."
+  assert_contains "This project does not define a security policy for any assets." "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_not_match "content-security-policy"
-  assert_not_match "permissions-policy"
+  assert_not_match "content-security-policy" "$output"
+  assert_not_match "permissions-policy" "$output"
 
   # No security policy defined, warning disabled for one asset
   echo '[
@@ -1443,13 +1443,13 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project does not define a security policy for some assets."
-  assert_contains "Assets without any security policy:"
-  assert_contains "- /thing2.json"
-  assert_not_contains "- /thing.json"
+  assert_contains "This project does not define a security policy for some assets." "$output"
+  assert_contains "Assets without any security policy:" "$output"
+  assert_contains "- /thing2.json" "$output"
+  assert_not_contains "- /thing.json" "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_not_match "content-security-policy"
-  assert_not_match "permissions-policy"
+  assert_not_match "content-security-policy" "$output"
+  assert_not_match "permissions-policy" "$output"
 
   # No security policy defined, warning disabled for all assets
   echo '[
@@ -1460,10 +1460,10 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for any assets."
+  assert_not_contains "This project does not define a security policy for any assets." "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_not_match "content-security-policy"
-  assert_not_match "permissions-policy"
+  assert_not_match "content-security-policy" "$output"
+  assert_not_match "permissions-policy" "$output"
 
   # Security policy "disabled" defined for all assets, which disables the warning
   echo '[
@@ -1474,11 +1474,11 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for any assets."
-  assert_not_contains "This project uses the default security policy for all assets."
+  assert_not_contains "This project does not define a security policy for any assets." "$output"
+  assert_not_contains "This project uses the default security policy for all assets." "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_not_match "content-security-policy"
-  assert_not_match "permissions-policy"
+  assert_not_match "content-security-policy" "$output"
+  assert_not_match "permissions-policy" "$output"
 
   # Security policy "standard" defined for all assets, warning not disabled
   echo '[
@@ -1489,11 +1489,11 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project uses the default security policy for all assets."
-  assert_not_contains "Unhardened assets:"
+  assert_contains "This project uses the default security policy for all assets." "$output"
+  assert_not_contains "Unhardened assets:" "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_match "content-security-policy"
-  assert_match "permissions-policy"
+  assert_match "content-security-policy" "$output"
+  assert_match "permissions-policy" "$output"
 
   # Security policy "standard" defined for all assets, warning disabled for one asset
   echo '[
@@ -1508,13 +1508,13 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project uses the default security policy for some assets."
-  assert_contains "Unhardened assets:"
-  assert_contains "- /thing2.json"
-  assert_not_contains "- /thing.json"
+  assert_contains "This project uses the default security policy for some assets." "$output"
+  assert_contains "Unhardened assets:" "$output"
+  assert_contains "- /thing2.json" "$output"
+  assert_not_contains "- /thing.json" "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_match "content-security-policy"
-  assert_match "permissions-policy"
+  assert_match "content-security-policy" "$output"
+  assert_match "permissions-policy" "$output"
 
   # Security policy "standard" defined for all assets, warning disabled for all assets
   echo '[
@@ -1526,10 +1526,10 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project uses the default security policy for all assets."
+  assert_not_contains "This project uses the default security policy for all assets." "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_match "content-security-policy"
-  assert_match "permissions-policy"
+  assert_match "content-security-policy" "$output"
+  assert_match "permissions-policy" "$output"
 
   # Security policy "hardened" defined for all assets but no custom headers results in an error
   echo '[
@@ -1540,7 +1540,7 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command_fail dfx deploy
-  assert_contains "does not actually configure any custom improvements over the standard policy"
+  assert_contains "does not actually configure any custom improvements over the standard policy" "$output"
 
   # Security policy "hardened" defined for all assets, with overwriting default security headers
   echo '[
@@ -1554,11 +1554,11 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for any assets."
-  assert_not_contains "This project uses the default security policy for all assets."
+  assert_not_contains "This project does not define a security policy for any assets." "$output"
+  assert_not_contains "This project uses the default security policy for all assets." "$output"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_match "content-security-policy: overwritten"
-  assert_match "permissions-policy"
+  assert_match "content-security-policy: overwritten" "$output"
+  assert_match "permissions-policy" "$output"
 }
 
 @test "asset configuration via .ic-assets.json5 - overwriting default encodings" {
@@ -1586,13 +1586,13 @@ EOF
 
   # favicon.ico is not available in gzip format by default but was configured to be
   assert_command curl -vv -H "Accept-Encoding: gzip" "http://localhost:$PORT/favicon.ico?canisterId=$ID"
-  assert_match "content-encoding: gzip"
+  assert_match "content-encoding: gzip" "$output"
 
   # index.html is available in gzip format by default but was configured not to be
   # The asset canister would serve the gzip encoding if it was available, but can't.
   # Therefore it falls back to the identity encoding, meaning there is no `content-encoding` header present
   assert_command curl -vv -H "Accept-Encoding: gzip" "http://localhost:$PORT/index.html?canisterId=$ID"
-  assert_not_match "content-encoding"
+  assert_not_match "content-encoding" "$output"
 }
 
 @test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
@@ -1608,17 +1608,17 @@ EOF
 
   # decode as expected
   assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/test_alias_file.html";headers=vec{};method="GET";body=vec{}})'
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/index_test";headers=vec{};method="GET";body=vec{}})'
-  assert_match "test index file"
+  assert_match "test index file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -1626,16 +1626,16 @@ EOF
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test/index?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   # toggle aliasing on and off using `set_asset_properties`
   # this doesn't work, see https://dfinity.atlassian.net/browse/SDK-1246
@@ -1687,7 +1687,7 @@ EOF
 
   # However, due to returning the wrong certificate, it fails with Err(InvalidResponseHashes)
   # see https://dfinity.atlassian.net/browse/SDK-1246
-  assert_contains "503 Service Unavailable"
+  assert_contains "503 Service Unavailable" "$output"
 
 
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
@@ -1696,25 +1696,25 @@ EOF
 
   # redirect survives upgrade
   assert_command dfx deploy --upgrade-unchanged -v
-  assert_match "is already installed"
+  assert_match "is already installed" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   # disabling redirect works
   echo "DISABLING NOW"
@@ -1729,23 +1729,23 @@ EOF
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
 
   # again see # see https://dfinity.atlassian.net/browse/SDK-1246, this should be 404
   # assert_match "404 Not Found" "$stderr"
-  assert_contains "503 Service Unavailable"
+  assert_contains "503 Service Unavailable" "$output"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "key not found"
+  assert_match "key not found" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   # disabled redirect survives canister upgrade
   echo "UPGRADE"
@@ -1754,19 +1754,19 @@ EOF
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
   assert_match "404 Not Found" "$stderr"
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "test alias file"
+  assert_match "test alias file" "$output"
   assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
-  assert_match "key not found"
+  assert_match "key not found" "$output"
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
-  assert_match "test index file"
+  assert_match "test index file" "$output"
 
   #
 }
@@ -1812,14 +1812,14 @@ EOF
   ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+  assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:' "$output"
   assert_contains 'WARNING: {
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
   }
-}'
-  assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+}' "$output"
+  assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:' "$output"
   assert_contains 'WARNING: {
   "match": "nevermatchme",
   "headers": {},
@@ -1836,7 +1836,7 @@ WARNING: {
     "x-header": "x-value"
   },
   "ignore": false
-}'
+}' "$output"
   # splitting this up into two checks, because the order is different on macos vs ubuntu
   assert_contains 'WARNING: {
   "match": "/thanks-for-not-stripping-forward-slash",
@@ -1844,7 +1844,7 @@ WARNING: {
     "x-header": "x-value"
   },
   "ignore": false
-}'
+}' "$output"
 }
 
 @test "asset configuration via .ic-assets.json5 - get and set asset properties" {
@@ -1874,18 +1874,18 @@ WARNING: {
     allow_raw_access = opt true;
     max_age = opt (2_000 : nat64);
   },
-)'
+)' "$output"
 
   # access required to update
   assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity anonymous
-  assert_match "Caller does not have Commit permission"
+  assert_match "Caller does not have Commit permission" "$output"
   dfx identity new other --storage-mode plaintext
   assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity other
-  assert_match "Caller does not have Commit permission"
+  assert_match "Caller does not have Commit permission" "$output"
 
   # set max_age property and read it back
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
-  assert_contains '()'
+  assert_contains '()' "$output"
   assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
   assert_contains '(
   record {
@@ -1894,11 +1894,11 @@ WARNING: {
     allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
-)'
+)' "$output"
 
   # set headers property and read it back
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
-  assert_contains '()'
+  assert_contains '()' "$output"
   assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
   assert_contains '(
   record {
@@ -1907,11 +1907,11 @@ WARNING: {
     allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
-)'
+)' "$output"
 
   # set allow_raw_access property and read it back
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; allow_raw_access=opt(opt(true))})'
-  assert_contains '()'
+  assert_contains '()' "$output"
   assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
   assert_contains '(
   record {
@@ -1920,11 +1920,11 @@ WARNING: {
     allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
-)'
+)' "$output"
 
   # set is_aliased property and read it back
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; is_aliased=opt(opt(false))})'
-  assert_contains '()'
+  assert_contains '()' "$output"
   assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
   assert_contains '(
   record {
@@ -1933,11 +1933,11 @@ WARNING: {
     allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
-)'
+)' "$output"
 
   # set all properties to None and read them back
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null); is_aliased=opt(null)})'
-  assert_contains '()'
+  assert_contains '()' "$output"
   assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
   assert_contains '(
   record {
@@ -1946,7 +1946,7 @@ WARNING: {
     allow_raw_access = null;
     max_age = null;
   },
-)'
+)' "$output"
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
@@ -1969,7 +1969,7 @@ WARNING: {
   ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
   assert_command dfx deploy -v
-  assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+  assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)' "$output"
 }
 
 @test "asset configuration via .ic-assets.json5 - respects weird characters" {
@@ -2065,20 +2065,20 @@ EOF
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_batches= opt opt 1 })'
   EXTRA_BATCH=$(create_batch)
   assert_command_fail dfx deploy
-  assert_contains "batch limit exceeded"
+  assert_contains "batch limit exceeded" "$output"
   assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$EXTRA_BATCH })"
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_batches= opt null })'
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_bytes= opt opt 5499 })'
   assert_command_fail dfx deploy
-  assert_contains "byte limit exceeded"
+  assert_contains "byte limit exceeded" "$output"
   assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=3 })"
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_bytes= opt null })'
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 2 })'
   assert_command_fail dfx deploy
-  assert_contains "chunk limit exceeded"
+  assert_contains "chunk limit exceeded" "$output"
   assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=4 })"
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
@@ -2172,7 +2172,7 @@ EOF
 
   # Request HTML file and verify ic_env cookie is set
   assert_command curl -v "http://$ID.localhost:$PORT/index.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX" "$output"
 }
 
 @test "ic_env cookie contains PUBLIC_ environment variables" {
@@ -2198,7 +2198,7 @@ EOF
 
   # Request HTML file and verify cookie contains PUBLIC_ variables
   assert_command curl -v "http://$ID.localhost:$PORT/index.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX" "$output"
 }
 
 @test "ic_env cookie is not set for non-html files" {
@@ -2246,7 +2246,7 @@ EOF
   IC_ENV_COOKIE_REGEX_1="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1; SameSite=Lax"
 
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1" "$output"
 
   # Redeploy with no PUBLIC_ prefixed (case sensitive!) environment variables
   set_canister_environment_variables "$ID" public_TEST1=value1 TEST2=value2
@@ -2255,7 +2255,7 @@ EOF
   IC_ENV_COOKIE_REGEX_2="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+; SameSite=Lax"
 
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2" "$output"
 }
 
 @test "ic_env cookie updates on redeploy with new environment variables" {
@@ -2280,7 +2280,7 @@ EOF
   IC_ENV_COOKIE_REGEX_1="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1; SameSite=Lax"
 
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_1" "$output"
 
   # Redeploy with additional PUBLIC_ variable
   set_canister_environment_variables "$ID" PUBLIC_TEST1=value1 PUBLIC_TEST2=value2
@@ -2289,7 +2289,7 @@ EOF
   IC_ENV_COOKIE_REGEX_2="ic_env=ic%5Froot%5Fkey%3D[0-9a-fA-F]+%26PUBLIC%5FTEST1%3Dvalue1%26PUBLIC%5FTEST2%3Dvalue2; SameSite=Lax"
 
   assert_command curl -v "http://$ID.localhost:$PORT/app.html"
-  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2"
+  assert_match "set-cookie: $IC_ENV_COOKIE_REGEX_2" "$output"
 }
 
 @test "local state hash matches canister state hash" {

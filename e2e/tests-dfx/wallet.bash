@@ -15,16 +15,16 @@ teardown() {
 @test "error reporting for --wallet parameter" {
   dfx_start
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet "abc-def"
-  assert_contains "Failed to read principal from id 'abc-def', and did not find a wallet for that identity"
-  assert_contains "Text must be in valid Base32 encoding"
+  assert_contains "Failed to read principal from id 'abc-def', and did not find a wallet for that identity" "$output"
+  assert_contains "Text must be in valid Base32 encoding" "$output"
 
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet "alice"
-  assert_contains "Failed to read principal from id 'alice', and did not find a wallet for that identity"
+  assert_contains "Failed to read principal from id 'alice', and did not find a wallet for that identity" "$output"
 
   echo "{}" > "$(shared_wallets_json)"
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet broken
-  assert_contains "Failed to read principal from id 'broken' (Text must be in valid Base32 encoding.), and failed to load the wallet for that identity"
-  assert_contains "missing field \`identities\`"
+  assert_contains "Failed to read principal from id 'broken' (Text must be in valid Base32 encoding.), and failed to load the wallet for that identity" "$output"
+  assert_contains "missing field \`identities\`" "$output"
 }
 
 
@@ -34,7 +34,7 @@ teardown() {
     dfx_new
     assert_command dfx deploy
     assert_command dfx canister deposit-cycles 47 e2e_project_backend
-    assert_contains "Deposited 47 cycles"
+    assert_contains "Deposited 47 cycles" "$output"
 }
 
 @test "deposit cycles outside a project" {
@@ -47,7 +47,7 @@ teardown() {
     CANISTER_ID="$(dfx canister id e2e_project_backend)"
     cd ..
     assert_command dfx canister deposit-cycles 42 "$CANISTER_ID"
-    assert_contains "Deposited 42 cycles"
+    assert_contains "Deposited 42 cycles" "$output"
 }
 
 @test "DFX_WALLET_WASM environment variable overrides wallet module wasm at installation" {
@@ -59,20 +59,20 @@ teardown() {
 
   use_wallet_wasm 0.7.0
   assert_command dfx identity get-wallet --identity alice
-  assert_match "Using wasm at path: .*/wallet/0.7.0/wallet.wasm"
+  assert_match "Using wasm at path: .*/wallet/0.7.0/wallet.wasm" "$output"
 
   use_wallet_wasm 0.7.2
   assert_command dfx identity get-wallet --identity bob
-  assert_match "Using wasm at path: .*/wallet/0.7.2/wallet.wasm"
+  assert_match "Using wasm at path: .*/wallet/0.7.2/wallet.wasm" "$output"
 
   ALICE_WALLET=$(dfx identity get-wallet --identity alice)
   BOB_WALLET=$(dfx identity get-wallet --identity bob)
 
   assert_command dfx canister info "$ALICE_WALLET" --identity alice
-  assert_match "Module hash: 0xa609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1"
+  assert_match "Module hash: 0xa609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1" "$output"
 
   assert_command dfx canister info "$BOB_WALLET" --identity bob
-  assert_match "Module hash: 0x1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898"
+  assert_match "Module hash: 0x1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898" "$output"
 }
 
 @test "DFX_WALLET_WASM environment variable overrides wallet module wasm for upgrade" {
@@ -110,11 +110,11 @@ teardown() {
   dfx canister update-settings hello_frontend --set-controller "$(dfx identity get-principal)" --network actuallylocal
 
   assert_command_fail dfx identity set-wallet "${ID}" --network actuallylocal
-  assert_not_match "Setting wallet for identity"
+  assert_not_match "Setting wallet for identity" "$output"
   assert_command dfx identity set-wallet --force "${ID}" --network actuallylocal
-  assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'"
+  assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'" "$output"
   assert_command jq -r .identities.default.actuallylocal <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
-  assert_eq "$ID"
+  assert_eq "$ID" "$output"
 }
 
 @test "deploy wallet" {
@@ -142,7 +142,7 @@ teardown() {
 
   # Command should fail on an already-deployed canister
   assert_command_fail dfx identity deploy-wallet "${ID_TWO}" --network actuallylocal
-  assert_match "The wallet canister \"${ID_TWO}\"\ already exists for user \"default\" on \"actuallylocal\" network."
+  assert_match "The wallet canister \"${ID_TWO}\"\ already exists for user \"default\" on \"actuallylocal\" network." "$output"
 }
 
 @test "wallet create wallet" {
@@ -239,7 +239,7 @@ teardown() {
   dfx_start
   dfx_new hello
   assert_command_fail dfx wallet upgrade
-  assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do."
+  assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do." "$output"
 }
 
 @test "creates new wallet if backend changes" {
@@ -256,7 +256,7 @@ teardown() {
 
 @test "must run dfx start before accessing wallet on shared local network" {
     assert_command_fail dfx wallet upgrade
-    assert_contains "cannot use a wallet before dfx start"
+    assert_contains "cannot use a wallet before dfx start" "$output"
 }
 
 @test "redeem-faucet-coupon can set a new wallet and top up an existing one" {
@@ -277,25 +277,25 @@ teardown() {
   # assert: no wallet configured
   export DFX_DISABLE_AUTO_WALLET=1
   assert_command_fail dfx wallet balance
-  assert_match "No wallet configured"
+  assert_match "No wallet configured" "$output"
 
   assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon' --yes
-  assert_match "Redeemed coupon valid-coupon for a new wallet"
-  assert_match "New wallet set."
+  assert_match "Redeemed coupon valid-coupon for a new wallet" "$output"
+  assert_match "New wallet set." "$output"
 
   # only succeeds if wallet is correctly set
   assert_command dfx wallet balance
   # checking only balance before the dot, rest may fluctuate
   # balance may be 99.??? TC if cycles accounting is done, or 100.000 TC if not
-  assert_match "99\.|100\."
+  assert_match "99\.|100\." "$output"
 
   unset DFX_DISABLE_AUTO_WALLET
 
   assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon' --yes
-  assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC"
+  assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC" "$output"
 
   assert_command dfx wallet balance
   # checking only balance before the dot, rest may fluctuate
   # balance may be 109.??? TC if cycles accounting is done, or 110.000 TC if not
-  assert_match "109\.|110\."
+  assert_match "109\.|110\." "$output"
 }

@@ -21,31 +21,31 @@ teardown() {
     dfx deploy
 
     assert_command dfx canister call hello_backend inc_read
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     dfx canister stop hello_backend
     assert_command dfx canister snapshot create hello_backend
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot=${BASH_REMATCH[1]}
     dfx canister start hello_backend
 
     assert_command dfx canister call hello_backend inc_read
-    assert_contains '(2 : nat)'
+    assert_contains '(2 : nat)' "$output"
 
     dfx canister stop hello_backend
     assert_command dfx canister snapshot load hello_backend "$snapshot"
     dfx canister start hello_backend
     assert_command dfx canister call hello_backend read
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     assert_command dfx canister snapshot list hello_backend
-    assert_match "^${snapshot}:"
+    assert_match "^${snapshot}:" "$output"
     assert_command dfx canister snapshot delete hello_backend "$snapshot"
     assert_command dfx canister snapshot list hello_backend
-    assert_contains 'No snapshots found in canister hello_backend'
+    assert_contains 'No snapshots found in canister hello_backend' "$output"
 
     assert_command_fail dfx canister snapshot create hello_backend
-    assert_contains 'Canister hello_backend is running and snapshots should not be taken of running canisters'
+    assert_contains 'Canister hello_backend is running and snapshots should not be taken of running canisters' "$output"
 }
 
 @test "canister snapshots download and upload" {
@@ -54,34 +54,34 @@ teardown() {
     dfx deploy
 
     assert_command dfx canister call hello_backend inc_read
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     # Create the first snapshot.
     dfx canister stop hello_backend
     assert_command dfx canister snapshot create hello_backend
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot=${BASH_REMATCH[1]}
     dfx canister start hello_backend
 
     assert_command dfx canister call hello_backend inc_read
-    assert_contains '(2 : nat)'
+    assert_contains '(2 : nat)' "$output"
 
     # Download the first snapshot.
     OUTPUT_DIR="output"
     mkdir -p "$OUTPUT_DIR"
     assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR"
-    assert_contains "saved to '$OUTPUT_DIR'"
+    assert_contains "saved to '$OUTPUT_DIR'" "$output"
 
     # Replace the first snapshot.
     dfx canister stop hello_backend
     assert_command dfx canister snapshot create hello_backend --replace "$snapshot"
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot=${BASH_REMATCH[1]}
 
     dfx canister start hello_backend
 
     assert_command dfx canister call hello_backend inc_read
-    assert_contains '(3 : nat)'
+    assert_contains '(3 : nat)' "$output"
 
     # Load and verify the replaced snapshot.
     dfx canister stop hello_backend
@@ -89,15 +89,15 @@ teardown() {
     dfx canister start hello_backend
 
     assert_command dfx canister call hello_backend read
-    assert_contains '(2 : nat)'
+    assert_contains '(2 : nat)' "$output"
 
     # Upload to create a new snapshot.
     assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR"
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot_1=${BASH_REMATCH[1]}
 
     assert_command dfx canister snapshot list hello_backend
-    assert_contains "${snapshot_1}"
+    assert_contains "${snapshot_1}" "$output"
 
     # Load and verify the uploaded snapshot.
     dfx canister stop hello_backend
@@ -105,7 +105,7 @@ teardown() {
 
     dfx canister start hello_backend
     assert_command dfx canister call hello_backend read
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 }
 
 @test "canister snapshots download and upload via toxiproxy with high latency" {
@@ -121,12 +121,12 @@ teardown() {
     dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
 
     assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     # Create a snapshot to download.
     dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:$proxy_port"
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot=${BASH_REMATCH[1]}
 
     # Add latency to the proxy.
@@ -136,16 +136,16 @@ teardown() {
     OUTPUT_DIR="output"
     mkdir -p "$OUTPUT_DIR"
     assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
-    assert_contains "saved to '$OUTPUT_DIR'"
+    assert_contains "saved to '$OUTPUT_DIR'" "$output"
 
     # Start the canister again.
     dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
-    assert_contains '(2 : nat)'
+    assert_contains '(2 : nat)' "$output"
 
     # Upload the snapshot to create a new snapshot.
     assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" --network "http://127.0.0.1:$proxy_port"
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot_1=${BASH_REMATCH[1]}
 
     # Stop the canister and load the new snapshot.
@@ -155,7 +155,7 @@ teardown() {
     # Start the canister again and verify the loaded snapshot.
     dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_command dfx canister call hello_backend read --network "http://127.0.0.1:$proxy_port"
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     toxiproxy_delete_proxy proxy_high_latency
 }
@@ -173,12 +173,12 @@ teardown() {
     dfx deploy --no-wallet --network "http://127.0.0.1:$proxy_port"
 
     assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     # Create a snapshot to download.
     dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_command dfx canister snapshot create hello_backend --network "http://127.0.0.1:$proxy_port"
-    assert_match 'Snapshot ID: ([0-9a-f]+)'
+    assert_match 'Snapshot ID: ([0-9a-f]+)' "$output"
     snapshot=${BASH_REMATCH[1]}
 
     # Add a 1MB limit_data toxic to force the snapshot download to fail.
@@ -198,12 +198,12 @@ teardown() {
 
     # Resume the download through the proxy.
     assert_command dfx -v canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR" -r --network "http://127.0.0.1:$proxy_port"
-    assert_contains "saved to '$OUTPUT_DIR'"
+    assert_contains "saved to '$OUTPUT_DIR'" "$output"
 
     # Start the canister again.
     dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_command dfx canister call hello_backend inc_read --network "http://127.0.0.1:$proxy_port"
-    assert_contains '(2 : nat)'
+    assert_contains '(2 : nat)' "$output"
 
     # Add a 1MB limit_data toxic to force the snapshot upload to fail.
     toxiproxy_add_limit_data limit_upload 1000000 proxy_network_drop -u
@@ -230,7 +230,7 @@ teardown() {
 
     # Resume the upload through the proxy.
     assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR" -r "$snapshot_1" --network "http://127.0.0.1:$proxy_port"
-    assert_contains "$snapshot_1"
+    assert_contains "$snapshot_1" "$output"
 
     # Stop the canister and load the new snapshot.
     dfx canister stop hello_backend --network "http://127.0.0.1:$proxy_port"
@@ -239,7 +239,7 @@ teardown() {
     # Start the canister again and verify the loaded snapshot.
     dfx canister start hello_backend --network "http://127.0.0.1:$proxy_port"
     assert_command dfx canister call hello_backend read --network "http://127.0.0.1:$proxy_port"
-    assert_contains '(1 : nat)'
+    assert_contains '(1 : nat)' "$output"
 
     toxiproxy_delete_proxy proxy_network_drop
 }

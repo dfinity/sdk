@@ -54,13 +54,13 @@ setup_playground() {
 
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
-  assert_match "Hello, player!"
+  assert_match "Hello, player!" "$output"
 
   CANISTER=$(dfx canister --playground id hello_backend)
   assert_command_fail dfx canister --playground stop hello_backend
-  assert_match "Canisters borrowed from a playground cannot be stopped."
+  assert_match "Canisters borrowed from a playground cannot be stopped." "$output"
   assert_command_fail dfx canister stop "${CANISTER}"
-  assert_match "The principal you are using to call a management function is not part of the controllers."
+  assert_match "The principal you are using to call a management function is not part of the controllers." "$output"
 
   if [ "$(uname)" == "Darwin" ]; then
     sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
@@ -70,7 +70,7 @@ setup_playground() {
   
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
-  assert_match "Goodbye, player!"
+  assert_match "Goodbye, player!" "$output"
 
   assert_command dfx canister --playground delete hello_backend
   assert_command_fail dfx canister --playground info hello_backend
@@ -94,14 +94,14 @@ setup_playground() {
 
 @test "Handle timeout correctly" {
   assert_command dfx canister create hello_backend --playground -vv
-  assert_match "Reserved canister 'hello_backend'"
+  assert_match "Reserved canister 'hello_backend'" "$output"
   assert_command dfx canister create hello_backend --playground -vv
-  assert_match "hello_backend canister was already created"
+  assert_match "hello_backend canister was already created" "$output"
   sleep 10
   jq '.playground.playground.timeout_seconds=5' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   assert_command dfx canister create hello_backend --playground -vv
-  assert_match "Canister 'hello_backend' has timed out."
-  assert_match "Reserved canister 'hello_backend'"
+  assert_match "Canister 'hello_backend' has timed out." "$output"
+  assert_match "Reserved canister 'hello_backend'" "$output"
 }
 
 # This is important for whitelisting wasm hashes in the playground.

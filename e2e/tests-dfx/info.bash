@@ -28,12 +28,12 @@ teardown() {
 
 @test "displays the replica port" {
   assert_command_fail dfx info pocketic-config-port
-  assert_contains "No PocketIC port found"
+  assert_contains "No PocketIC port found" "$output"
   dfx_start
   assert_command_fail dfx info replica-port
-  assert_contains "Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use \`--webserver-port\`."
+  assert_contains "Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use \`--webserver-port\`." "$output"
   assert_command dfx info pocketic-config-port
-  assert_eq "$(get_pocketic_port)"
+  assert_eq "$(get_pocketic_port)" "$output"
 }
 
 @test "displays the default webserver port for the local shared network" {
@@ -67,12 +67,12 @@ teardown() {
 
   # Before deployment the UI canister does not exist yet
   assert_command_fail dfx info candid-ui-url
-  assert_contains "Candid UI not installed on network local."
+  assert_contains "Candid UI not installed on network local." "$output"
 
   dfx_start
   assert_command dfx deploy e2e_project_backend
-  assert_command dfx info candid-ui-url  
-  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)"
+  assert_command dfx info candid-ui-url
+  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)" "$output"
 }
 
 @test "security-policy shows standard/hardened headers with comments" {

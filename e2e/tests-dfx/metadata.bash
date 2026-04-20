@@ -72,13 +72,13 @@ teardown() {
   jq 'del(.canisters.e2e_project_backend.metadata)' dfx.json | sponge dfx.json
   jq '.canisters.e2e_project_backend.metadata[0].name="candid:service"|.canisters.e2e_project_backend.metadata[0].path="not_subtype_rename.did"' dfx.json | sponge dfx.json
   assert_command_fail dfx build
-  assert_match "Method new_method is only in the expected type"
+  assert_match "Method new_method is only in the expected type" "$output"
 
   echo "reports an error if a specified candid:service metadata is not a valid subtype for the canister"
   jq 'del(.canisters.e2e_project_backend.metadata)' dfx.json | sponge dfx.json
   jq '.canisters.e2e_project_backend.metadata[0].name="candid:service"|.canisters.e2e_project_backend.metadata[0].path="not_subtype_numbertype.did"' dfx.json | sponge dfx.json
   assert_command_fail dfx build
-  assert_match "int is not a subtype of nat"
+  assert_match "int is not a subtype of nat" "$output"
 
 
   echo "adds private candid:service metadata if so configured"
@@ -144,7 +144,7 @@ teardown() {
 
   assert_command dfx deploy
   assert_command dfx canister metadata gzipped arbitrary
-  assert_eq "$output" "arbitrary content"
+  assert_eq "arbitrary content" "$output"
 }
 
 @test "existence of build steps do not control custom canister metadata" {
@@ -213,23 +213,23 @@ teardown() {
   assert_command dfx canister metadata b dfx
   echo "$stdout" > b.json
   assert_command jq -r '.tech_stack | keys[]' b.json
-  assert_eq "cdk" # only cdk is defined
+  assert_eq "cdk" "$output" # only cdk is defined
   assert_command jq -r '.tech_stack.cdk | keys[]' b.json
-  assert_eq "ic-cdk"
+  assert_eq "ic-cdk" "$output"
 
   # c defines language->rust version
   assert_command dfx deploy c
   assert_command dfx canister metadata c dfx
   echo "$stdout" > c.json
   assert_command jq -r '.tech_stack.language.rust.version' c.json
-  assert_eq "1.75.0"
+  assert_eq "1.75.0" "$output"
 
   # d defines language->rust version with value_command
   assert_command dfx deploy d
   assert_command dfx canister metadata d dfx
   echo "$stdout" > d.json
   assert_command jq -r '.tech_stack.language.rust.version' d.json
-  assert_eq "1.75.0"
+  assert_eq "1.75.0" "$output"
 
   # e defines multiple lib items
   assert_command dfx deploy e
@@ -237,45 +237,45 @@ teardown() {
   echo "$stdout" > e.json
   assert_command jq -r '.tech_stack.lib | keys[]' e.json
   assert_eq "ic-cdk-timers
-ic-stable-structures"
+ic-stable-structures" "$output"
 
   # f defines all 5 categories
   assert_command dfx deploy f
   assert_command dfx canister metadata f dfx
   echo "$stdout" > f.json
   assert_command jq -r '.tech_stack.cdk | keys[]' f.json
-  assert_eq "ic-cdk"
+  assert_eq "ic-cdk" "$output"
   assert_command jq -r '.tech_stack.language | keys[]' f.json
-  assert_eq "rust"
+  assert_eq "rust" "$output"
   assert_command jq -r '.tech_stack.lib | keys[]' f.json
-  assert_eq "ic-cdk-timers"
+  assert_eq "ic-cdk-timers" "$output"
   assert_command jq -r '.tech_stack.tool | keys[]' f.json
-  assert_eq "dfx"
+  assert_eq "dfx" "$output"
   assert_command jq -r '.tech_stack.other | keys[]' f.json
-  assert_eq "bitcoin"
+  assert_eq "bitcoin" "$output"
 
   # g defines a value_command that is a local file without "./" prefix and the file name contains whitespace
   assert_command dfx deploy g
   assert_command dfx canister metadata g dfx
   echo "$stdout" > g.json
   assert_command jq -r '.tech_stack.language.rust.version' g.json
-  assert_eq "1.75.0"
+  assert_eq "1.75.0" "$output"
 
   # h defines a value_command that is a local command(prefix "./") contains whitespace
   assert_command dfx deploy h
   assert_command dfx canister metadata h dfx
   echo "$stdout" > h.json
   assert_command jq -r '.tech_stack.language.rust.version' h.json
-  assert_eq "1.75.0"
+  assert_eq "1.75.0" "$output"
 
   # i defines a value_command that fails
   assert_command_fail dfx deploy i
-  assert_contains "Failed to run the value_command: language->rust->version."
+  assert_contains "Failed to run the value_command: language->rust->version." "$output"
 
   # j defines a value_command that returns a non-valid string
   echo -e "\xc3\x28" > invalid_utf8.txt
   assert_command_fail dfx deploy j
-  assert_contains "The value_command didn't return a valid UTF-8 string: language->rust->version."
+  assert_contains "The value_command didn't return a valid UTF-8 string: language->rust->version." "$output"
 
   # TODO: remove this when we have motoko extension
   # k is a motoko canister which doesn't define tech_stack
@@ -284,7 +284,7 @@ ic-stable-structures"
   assert_command dfx canister metadata k dfx
   echo "$stdout" > k.json
   assert_command jq -r '.tech_stack.language | keys[]' k.json
-  assert_eq "motoko"
+  assert_eq "motoko" "$output"
 }
 
 # TODO: remove this when we have rust extension

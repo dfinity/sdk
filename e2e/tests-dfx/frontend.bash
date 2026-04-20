@@ -22,15 +22,15 @@ teardown() {
   CANDID_UI_ID=$(dfx canister id __Candid_UI)
   APP_ID=$(dfx canister id e2e_project_backend)
   ASSETS_ID=$(dfx canister id e2e_project_frontend)
-  assert_match "e2e_project_backend: http://127.0.0.1:$PORT/\?canisterId=$CANDID_UI_ID&id=$APP_ID"
-  assert_match "http://127.0.0.1:$PORT/\?canisterId=$ASSETS_ID"
+  assert_match "e2e_project_backend: http://127.0.0.1:$PORT/\?canisterId=$CANDID_UI_ID&id=$APP_ID" "$output"
+  assert_match "http://127.0.0.1:$PORT/\?canisterId=$ASSETS_ID" "$output"
 
   # the urls are a little nicer if the bind address is localhost:8000 rather than 127.0.0.1:8000
   jq -n '.local.bind="localhost:'"$PORT"'"' >"$E2E_NETWORKS_JSON"
 
   assert_command dfx deploy
-  assert_match "e2e_project_backend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
-  assert_match "e2e_project_frontend: http://$ASSETS_ID.localhost:$PORT/"
+  assert_match "e2e_project_backend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID" "$output"
+  assert_match "e2e_project_frontend: http://$ASSETS_ID.localhost:$PORT/" "$output"
 }
 
 @test "dfx start serves a frontend with static assets" {
@@ -85,9 +85,9 @@ teardown() {
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
   assert_command curl -vv http://localhost:"$PORT"/?canisterId="$ID"
-  assert_match "< x-key: x-value"
+  assert_match "< x-key: x-value" "$output"
   assert_command curl -vv http://localhost:"$PORT"/favicon.ico?canisterId="$ID"
-  assert_match "< x-key: x-value"
+  assert_match "< x-key: x-value" "$output"
 }
 
 @test "dfx uses a custom build command if one is provided" {

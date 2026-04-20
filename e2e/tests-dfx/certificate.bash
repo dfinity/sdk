@@ -66,7 +66,7 @@ teardown() {
 
 @test "mitm attack - update: attack fails because certificate verification fails" {
   assert_command_fail dfx canister call certificate_backend hello_update '("Buckaroo")'
-  assert_match 'Certificate verification failed.'
+  assert_match 'Certificate verification failed.' "$output"
 }
 
 @test "mitm attack - query: attack succeeds because there is no certificate to verify" {

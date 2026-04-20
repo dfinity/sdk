@@ -311,57 +311,57 @@ function impersonate_sender() {
 
     # updating settings now fails because the default identity does not control the canister anymore
     assert_command_fail dfx canister update-settings hello_backend --freezing-threshold 0 --confirm-very-short-freezing-threshold
-    assert_contains "The principal you are using to call a management function is not part of the controllers."
+    assert_contains "The principal you are using to call a management function is not part of the controllers." "$output"
 
     # updating settings succeeds when impersonating the management canister as the sender
     assert_command dfx canister update-settings hello_backend --freezing-threshold 0 --confirm-very-short-freezing-threshold --impersonate "${IDENTITY_PRINCIPAL}"
 
     # canister status fails because the default identity does not control the canister anymore
     assert_command_fail dfx canister status hello_backend
-    assert_contains "The principal you are using to call a management function is not part of the controllers."
+    assert_contains "The principal you are using to call a management function is not part of the controllers." "$output"
 
     # canister status succeeds when impersonating the management canister as the sender
     assert_command dfx canister status hello_backend --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Controllers: ${IDENTITY_PRINCIPAL}"
-    assert_contains "Freezing threshold: 0"
+    assert_contains "Controllers: ${IDENTITY_PRINCIPAL}" "$output"
+    assert_contains "Freezing threshold: 0" "$output"
 
     # freeze the canister
     assert_command dfx canister update-settings hello_backend --freezing-threshold 9223372036854775808 --confirm-very-long-freezing-threshold --impersonate "${IDENTITY_PRINCIPAL}"
 
     # test management canister call submission failure
     assert_command_fail dfx canister status hello_backend --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Failed to submit management canister call: Canister $CANISTER_ID is out of cycles"
+    assert_contains "Failed to submit management canister call: Canister $CANISTER_ID is out of cycles" "$output"
 
     # test update call submission failure
     assert_command_fail dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --update --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Failed to submit canister call: Canister $CANISTER_ID is out of cycles"
+    assert_contains "Failed to submit canister call: Canister $CANISTER_ID is out of cycles" "$output"
 
     # test async call submission failure
     assert_command_fail dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --async --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Failed to submit canister call: Canister $CANISTER_ID is out of cycles"
+    assert_contains "Failed to submit canister call: Canister $CANISTER_ID is out of cycles" "$output"
 
     # unfreeze the canister
     assert_command dfx canister update-settings hello_backend --freezing-threshold 0 --confirm-very-short-freezing-threshold --impersonate "${IDENTITY_PRINCIPAL}"
 
     # test update call failure
     assert_command_fail dfx canister call aaaaa-aa delete_canister "(record { canister_id=principal\"$CANISTER_ID\" })" --update --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Canister call failed: Canister $CANISTER_ID must be stopped before it is deleted."
+    assert_contains "Canister call failed: Canister $CANISTER_ID must be stopped before it is deleted." "$output"
 
     # test update call
     assert_command dfx canister call aaaaa-aa start_canister "(record { canister_id=principal\"$CANISTER_ID\" })" --update --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "()"
+    assert_contains "()" "$output"
 
     # test async call
     assert_command dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --async --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Request ID:"
+    assert_contains "Request ID:" "$output"
 
     # test query call failure
     assert_command_fail dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "$CANISTER_ID"
-    assert_contains "Failed to perform query call: Caller $CANISTER_ID is not allowed to access canister logs (IC0406)"
+    assert_contains "Failed to perform query call: Caller $CANISTER_ID is not allowed to access canister logs (IC0406)" "$output"
 
     # test query call
     assert_command dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "(record { 1_754_302_831 = vec {} })"
+    assert_contains "(record { 1_754_302_831 = vec {} })" "$output"
 }
 
 @test "impersonate management canister as sender" {

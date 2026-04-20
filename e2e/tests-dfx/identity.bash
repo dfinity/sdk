@@ -16,22 +16,22 @@ teardown() {
 
 @test "identity new: name validation" {
   assert_command_fail dfx identity new iden%tity --storage-mode plaintext
-  assert_match "Invalid identity name"
+  assert_match "Invalid identity name" "$output"
 
   assert_command_fail dfx identity new 'iden tity' --storage-mode plaintext
-  assert_match "Invalid identity name"
+  assert_match "Invalid identity name" "$output"
 
   assert_command_fail dfx identity new "iden\$tity" --storage-mode plaintext
-  assert_match "Invalid identity name"
+  assert_match "Invalid identity name" "$output"
 
   assert_command_fail dfx identity new iden\\tity --storage-mode plaintext
-  assert_match "Invalid identity name"
+  assert_match "Invalid identity name" "$output"
 
   assert_command_fail dfx identity new 'iden\ttity' --storage-mode plaintext
-  assert_match "Invalid identity name"
+  assert_match "Invalid identity name" "$output"
 
   assert_command_fail dfx identity new iden/tity --storage-mode plaintext
-  assert_match "Invalid identity name"
+  assert_match "Invalid identity name" "$output"
 
   assert_command dfx identity new i_den.ti-ty --storage-mode plaintext
 

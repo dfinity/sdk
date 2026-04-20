@@ -55,7 +55,7 @@ teardown() {
   for file in "$(dfx cache show)"/base/*.mo; do
     assert_command_fail test -x "$file"
     assert_command_fail "$file"
-    assert_contains "Permission denied"
+    assert_contains "Permission denied" "$output"
   done
 }
 
@@ -64,7 +64,7 @@ teardown() {
   for file in "$(dfx cache show)"/core/*.mo; do
     assert_command_fail test -x "$file"
     assert_command_fail "$file"
-    assert_contains "Permission denied"
+    assert_contains "Permission denied" "$output"
   done
 }
 

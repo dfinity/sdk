@@ -22,17 +22,17 @@ teardown() {
   assert_command dfx canister install --all
 
   assert_command dfx canister install --all --mode upgrade
-  assert_match "Module hash.*is already installed"
+  assert_match "Module hash.*is already installed" "$output"
 
   assert_command dfx canister install --all --mode upgrade --upgrade-unchanged --wasm-memory-persistence replace
-  assert_not_match "Module hash.*is already installed"
+  assert_not_match "Module hash.*is already installed" "$output"
 }
 
 @test "install fails if no argument is provided" {
   dfx_start
   assert_command_fail dfx canister install
-  assert_match "required arguments were not provided"
-  assert_match "--all"
+  assert_match "required arguments were not provided" "$output"
+  assert_match "--all" "$output"
 }
 
 @test "install succeeds when --all is provided" {
@@ -42,7 +42,7 @@ teardown() {
 
   assert_command dfx canister install --all
 
-  assert_match "Installed code for canister e2e_project_backend"
+  assert_match "Installed code for canister e2e_project_backend" "$output"
 }
 
 @test "install succeeds with network name" {
@@ -52,7 +52,7 @@ teardown() {
 
   assert_command dfx canister install --all --network local
 
-  assert_match "Installed code for canister e2e_project_backend"
+  assert_match "Installed code for canister e2e_project_backend" "$output"
 }
 
 @test "install fails with network name that is not in dfx.json" {
@@ -62,7 +62,7 @@ teardown() {
 
   assert_command_fail dfx canister install --all --network nosuch
 
-  assert_match "Network not found.*nosuch"
+  assert_match "Network not found.*nosuch" "$output"
 }
 
 @test "install succeeds with arbitrary wasm" {
@@ -285,14 +285,14 @@ teardown() {
 
 @test "installing multiple canisters with arguments fails" {
   assert_command_fail dfx canister install --all --argument '()'
-  assert_contains "error: the argument '--all' cannot be used with '--argument <ARGUMENT>'"
+  assert_contains "error: the argument '--all' cannot be used with '--argument <ARGUMENT>'" "$output"
 }
 
 @test "remind to build before install" {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx canister install e2e_project_backend
-  assert_contains "The canister must be built before install. Please run \`dfx build\`."
+  assert_contains "The canister must be built before install. Please run \`dfx build\`." "$output"
 }
 
 @test "install succeeds if init_arg is defined in dfx.json" {
@@ -304,14 +304,14 @@ teardown() {
   dfx build dependency
   assert_command dfx canister install dependency
   assert_command dfx canister call dependency greet
-  assert_match "Hello, dfx!"
+  assert_match "Hello, dfx!" "$output"
 
   assert_command dfx canister install dependency --mode reinstall --yes --argument '("icp")'
-  assert_contains "Canister 'dependency' has init_arg/init_arg_file in dfx.json: (\"dfx\"),"
-  assert_contains "which is different from the one specified in the command line: (\"icp\")."
-  assert_contains "The command line value will be used."
+  assert_contains "Canister 'dependency' has init_arg/init_arg_file in dfx.json: (\"dfx\")," "$output"
+  assert_contains "which is different from the one specified in the command line: (\"icp\")." "$output"
+  assert_contains "The command line value will be used." "$output"
   assert_command dfx canister call dependency greet
-  assert_match "Hello, icp!"
+  assert_match "Hello, icp!" "$output"
 }
 
 @test "install succeeds if init_arg_file is defined in dfx.json" {
@@ -342,7 +342,7 @@ teardown() {
   dfx build dependency
   assert_command_fail dfx canister install dependency
   assert_contains "At most one of the fields 'init_arg' and 'init_arg_file' should be defined in \`dfx.json\`.
-Please remove one of them or leave both undefined."
+Please remove one of them or leave both undefined." "$output"
 }
 
 @test "install succeeds when specify canister id and wasm, in dir without dfx.json" {
@@ -386,9 +386,9 @@ Please remove one of them or leave both undefined."
   assert_command dfx canister install e2e_project_backend --mode upgrade --skip-pre-upgrade --wasm-memory-persistence keep
 
   assert_command_fail dfx canister install e2e_project_backend --mode install --skip-pre-upgrade
-  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'." "$output"
   assert_command_fail dfx canister install e2e_project_backend --mode reinstall --wasm-memory-persistence keep
-  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'." "$output"
 }
 
 @test "Candid UI" {

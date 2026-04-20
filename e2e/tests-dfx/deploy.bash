@@ -20,12 +20,12 @@ teardown() {
     cat dfx.json
     jq '.canisters.hello_backend.initialization_values.reserved_cycles_limit=860000' dfx.json | sponge dfx.json
     assert_command_fail dfx deploy
-    assert_contains "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+    assert_contains "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead." "$output"
 
     assert_command dfx deploy --no-wallet
 
     assert_command dfx canister status hello_backend
-    assert_contains "Reserved cycles limit: 860_000 Cycles"
+    assert_contains "Reserved cycles limit: 860_000 Cycles" "$output"
 }
 
 @test "deploy --upgrade-unchanged upgrades even if the .wasm did not change" {
@@ -33,10 +33,10 @@ teardown() {
   assert_command dfx deploy
 
   assert_command dfx deploy
-  assert_match "Module hash.*is already installed"
+  assert_match "Module hash.*is already installed" "$output"
 
   assert_command dfx deploy --upgrade-unchanged --wasm-memory-persistence replace
-  assert_not_match "Module hash.*is already installed"
+  assert_not_match "Module hash.*is already installed" "$output"
 }
 
 @test "deploy without --no-wallet sets wallet and self as the controllers" {
@@ -66,20 +66,20 @@ teardown() {
   (
     cd src
     assert_command dfx deploy
-    assert_match "Installed code for"
+    assert_match "Installed code for" "$output"
   )
 
   assert_command dfx canister call hello_backend greet '("Banzai")'
-  assert_eq '("Hello, Banzai!")'
+  assert_eq '("Hello, Banzai!")' "$output"
 
   assert_command dfx deploy
-  assert_not_match "Installed code for"
-  assert_match "is already installed"
+  assert_not_match "Installed code for" "$output"
+  assert_match "is already installed" "$output"
 }
 
 @test "deploying multiple canisters with arguments fails" {
   assert_command_fail dfx deploy --argument hello
-  assert_contains "The init argument can only be set when deploying a single canister."
+  assert_contains "The init argument can only be set when deploying a single canister." "$output"
 }
 
 @test "deploy one canister with an argument" {
@@ -115,14 +115,14 @@ teardown() {
   jq '.canisters.dependency.init_arg="(\"dfx\")"' dfx.json | sponge dfx.json
   assert_command dfx deploy dependency
   assert_command dfx canister call dependency greet
-  assert_match "Hello, dfx!"
+  assert_match "Hello, dfx!" "$output"
 
   assert_command dfx deploy dependency --mode reinstall --yes --argument '("icp")'
-  assert_contains "Canister 'dependency' has init_arg/init_arg_file in dfx.json: (\"dfx\"),"
-  assert_contains "which is different from the one specified in the command line: (\"icp\")."
-  assert_contains "The command line value will be used."
+  assert_contains "Canister 'dependency' has init_arg/init_arg_file in dfx.json: (\"dfx\")," "$output"
+  assert_contains "which is different from the one specified in the command line: (\"icp\")." "$output"
+  assert_contains "The command line value will be used." "$output"
   assert_command dfx canister call dependency greet
-  assert_match "Hello, icp!"
+  assert_match "Hello, icp!" "$output"
 }
 
 @test "reinstalling a single Motoko canister with imported dependency works" {
@@ -144,7 +144,7 @@ teardown() {
   assert_command_fail dfx deploy --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
   assert_match \
 "error: the following required arguments were not provided:
-  <CANISTER_NAME>"
+  <CANISTER_NAME>" "$output"
 }
 
 @test "deploy succeeds when specify canister ID in dfx.json" {
@@ -170,21 +170,21 @@ teardown() {
   dfx_start
   jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
   assert_command dfx deploy hello_backend --specified-id n2m2m-wyaaa-aaaaa-p777a-cai
-  assert_contains "WARNING: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
-  assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai."
-  assert_contains "The command line value will be used."
+  assert_contains "WARNING: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai," "$output"
+  assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai." "$output"
+  assert_contains "The command line value will be used." "$output"
 
   assert_command dfx canister id hello_backend
-  assert_match n2m2m-wyaaa-aaaaa-p777a-cai
+  assert_match n2m2m-wyaaa-aaaaa-p777a-cai "$output"
 }
 
 @test "deploy does not require wallet if all canisters are created" {
   dfx_start
   dfx canister create --all --no-wallet
   assert_command dfx deploy
-  assert_not_contains "Created a wallet canister"
+  assert_not_contains "Created a wallet canister" "$output"
   assert_command dfx identity get-wallet
-  assert_contains "Created a wallet canister"
+  assert_contains "Created a wallet canister" "$output"
 }
 
 @test "can deploy gzip wasm" {
@@ -201,8 +201,8 @@ teardown() {
   dfx_start
   assert_command dfx deploy
   frontend_id=$(dfx canister id hello_frontend)
-  assert_match "http://127.0.0.1.+${frontend_id}"
-  assert_match "${frontend_id}.localhost"
+  assert_match "http://127.0.0.1.+${frontend_id}" "$output"
+  assert_match "${frontend_id}.localhost" "$output"
 }
 
 @test "prints the frontend url if 'frontend' section is not present in dfx.json" {
@@ -211,8 +211,8 @@ teardown() {
   dfx_start
   assert_command dfx deploy
   frontend_id=$(dfx canister id hello_frontend)
-  assert_match "http://127.0.0.1.+${frontend_id}"
-  assert_match "${frontend_id}.localhost"
+  assert_match "http://127.0.0.1.+${frontend_id}" "$output"
+  assert_match "${frontend_id}.localhost" "$output"
 }
 
 @test "prints the frontend url if the frontend section has been removed after initial deployment" {
@@ -220,12 +220,12 @@ teardown() {
   dfx_start
   assert_command dfx deploy
   frontend_id=$(dfx canister id hello_frontend)
-  assert_match "http://127.0.0.1.+${frontend_id}"
-  assert_match "${frontend_id}.localhost"
+  assert_match "http://127.0.0.1.+${frontend_id}" "$output"
+  assert_match "${frontend_id}.localhost" "$output"
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   assert_command dfx deploy
-  assert_match "http://127.0.0.1.+${frontend_id}"
-  assert_match "${frontend_id}.localhost"
+  assert_match "http://127.0.0.1.+${frontend_id}" "$output"
+  assert_match "${frontend_id}.localhost" "$output"
 }
 
 @test "subnet targetting" {
@@ -276,9 +276,9 @@ teardown() {
   assert_command dfx deploy --mode upgrade --skip-pre-upgrade
 
   assert_command_fail dfx deploy --mode install --skip-pre-upgrade
-  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'." "$output"
   assert_command_fail dfx deploy --mode reinstall --wasm-memory-persistence keep
-  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'." "$output"
 }
 
 @test "can deploy a hyphenated project" {

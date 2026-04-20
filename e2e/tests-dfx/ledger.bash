@@ -62,32 +62,32 @@ current_time_nanoseconds() {
 
   dfx identity use alice
   assert_command dfx ledger account-id
-  assert_eq "$ALICE_ACCOUNT_ID"
+  assert_eq "$ALICE_ACCOUNT_ID" "$output"
 
   assert_command dfx ledger balance
-  assert_eq "1000000.00000000 ICP"
+  assert_eq "1000000.00000000 ICP" "$output"
 
   assert_command dfx ledger transfer --amount 100 --memo 1 "$BOB_ACCOUNT_ID"
-  assert_contains "Transfer sent at block height"
+  assert_contains "Transfer sent at block height" "$output"
 
   # The sender(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance
-  assert_eq "999899.99990000 ICP"
+  assert_eq "999899.99990000 ICP" "$output"
 
   dfx identity use bob
   assert_command dfx ledger account-id
-  assert_eq "$BOB_ACCOUNT_ID"
+  assert_eq "$BOB_ACCOUNT_ID" "$output"
 
   assert_command dfx ledger balance
-  assert_eq "1000100.00000000 ICP"
+  assert_eq "1000100.00000000 ICP" "$output"
 
   assert_command dfx ledger transfer --icp 100 --e8s 1 --memo 2 "$ALICE_ACCOUNT_ID"
-  assert_contains "Transfer sent at block height"
+  assert_contains "Transfer sent at block height" "$output"
 
   # The sender(bob) paid transaction fee which is 0.0001 ICP
   # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
   assert_command dfx ledger balance
-  assert_eq "999999.99989999 ICP"
+  assert_eq "999999.99989999 ICP" "$output"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
@@ -127,58 +127,58 @@ current_time_nanoseconds() {
   dfx identity use alice
 
   assert_command dfx ledger balance
-  assert_eq "1000000.00000000 ICP"
+  assert_eq "1000000.00000000 ICP" "$output"
 
   # Test transfer and balance.
 
   assert_command dfx ledger transfer --amount 50 --to-principal "$DAVID" --memo 1 # to david
-  assert_contains "Transfer sent at block index"
+  assert_contains "Transfer sent at block index" "$output"
 
   # The owner(alice) transferred 50 ICP to david and paid transaction fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999949.99990000 ICP"
+  assert_eq "999949.99990000 ICP" "$output"
 
   # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --of-principal "$DAVID"
-  assert_match "50.00000000 ICP"
+  assert_match "50.00000000 ICP" "$output"
 
   # Test approve, transfer-from and allowance.
 
   assert_command dfx ledger approve "$BOB" --amount 100 # to bob
-  assert_contains "Approval sent at block index"
+  assert_contains "Approval sent at block index" "$output"
 
   # The approver(alice) paid approving fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999949.99980000 ICP"
+  assert_eq "999949.99980000 ICP" "$output"
 
   # The spender(bob) have 100 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --spender "$BOB"
-  assert_match "Allowance 100.00000000 ICP"
+  assert_match "Allowance 100.00000000 ICP" "$output"
 
   dfx identity use bob
 
   assert_command dfx ledger balance
-  assert_match "1000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP" "$output"
 
   assert_command dfx ledger transfer-from --from "$ALICE" --amount 50 "$DAVID" # to david
-  assert_contains "Transfer sent at block index"
+  assert_contains "Transfer sent at block index" "$output"
 
   # The spender(bob) transferred 50 ICP to david from the approver(alice).
   # And the approver(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance --of-principal "$ALICE"
-  assert_eq "999899.99970000 ICP"
+  assert_eq "999899.99970000 ICP" "$output"
 
   # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --owner "$ALICE" --spender "$BOB"
-  assert_match "Allowance 49.99990000 ICP"
+  assert_match "Allowance 49.99990000 ICP" "$output"
 
   # The spender(bob) balance is unchanged.
   assert_command dfx ledger balance --of-principal "$BOB"
-  assert_match "1000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP" "$output"
 
   # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --of-principal "$DAVID"
-  assert_match "100.00000000 ICP"
+  assert_match "100.00000000 ICP" "$output"
 }
 
 @test "ledger subaccounts" {
@@ -366,5 +366,5 @@ tc_to_num() {
   dfx_start
 
   assert_command_fail dfx ledger balance
-  assert_contains "ICP Ledger with canister ID 'ryjl3-tyaaa-aaaaa-aaaba-cai' is not installed."
+  assert_contains "ICP Ledger with canister ID 'ryjl3-tyaaa-aaaaa-aaaba-cai' is not installed." "$output"
 }

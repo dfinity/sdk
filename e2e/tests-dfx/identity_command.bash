@@ -102,7 +102,7 @@ frank'
 @test "identity new: cannot create an identity that already exists" {
   assert_command dfx identity new bob
   assert_command_fail dfx identity new bob
-  assert_match "Identity already exists"
+  assert_match "Identity already exists" "$output"
 }
 
 @test "identity new: --force re-creates an identity" {
@@ -133,12 +133,12 @@ frank'
 
 @test "identity new: key_id must be hex digits" {
   assert_command_fail dfx identity new --hsm-pkcs11-lib-path xxx --hsm-key-id abcx bob
-  assert_match "Key id must contain only hex digits"
+  assert_match "Key id must contain only hex digits" "$output"
 }
 
 @test "identity new: key_id must be an even number of digits" {
   assert_command_fail dfx identity new --hsm-pkcs11-lib-path xxx --hsm-key-id fed64 bob
-  assert_match "Key id must consist of an even number of hex digits"
+  assert_match "Key id must consist of an even number of hex digits" "$output"
 }
 
 @test "identity new: key is compatible with openssl" {
@@ -204,9 +204,9 @@ default'
   assert_command dfx identity use default
   assert_command_fail dfx identity remove alice
   # make sure the configured wallet is displayed
-  assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
+  assert_match "identity 'alice' on network 'ic' has wallet $WALLET" "$output"
   assert_command dfx identity remove alice --drop-wallets
-  assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
+  assert_match "identity 'alice' on network 'ic' has wallet $WALLET" "$output"
 }
 
 @test "identity remove: cannot remove the non-default active identity" {
@@ -226,7 +226,7 @@ default'
 @test "identity remove: cannot remove the default identity" {
   # a new one will just get created again
   assert_command_fail dfx identity remove default
-  assert_match "Cannot delete the default identity"
+  assert_match "Cannot delete the default identity" "$output"
 }
 
 
@@ -342,7 +342,7 @@ default'
 @test "identity rename: cannot create an anonymous identity via rename" {
   assert_command dfx identity new alice
   assert_command_fail dfx identity rename alice anonymous
-  assert_match "Cannot create an anonymous identity"
+  assert_match "Cannot create an anonymous identity" "$output"
 }
 
 @test "identity rename: can rename an HSM-backed identity" {
@@ -469,7 +469,7 @@ default'
 
   assert_command dfx identity whoami
 
-  assert_match "migrating key from"
+  assert_match "migrating key from" "$output"
   assert_eq "$(cat "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/identity.pem)" "$ORIGINAL_KEY"
 }
 
@@ -491,9 +491,9 @@ default'
   PRINCIPAL_1="$(dfx identity get-principal)"
 
   assert_command_fail dfx identity import alice identity2.pem
-  assert_match "Identity already exists."
+  assert_match "Identity already exists." "$output"
   assert_command dfx identity import --force alice identity2.pem
-  assert_match 'Imported identity: "alice".'
+  assert_match 'Imported identity: "alice".' "$output"
   PRINCIPAL_2="$(dfx identity get-principal)"
 
   assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
