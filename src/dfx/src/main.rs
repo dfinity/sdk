@@ -216,7 +216,7 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     if !matches!(cli_opts.command, commands::DfxCommand::Extension(_))
         && !is_warning_disabled(DfxWarning::Deprecation)
     {
-        eprintln!("{}", DEPRECATION_NOTICE);
+        eprintln!("{DEPRECATION_NOTICE}");
     }
 
     commands::exec(&env, cli_opts.command)

@@ -347,7 +347,7 @@ EOF
   assert_eq "java,kotlin"
 }
 
-@test "extension install with an empty cache does not create a corrupt cache" {
+@test "extension install with an empty cache does not create a corrupt cache" { # shellcheck disable=SC2030
   dfx cache delete
   dfx extension install nns --version 0.2.1
   dfx_start
@@ -359,16 +359,16 @@ install_extension_from_dfx_extensions_repo() {
   assert_command_fail dfx snsx
 
   assert_command dfx extension list
-  assert_match 'No extensions installed' "$output"
+  assert_match 'No extensions installed' "$output" # shellcheck disable=SC2031
 
   assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.4.7
-  assert_contains "Extension 'sns' version 0.4.7 installed successfully, and is available as 'snsx'" "$output"
+  assert_contains "Extension 'sns' version 0.4.7 installed successfully, and is available as 'snsx'" "$output" # shellcheck disable=SC2031
 
   assert_command dfx extension list
-  assert_match 'snsx' "$output"
+  assert_match 'snsx' "$output" # shellcheck disable=SC2031
 
   assert_command dfx --help
-  assert_match 'snsx.*Initialize, deploy and interact with an SNS' "$output"
+  assert_match 'snsx.*Initialize, deploy and interact with an SNS' "$output" # shellcheck disable=SC2031
 
   assert_command dfx snsx --help
 
@@ -377,7 +377,7 @@ install_extension_from_dfx_extensions_repo() {
   # assert_match 'Successfully uninstalled extension'
 
   assert_command dfx extension list
-  assert_match 'No extensions installed' "$output"
+  assert_match 'No extensions installed' "$output" # shellcheck disable=SC2031
 }
 
 @test "install extension by name from official catalog" {
