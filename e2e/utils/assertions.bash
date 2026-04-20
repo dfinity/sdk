@@ -58,11 +58,11 @@ assert_command_fail() {
 # Arguments:
 #    $1 - The regex to use to match.
 #    $2 - The string to match against (output). By default it will use
-#         $output.
+#         $stdout.
 assert_match() {
     regex="$1"
     if [[ $# -lt 2 ]]; then
-        text="$output"
+        text="$stdout"
     else
         text="$2"
     fi
@@ -80,7 +80,7 @@ assert_match() {
 assert_contains() {
     search_for="$1"
     if [[ $# -lt 2 ]]; then
-        search_in="$output"
+        search_in="$stdout"
     else
         search_in="$2"
     fi
@@ -98,7 +98,7 @@ assert_contains() {
 assert_not_contains() {
     search_for="$1"
     if [[ $# -lt 2 ]]; then
-        search_in="$output"
+        search_in="$stdout"
     else
         search_in="$2"
     fi
@@ -113,11 +113,11 @@ assert_not_contains() {
 # Arguments:
 #    $1 - The regex to use to match.
 #    $2 - The string to match against (output). By default it will use
-#         $output.
+#         $stdout.
 assert_not_match() {
     regex="$1"
     if [[ $# -lt 2 ]]; then
-        text="$output"
+        text="$stdout"
     else
         text="$2"
     fi
@@ -132,12 +132,12 @@ assert_not_match() {
 # Arguments:
 #    $1 - Expected number of occurrence.
 #    $2 - The string to search for.
-#    $3 - The string to search in. By default it will use $output.
+#    $3 - The string to search in. By default it will use $stdout.
 assert_occurs() {
     expect="$1"
     search_for="$2"
     if [[ $# -lt 3 ]]; then
-        search_in="$output"
+        search_in="$stdout"
     else
         search_in="$3"
     fi
@@ -164,7 +164,7 @@ assert_occurs() {
 assert_eq() {
     expected="$1"
     if [[ $# -lt 2 ]]; then
-        actual="$output"
+        actual="$stdout"
     else
         actual="$2"
     fi
@@ -183,7 +183,7 @@ assert_eq() {
 assert_neq() {
     expected="$1"
     if [[ $# -lt 2 ]]; then
-        actual="$output"
+        actual="$stdout"
     else
         actual="$2"
     fi
