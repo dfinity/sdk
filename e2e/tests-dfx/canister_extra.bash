@@ -39,7 +39,7 @@ teardown() {
     assert_contains '(1 : nat)' "$output"
 
     assert_command dfx canister snapshot list hello_backend
-    assert_match "^${snapshot}:" "$output"
+    assert_match "^${snapshot}:"
     assert_command dfx canister snapshot delete hello_backend "$snapshot"
     assert_command dfx canister snapshot list hello_backend
     assert_contains 'No snapshots found in canister hello_backend' "$output"

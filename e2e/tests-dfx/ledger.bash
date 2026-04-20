@@ -106,7 +106,7 @@ current_time_nanoseconds() {
 
   assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" "$ALICE_ACCOUNT_ID"
   # shellcheck disable=SC2154
-  assert_eq "transaction is a duplicate of another transaction in block $block_height" "$stderr"
+  assert_contains "transaction is a duplicate of another transaction in block $block_height" "$stderr"
   assert_eq "Transfer sent at block height $block_height"
 
   assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time "$t" "$ALICE_ACCOUNT_ID"

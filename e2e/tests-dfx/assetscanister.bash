@@ -330,7 +330,7 @@ check_permission_failure() {
   vec {
     principal \"$CONTROLLER_PRINCIPAL\";
   },
-)" "$output"
+)"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
   assert_eq "(vec {})"
 

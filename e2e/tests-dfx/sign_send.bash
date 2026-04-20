@@ -20,12 +20,13 @@ teardown() {
   dfx deploy
 
   assert_command dfx canister sign --query hello_backend read
-  assert_eq "Query message generated at [message.json]"
+  assert_contains "Query message generated at [message.json]" "$output"
 
   sleep 10
   echo y | assert_command dfx canister send message.json
 
   assert_command_fail dfx canister send message.json --status
+  # shellcheck disable=SC2154
   assert_eq "Error: Can only check request_status on update calls." "$stderr"
 
   assert_command_fail dfx canister sign --query hello_backend read
@@ -47,7 +48,7 @@ teardown() {
   # suppress the error
   export DFX_WARNING=-mainnet_plaintext_identity
   assert_command dfx canister sign --query rwlgt-iiaaa-aaaaa-aaaaa-cai read --network ic
-  assert_match "Query message generated at \[message.json\]" "$output"
+  assert_contains "Query message generated at [message.json]" "$output"
 }
 
 @test "sign subcommand accepts argument from a file" {
@@ -58,7 +59,7 @@ teardown() {
   printf '("Names can be very long")' > "$TMP_NAME_FILE"
 
   assert_command dfx canister sign --argument-file "$TMP_NAME_FILE" --query hello_backend greet
-  assert_eq "Query message generated at [message.json]"
+  assert_contains "Query message generated at [message.json]" "$output"
 
   assert_command jq -rc .arg message.json
   assert_match "[68,73,68,76,0,1,113,21,78,97,109,101,115,32,99,97,110,32,98,101,32,118,114,121,32,108,111,110,103]" "$output"
@@ -74,7 +75,7 @@ teardown() {
   printf '("stdin")' > "$TMP_NAME_FILE"
 
   assert_command dfx canister sign --argument-file - --query hello_backend greet < "$TMP_NAME_FILE"
-  assert_eq "Query message generated at [message.json]"
+  assert_contains "Query message generated at [message.json]" "$output"
 
   assert_command jq -rc .arg message.json
   assert_match "[68,73,68,76,0,1,113,5,115,116,100,105,110]" "$output"

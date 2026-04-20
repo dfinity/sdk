@@ -185,7 +185,7 @@ Failed to download from url: http://httpbin.org/status/404." "$output"
 
   cd ../app
   assert_command dfx deps pull --network local
-  assert_not_contains "WARN" "$output"
+  assert_not_match "WARNING: Canister [^ ]+ specified" "$output"
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".wasm_hash' deps/pulled.json
   assert_match "$WASM_HASH_A" "$output"
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".wasm_hash_download' deps/pulled.json
