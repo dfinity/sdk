@@ -102,17 +102,17 @@ teardown() {
   dfx deploy
 
   assert_command dfx canister call hello_backend read
-  assert_eq "(0 : nat)" "$output"
+  assert_eq "(0 : nat)" "$stdout"
 
   assert_command dfx canister call hello_backend inc
-  assert_eq "()" "$output"
+  assert_eq "()" "$stdout"
 
   assert_command dfx canister call hello_backend read
-  assert_eq "(1 : nat)" "$output"
+  assert_eq "(1 : nat)" "$stdout"
 
   dfx canister call hello_backend inc
   assert_command dfx canister call hello_backend read
-  assert_eq "(2 : nat)" "$output"
+  assert_eq "(2 : nat)" "$stdout"
 
 
   # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
@@ -128,7 +128,7 @@ teardown() {
 
   # the hello_backend canister should not have been upgraded (which would reset the non-stable var)
   assert_command dfx canister call hello_backend read
-  assert_eq "(2 : nat)" "$output"
+  assert_eq "(2 : nat)" "$stdout"
 }
 
 @test "confirmation dialogue accepts multiple forms of 'yes'" {

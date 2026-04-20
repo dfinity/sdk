@@ -47,5 +47,5 @@ teardown() {
   assert_contains "The user tries to access Request ID not signed by the caller" "$output"
 
   assert_command dfx canister request-status "$REQUEST_ID" "$(dfx canister id hello_backend)"
-  assert_eq '("Hello, Bob!")' "$output"
+  assert_eq '("Hello, Bob!")' "$stdout"
 }

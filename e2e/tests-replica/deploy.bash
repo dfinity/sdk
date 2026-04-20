@@ -19,7 +19,7 @@ teardown() {
   assert_command dfx deploy
 
   assert_command dfx canister call hello_backend greet '("Banzai")'
-  assert_eq '("Hello, Banzai!")' "$output"
+  assert_eq '("Hello, Banzai!")' "$stdout"
 }
 
 @test "deploy a canister without dependencies" {
@@ -88,13 +88,13 @@ teardown() {
   assert_match 'Installed code for canister' "$output"
 
   assert_command dfx canister call hello_backend greet '("First")'
-  assert_eq '("Hello, First!")' "$output"
+  assert_eq '("Hello, First!")' "$stdout"
 
   assert_command dfx deploy hello_backend --upgrade-unchanged
   assert_match 'Upgraded code for canister' "$output"
 
   assert_command dfx canister call hello_backend greet '("Second")'
-  assert_eq '("Hello, Second!")' "$output"
+  assert_eq '("Hello, Second!")' "$stdout"
 }
 
 @test "test canister lifecycle" {

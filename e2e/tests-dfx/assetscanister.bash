@@ -166,7 +166,7 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
   assert_contains "commit proposed batch 2 with evidence 164f" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
-  assert_eq "()" "$output"
+  assert_eq "()" "$stdout"
 
   # show this asset was created and its content set
   assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
@@ -260,7 +260,7 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
   assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
-  assert_eq "()" "$output"
+  assert_eq "()" "$stdout"
 
   dfx canister call --query e2e_project_frontend list '(record{})'
 
@@ -324,7 +324,7 @@ check_permission_failure() {
 
   # initialization: the deploying controller has Commit permissions, no one else has permissions
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_eq "(vec {})" "$output"
+  assert_eq "(vec {})" "$stdout"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_eq "(
   vec {
@@ -332,7 +332,7 @@ check_permission_failure() {
   },
 )" "$output"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
-  assert_eq "(vec {})" "$output"
+  assert_eq "(vec {})" "$stdout"
 
   # granting permissions
 

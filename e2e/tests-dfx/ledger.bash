@@ -62,24 +62,24 @@ current_time_nanoseconds() {
 
   dfx identity use alice
   assert_command dfx ledger account-id
-  assert_eq "$ALICE_ACCOUNT_ID" "$output"
+  assert_eq "$ALICE_ACCOUNT_ID" "$stdout"
 
   assert_command dfx ledger balance
-  assert_eq "1000000.00000000 ICP" "$output"
+  assert_eq "1000000.00000000 ICP" "$stdout"
 
   assert_command dfx ledger transfer --amount 100 --memo 1 "$BOB_ACCOUNT_ID"
   assert_contains "Transfer sent at block height" "$output"
 
   # The sender(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance
-  assert_eq "999899.99990000 ICP" "$output"
+  assert_eq "999899.99990000 ICP" "$stdout"
 
   dfx identity use bob
   assert_command dfx ledger account-id
-  assert_eq "$BOB_ACCOUNT_ID" "$output"
+  assert_eq "$BOB_ACCOUNT_ID" "$stdout"
 
   assert_command dfx ledger balance
-  assert_eq "1000100.00000000 ICP" "$output"
+  assert_eq "1000100.00000000 ICP" "$stdout"
 
   assert_command dfx ledger transfer --icp 100 --e8s 1 --memo 2 "$ALICE_ACCOUNT_ID"
   assert_contains "Transfer sent at block height" "$output"
@@ -87,7 +87,7 @@ current_time_nanoseconds() {
   # The sender(bob) paid transaction fee which is 0.0001 ICP
   # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
   assert_command dfx ledger balance
-  assert_eq "999999.99989999 ICP" "$output"
+  assert_eq "999999.99989999 ICP" "$stdout"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
@@ -127,7 +127,7 @@ current_time_nanoseconds() {
   dfx identity use alice
 
   assert_command dfx ledger balance
-  assert_eq "1000000.00000000 ICP" "$output"
+  assert_eq "1000000.00000000 ICP" "$stdout"
 
   # Test transfer and balance.
 
@@ -136,7 +136,7 @@ current_time_nanoseconds() {
 
   # The owner(alice) transferred 50 ICP to david and paid transaction fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999949.99990000 ICP" "$output"
+  assert_eq "999949.99990000 ICP" "$stdout"
 
   # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --of-principal "$DAVID"
@@ -149,7 +149,7 @@ current_time_nanoseconds() {
 
   # The approver(alice) paid approving fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999949.99980000 ICP" "$output"
+  assert_eq "999949.99980000 ICP" "$stdout"
 
   # The spender(bob) have 100 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --spender "$BOB"
@@ -166,7 +166,7 @@ current_time_nanoseconds() {
   # The spender(bob) transferred 50 ICP to david from the approver(alice).
   # And the approver(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance --of-principal "$ALICE"
-  assert_eq "999899.99970000 ICP" "$output"
+  assert_eq "999899.99970000 ICP" "$stdout"
 
   # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --owner "$ALICE" --spender "$BOB"

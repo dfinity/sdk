@@ -111,5 +111,5 @@ teardown() {
 
   assert_command dfx diagnose
   assert_not_contains "identity is not stored securely" "$output"
-  assert_eq "No problems found" "$output"
+  assert_eq "No problems found" "$stdout"
 }

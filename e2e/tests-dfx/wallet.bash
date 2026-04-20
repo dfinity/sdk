@@ -114,7 +114,7 @@ teardown() {
   assert_command dfx identity set-wallet --force "${ID}" --network actuallylocal
   assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'" "$output"
   assert_command jq -r .identities.default.actuallylocal <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
-  assert_eq "$ID" "$output"
+  assert_eq "$ID" "$stdout"
 }
 
 @test "deploy wallet" {

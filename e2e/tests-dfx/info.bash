@@ -33,7 +33,7 @@ teardown() {
   assert_command_fail dfx info replica-port
   assert_contains "Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use \`--webserver-port\`." "$output"
   assert_command dfx info pocketic-config-port
-  assert_eq "$(get_pocketic_port)" "$output"
+  assert_eq "$(get_pocketic_port)" "$stdout"
 }
 
 @test "displays the default webserver port for the local shared network" {
@@ -72,7 +72,7 @@ teardown() {
   dfx_start
   assert_command dfx deploy e2e_project_backend
   assert_command dfx info candid-ui-url
-  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)" "$output"
+  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)" "$stdout"
 }
 
 @test "security-policy shows standard/hardened headers with comments" {

@@ -61,13 +61,13 @@ setup_onchain() {
 
   ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx > c_dfx.json
   assert_command jq -r '.pullable.wasm_url' c_dfx.json
-  assert_eq "http://httpbin.org/status/404" "$output"
+  assert_eq "http://httpbin.org/status/404" "$stdout"
   assert_command jq -r '.pullable.dependencies | length' c_dfx.json
-  assert_eq 1 "$output"
+  assert_eq 1 "$stdout"
   assert_command jq -r '.pullable.dependencies | first' c_dfx.json
-  assert_eq "$CANISTER_ID_A" "$output"
+  assert_eq "$CANISTER_ID_A" "$stdout"
   assert_command jq -r '.pullable.init_guide' c_dfx.json
-  assert_eq "An optional natural number, e.g. \"(opt 20)\"." "$output"
+  assert_eq "An optional natural number, e.g. \"(opt 20)\"." "$stdout"
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
@@ -164,11 +164,11 @@ Failed to download from url: http://httpbin.org/status/404." "$output"
   assert_file_exists "candid/$CANISTER_ID_C.did"
   assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init_guide' pulled.json
-  assert_eq "A natural number, e.g. 10." "$output"
+  assert_eq "A natural number, e.g. 10." "$stdout"
   assert_command jq -r '.canisters."'"$CANISTER_ID_B"'".name' pulled.json
-  assert_eq "dep_b" "$output"
+  assert_eq "dep_b" "$stdout"
   assert_command jq -r '.canisters."'"$CANISTER_ID_C"'".name' pulled.json
-  assert_eq "dep_c" "$output"
+  assert_eq "dep_c" "$stdout"
   cd ../
 
   assert_command dfx deps pull --network local -vvv
@@ -313,7 +313,7 @@ $CANISTER_ID_A" "$output"
   # However, passing raw argument will bypass the type check so following command succeed
   assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".arg_raw' deps/init.json
-  assert_eq "4449444c00017103616263" "$output"
+  assert_eq "4449444c00017103616263" "$stdout"
 
   # Canister A has been set, set again without --argument will prompt a info message
   assert_command dfx deps init "$CANISTER_ID_A"
@@ -605,13 +605,13 @@ Installing canister: $CANISTER_ID_C (dep_c)" "$output"
   assert_command dfx deps deploy
 
   assert_command dfx canister call app get_b
-  assert_eq "(2 : nat)" "$output"
+  assert_eq "(2 : nat)" "$stdout"
   assert_command dfx canister call app get_c
-  assert_eq "(33 : nat)" "$output" # corresponding to --argument "(opt 33)" above
+  assert_eq "(33 : nat)" "$stdout" # corresponding to --argument "(opt 33)" above
   assert_command dfx canister call app get_b_times_a
-  assert_eq "(22 : nat)" "$output" # 2 * 11
+  assert_eq "(22 : nat)" "$stdout" # 2 * 11
   assert_command dfx canister call app get_c_times_a
-  assert_eq "(363 : nat)" "$output" # 33 * 11
+  assert_eq "(363 : nat)" "$stdout" # 33 * 11
 
   # start a clean local replica
   dfx canister stop app
@@ -701,7 +701,7 @@ Installing canister: $CANISTER_ID_C (dep_c)" "$output"
     owner = principal \"$(dfx --identity default identity get-principal)\";
   },
 )"
-  assert_eq "(1_000_000 : nat)" "$output"
+  assert_eq "(1_000_000 : nat)" "$stdout"
 }
 
 @test "dfx deps can facade pull ckBTC ledger" {
@@ -759,7 +759,7 @@ Installing canister: $CANISTER_ID_C (dep_c)" "$output"
     owner = principal \"$(dfx --identity default identity get-principal)\";
   },
 )"
-  assert_eq "(1_000_000 : nat)" "$output"
+  assert_eq "(1_000_000 : nat)" "$stdout"
 }
 
 
@@ -820,5 +820,5 @@ Installing canister: $CANISTER_ID_C (dep_c)" "$output"
     owner = principal \"$(dfx --identity default identity get-principal)\";
   },
 )"
-  assert_eq "(1_000_000 : nat)" "$output"
+  assert_eq "(1_000_000 : nat)" "$stdout"
 }

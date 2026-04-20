@@ -144,7 +144,7 @@ teardown() {
 
   assert_command dfx deploy
   assert_command dfx canister metadata gzipped arbitrary
-  assert_eq "arbitrary content" "$output"
+  assert_eq "arbitrary content" "$stdout"
 }
 
 @test "existence of build steps do not control custom canister metadata" {
@@ -213,23 +213,23 @@ teardown() {
   assert_command dfx canister metadata b dfx
   echo "$stdout" > b.json
   assert_command jq -r '.tech_stack | keys[]' b.json
-  assert_eq "cdk" "$output" # only cdk is defined
+  assert_eq "cdk" "$stdout" # only cdk is defined
   assert_command jq -r '.tech_stack.cdk | keys[]' b.json
-  assert_eq "ic-cdk" "$output"
+  assert_eq "ic-cdk" "$stdout"
 
   # c defines language->rust version
   assert_command dfx deploy c
   assert_command dfx canister metadata c dfx
   echo "$stdout" > c.json
   assert_command jq -r '.tech_stack.language.rust.version' c.json
-  assert_eq "1.75.0" "$output"
+  assert_eq "1.75.0" "$stdout"
 
   # d defines language->rust version with value_command
   assert_command dfx deploy d
   assert_command dfx canister metadata d dfx
   echo "$stdout" > d.json
   assert_command jq -r '.tech_stack.language.rust.version' d.json
-  assert_eq "1.75.0" "$output"
+  assert_eq "1.75.0" "$stdout"
 
   # e defines multiple lib items
   assert_command dfx deploy e
@@ -244,29 +244,29 @@ ic-stable-structures" "$output"
   assert_command dfx canister metadata f dfx
   echo "$stdout" > f.json
   assert_command jq -r '.tech_stack.cdk | keys[]' f.json
-  assert_eq "ic-cdk" "$output"
+  assert_eq "ic-cdk" "$stdout"
   assert_command jq -r '.tech_stack.language | keys[]' f.json
-  assert_eq "rust" "$output"
+  assert_eq "rust" "$stdout"
   assert_command jq -r '.tech_stack.lib | keys[]' f.json
-  assert_eq "ic-cdk-timers" "$output"
+  assert_eq "ic-cdk-timers" "$stdout"
   assert_command jq -r '.tech_stack.tool | keys[]' f.json
-  assert_eq "dfx" "$output"
+  assert_eq "dfx" "$stdout"
   assert_command jq -r '.tech_stack.other | keys[]' f.json
-  assert_eq "bitcoin" "$output"
+  assert_eq "bitcoin" "$stdout"
 
   # g defines a value_command that is a local file without "./" prefix and the file name contains whitespace
   assert_command dfx deploy g
   assert_command dfx canister metadata g dfx
   echo "$stdout" > g.json
   assert_command jq -r '.tech_stack.language.rust.version' g.json
-  assert_eq "1.75.0" "$output"
+  assert_eq "1.75.0" "$stdout"
 
   # h defines a value_command that is a local command(prefix "./") contains whitespace
   assert_command dfx deploy h
   assert_command dfx canister metadata h dfx
   echo "$stdout" > h.json
   assert_command jq -r '.tech_stack.language.rust.version' h.json
-  assert_eq "1.75.0" "$output"
+  assert_eq "1.75.0" "$stdout"
 
   # i defines a value_command that fails
   assert_command_fail dfx deploy i
@@ -284,7 +284,7 @@ ic-stable-structures" "$output"
   assert_command dfx canister metadata k dfx
   echo "$stdout" > k.json
   assert_command jq -r '.tech_stack.language | keys[]' k.json
-  assert_eq "motoko" "$output"
+  assert_eq "motoko" "$stdout"
 }
 
 # TODO: remove this when we have rust extension
