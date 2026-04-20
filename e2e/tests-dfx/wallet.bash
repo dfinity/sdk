@@ -114,7 +114,7 @@ teardown() {
   assert_command dfx identity set-wallet --force "${ID}" --network actuallylocal
   assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'" "$output"
   assert_command jq -r .identities.default.actuallylocal <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
-  assert_eq "$ID" "$stdout"
+  assert_eq "$ID"
 }
 
 @test "deploy wallet" {
@@ -186,7 +186,7 @@ teardown() {
   assert_command dfx canister call "$WALLET" wallet_call \
     "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
   # shellcheck disable=SC2154
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' "$stdout"  # True in DIDL.
+  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })'  # True in DIDL.
 }
 
 @test "forward user call through wallet: deploy" {
@@ -203,7 +203,7 @@ teardown() {
   assert_command dfx canister call "$WALLET" wallet_call \
     "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
   # shellcheck disable=SC2154
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' "$stdout" # True in DIDL.
+  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' # True in DIDL.
 }
 
 @test "a 64-bit wallet can still be called in the 128-bit context" {

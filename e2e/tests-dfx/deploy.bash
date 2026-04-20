@@ -70,7 +70,7 @@ teardown() {
   )
 
   assert_command dfx canister call hello_backend greet '("Banzai")'
-  assert_eq '("Hello, Banzai!")' "$stdout"
+  assert_eq '("Hello, Banzai!")'
 
   assert_command dfx deploy
   assert_not_match "Installed code for" "$output"

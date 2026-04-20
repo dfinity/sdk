@@ -156,7 +156,7 @@ teardown() {
   assert_eq '()'
   assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
   # shellcheck disable=SC2154
-  assert_eq '(blob "XWV")' "$stdout"
+  assert_eq '(blob "XWV")'
 }
 
 @test "after renaming an identity, the renamed identity is still initializer" {
@@ -183,7 +183,7 @@ teardown() {
   assert_eq '()'
   assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
   # shellcheck disable=SC2154
-  assert_eq '(blob "hello")' "$stdout"
+  assert_eq '(blob "hello")'
 }
 
 @test "using an unencrypted identity on mainnet provokes a hard error which can be suppressed" {

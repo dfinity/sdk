@@ -33,7 +33,7 @@ teardown() {
   assert_command_fail dfx info replica-port
   assert_contains "Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use \`--webserver-port\`." "$output"
   assert_command dfx info pocketic-config-port
-  assert_eq "$(get_pocketic_port)" "$stdout"
+  assert_eq "$(get_pocketic_port)"
 }
 
 @test "displays the default webserver port for the local shared network" {
@@ -63,7 +63,7 @@ teardown() {
 @test "displays Candid UI URL" {
   assert_command dfx info candid-ui-url --ic
   # shellcheck disable=SC2154
-  assert_eq "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/" "$stdout"
+  assert_eq "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/"
 
   # Before deployment the UI canister does not exist yet
   assert_command_fail dfx info candid-ui-url
@@ -72,7 +72,7 @@ teardown() {
   dfx_start
   assert_command dfx deploy e2e_project_backend
   assert_command dfx info candid-ui-url
-  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)" "$stdout"
+  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)"
 }
 
 @test "security-policy shows standard/hardened headers with comments" {
@@ -121,5 +121,5 @@ teardown() {
   expected_id=$(cat <(crc32 <(base64 -d <<<"$expected_id64") | xxd -r -p) <(base64 -d <<<"$expected_id64") | base32 \
     | tr -d = | tr '[:upper:]' '[:lower:]' | fold -w5 | paste -sd- -)
   assert_command dfx info default-effective-canister-id
-  assert_eq "$stdout" "$expected_id"
+  assert_eq "$expected_id"
 }

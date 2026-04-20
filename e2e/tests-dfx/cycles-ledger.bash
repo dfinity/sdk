@@ -44,34 +44,34 @@ current_time_nanoseconds() {
 
   dfx identity use alice
   assert_command dfx ledger balance
-  assert_eq "100.00000000 ICP" "$stdout"
+  assert_eq "100.00000000 ICP"
   assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
-  assert_eq "100.00000000 ICP" "$stdout"
+  assert_eq "100.00000000 ICP"
   assert_command dfx cycles balance --precise
-  assert_eq "0 cycles." "$stdout"
+  assert_eq "0 cycles."
 
   # base case
   assert_command dfx cycles convert --amount 12.5
   assert_contains "Account was topped up with 44_000_000_000_000 cycles!" "$output"
   assert_command dfx ledger balance
-  assert_eq "87.49990000 ICP" "$stdout"
+  assert_eq "87.49990000 ICP"
   assert_command dfx cycles balance --precise
-  assert_eq "43999900000000 cycles." "$stdout"
+  assert_eq "43999900000000 cycles."
 
   # to-subaccount and from-subaccount
   assert_command dfx cycles convert --amount 10 --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT2"
   assert_contains "Account was topped up with 35_200_000_000_000 cycles!" "$output"
   assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
-  assert_eq "89.99990000 ICP" "$stdout"
+  assert_eq "89.99990000 ICP"
   assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT2"
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
 
   # deduplication
   t=$(current_time_nanoseconds)
   assert_command dfx cycles convert --amount 10 --created-at-time "$t"
   assert_contains "Transfer sent at block height" "$output"
   assert_command dfx cycles balance --precise
-  assert_eq "79199800000000 cycles." "$stdout"
+  assert_eq "79199800000000 cycles."
   # same created-at-time: dupe
   assert_command dfx cycles convert --amount 10 --created-at-time "$t"
   # shellcheck disable=SC2154
@@ -83,34 +83,34 @@ current_time_nanoseconds() {
 
   ## --precise
   assert_command dfx cycles balance --precise --identity alice
-  assert_eq "79199800000000 cycles." "$stdout"
+  assert_eq "79199800000000 cycles."
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
-  assert_eq "0 cycles." "$stdout"
+  assert_eq "0 cycles."
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
 
   ## no --precise
   assert_command dfx cycles balance --identity alice
-  assert_eq "79.200 TC (trillion cycles)." "$stdout"
+  assert_eq "79.200 TC (trillion cycles)."
 
   assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT1"
-  assert_eq "0.000 TC (trillion cycles)." "$stdout"
+  assert_eq "0.000 TC (trillion cycles)."
 
   assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT2"
-  assert_eq "35.200 TC (trillion cycles)." "$stdout"
+  assert_eq "35.200 TC (trillion cycles)."
 
 
   # can see cycles balance of other accounts
   assert_command dfx cycles balance --owner "$ALICE" --identity bob
-  assert_eq "79.200 TC (trillion cycles)." "$stdout"
+  assert_eq "79.200 TC (trillion cycles)."
 
   assert_command dfx cycles balance --owner "$ALICE" --subaccount "$ALICE_SUBACCT2" --identity bob
-  assert_eq "35.200 TC (trillion cycles)." "$stdout"
+  assert_eq "35.200 TC (trillion cycles)."
 
   assert_command dfx cycles balance --owner "$ALICE" --identity anonymous
-  assert_eq "79.200 TC (trillion cycles)." "$stdout"
+  assert_eq "79.200 TC (trillion cycles)."
 }
 
 @test "transfer" {
@@ -277,9 +277,9 @@ current_time_nanoseconds() {
 
   # account to account
   assert_command dfx cycles balance --precise --identity alice
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "0 cycles." "$stdout"
+  assert_eq "0 cycles."
 
   t=$(current_time_nanoseconds)
   assert_command dfx cycles approve "$BOB" 2000000000 --created-at-time "$t" --memo 123 --identity alice
@@ -290,16 +290,16 @@ current_time_nanoseconds() {
   assert_contains "Transfer sent at block index" "$output"
 
   assert_command dfx cycles balance --precise --identity alice
-  assert_eq "35199699900000 cycles." "$stdout"
+  assert_eq "35199699900000 cycles."
 
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "100000 cycles." "$stdout"
+  assert_eq "100000 cycles."
 
   # account to subaccount
   assert_command dfx cycles balance --precise --identity alice
-  assert_eq "35199699900000 cycles." "$stdout"
+  assert_eq "35199699900000 cycles."
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "0 cycles." "$stdout"
+  assert_eq "0 cycles."
 
   t=$(current_time_nanoseconds)
   assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --to-subaccount "$BOB_SUBACCT1" --created-at-time "$t" --identity bob
@@ -308,16 +308,16 @@ current_time_nanoseconds() {
   assert_contains "Transfer is a duplicate of block index" "$output"
 
   assert_command dfx cycles balance --precise --identity alice
-  assert_eq "35199599800000 cycles." "$stdout"
+  assert_eq "35199599800000 cycles."
 
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "100000 cycles." "$stdout"
+  assert_eq "100000 cycles."
 
   # subaccount to account
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "100000 cycles." "$stdout"
+  assert_eq "100000 cycles."
 
   assert_command dfx cycles approve "$BOB" 200000000000 --from-subaccount "$ALICE_SUBACCT1" --identity alice
   assert_contains "Approval sent at block index" "$output"
@@ -325,13 +325,13 @@ current_time_nanoseconds() {
   assert_contains "Transfer sent at block index" "$output"
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
-  assert_eq "35199699300000 cycles." "$stdout"
+  assert_eq "35199699300000 cycles."
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "800000 cycles." "$stdout"
+  assert_eq "800000 cycles."
 
   # spender subaccount
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
 
   assert_command dfx cycles approve "$BOB" 200000000000 --spender-subaccount "$BOB_SUBACCT1" --from-subaccount "$ALICE_SUBACCT2" --identity alice
   assert_contains "Approval sent at block index" "$output"
@@ -339,9 +339,9 @@ current_time_nanoseconds() {
   assert_contains "Transfer sent at block index" "$output"
 
   assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
-  assert_eq "35199699700000 cycles." "$stdout"
+  assert_eq "35199699700000 cycles."
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "1100000 cycles." "$stdout"
+  assert_eq "1100000 cycles."
 }
 
 @test "top-up canister principal check" {
@@ -381,74 +381,74 @@ current_time_nanoseconds() {
 
   # account to canister
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 2_999" "$output" # 2_999x10^9
 
   assert_command dfx cycles top-up e2e_project_backend 1000000000 --identity bob
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "35198800000000 cycles." "$stdout"
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_000" "$output" # 3_000x10^9
 
   assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "35197700000000 cycles." "$stdout"
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_001" "$output" # 3_001x10^9
 
   # subaccount to canister
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_001" "$output" # 3_001x10^9
 
   assert_command dfx cycles top-up e2e_project_backend 1000000000 --identity bob --from-subaccount "$BOB_SUBACCT1"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "35198800000000 cycles." "$stdout"
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_002" "$output" # 3_002x10^9
 
   assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob --from-subaccount "$BOB_SUBACCT1"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "35197700000000 cycles." "$stdout"
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_003" "$output" # 3_003x10^9
 
   # subaccount to canister - by canister id
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
-  assert_eq "35199900000000 cycles." "$stdout"
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_003" "$output" # 3_003x10^9
 
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 1000000000 --identity bob --from-subaccount "$BOB_SUBACCT2"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
-  assert_eq "35198800000000 cycles." "$stdout"
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_004" "$output" # 3_004x10^9
 
   assert_command dfx canister deposit-cycles 1000000000 "$(dfx canister id e2e_project_backend)" --identity bob --from-subaccount "$BOB_SUBACCT2"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
-  assert_eq "35197700000000 cycles." "$stdout"
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_005" "$output" # 3_005x10^9
 
   # deduplication
   t=$(current_time_nanoseconds)
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "35197700000000 cycles." "$stdout"
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_005" "$output" # 3_005x10^9
 
   assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob --created-at-time "$t"
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "35196600000000 cycles." "$stdout"
+  assert_eq "35196600000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_006" "$output" # 3_006x10^9
 
   assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob --created-at-time "$t"
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "35196600000000 cycles." "$stdout"
+  assert_eq "35196600000000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_006" "$output" # 3_006x10^9
 
@@ -545,21 +545,21 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
   assert_command dfx cycles balance --precise
-  assert_eq "34199800000000 cycles." "$stdout"
+  assert_eq "34199800000000 cycles."
   # forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
   rm .dfx/local/canister_ids.json
   assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t"
   assert_command dfx canister id e2e_project_backend
   assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID" "$output"
   assert_command dfx cycles balance --precise
-  assert_eq "34199800000000 cycles." "$stdout"
+  assert_eq "34199800000000 cycles."
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend --no-withdrawal
 
   assert_command dfx canister create e2e_project_backend --with-cycles 1T --from-subaccount "$ALICE_SUBACCT1"
   assert_command dfx canister id e2e_project_backend
   assert_command dfx cycles balance --subaccount "$ALICE_SUBACCT1" --precise
-  assert_eq "34199800000000 cycles." "$stdout"
+  assert_eq "34199800000000 cycles."
 
   # reset deployment status
   rm -r .dfx
@@ -570,7 +570,7 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
   assert_command dfx cycles balance --precise
-  assert_eq "32199700000000 cycles." "$stdout"
+  assert_eq "32199700000000 cycles."
   # reset and forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
   dfx canister uninstall-code e2e_project_backend
   rm .dfx/local/canister_ids.json
@@ -578,14 +578,14 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID" "$output"
   assert_command dfx cycles balance --precise
-  assert_eq "32199700000000 cycles." "$stdout"
+  assert_eq "32199700000000 cycles."
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend --no-withdrawal
 
   assert_command dfx deploy e2e_project_backend --with-cycles 2T --from-subaccount "$ALICE_SUBACCT1"
   assert_command dfx canister id e2e_project_backend
   assert_command dfx cycles balance --subaccount "$ALICE_SUBACCT1" --precise
-  assert_eq "32199700000000 cycles." "$stdout"
+  assert_eq "32199700000000 cycles."
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend --no-withdrawal
 }
@@ -634,22 +634,22 @@ current_time_nanoseconds() {
   SUBACCOUNT="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
   assert_command dfx cycles balance
-  assert_eq "0.000 TC (trillion cycles)." "$stdout"
+  assert_eq "0.000 TC (trillion cycles)."
   assert_command dfx cycles balance --subaccount "$SUBACCOUNT"
-  assert_eq "0.000 TC (trillion cycles)." "$stdout"
+  assert_eq "0.000 TC (trillion cycles)."
 
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
   assert_match "Redeemed coupon 'valid-coupon'" "$output"
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
   assert_match "Redeemed coupon 'another-valid-coupon'" "$output"
   assert_command dfx cycles balance
-  assert_eq "20.000 TC (trillion cycles)." "$stdout"
+  assert_eq "20.000 TC (trillion cycles)."
 
   # with subaccount
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon' --to-subaccount "$SUBACCOUNT"
   assert_match "Redeemed coupon 'another-valid-coupon'" "$output"
   assert_command dfx cycles balance --subaccount "$SUBACCOUNT"
-  assert_eq "10.000 TC (trillion cycles)." "$stdout"
+  assert_eq "10.000 TC (trillion cycles)."
 }
 
 @test "create canister on specific subnet" {

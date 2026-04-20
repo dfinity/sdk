@@ -24,7 +24,7 @@ teardown() {
   assert_command dfx deploy --network actuallylocal --identity alice
   assert_command dfx canister call remote write '("initial data in the remote canister")' --identity alice --network actuallylocal
   assert_command dfx canister call remote read --identity alice --network actuallylocal
-  assert_eq '("initial data in the remote canister")' "$stdout"
+  assert_eq '("initial data in the remote canister")'
 
   REMOTE_CANISTER_ID=$(jq -r .remote.actuallylocal canister_ids.json)
   echo "Remote canister id: $REMOTE_CANISTER_ID"
@@ -39,7 +39,7 @@ teardown() {
   # call remote method as update to make a change
   assert_command dfx deploy --network actuallylocal
   assert_command dfx canister call remote which_am_i --network actuallylocal
-  assert_eq '("actual")' "$stdout"
+  assert_eq '("actual")'
 
   cat dfx.json
   cat canister_ids.json
@@ -51,23 +51,23 @@ teardown() {
   #   - use the remote candid definition
   #
   assert_command dfx canister call --query  "$REMOTE_CANISTER_ID" make_struct '("A query by principal", "B query by principal")' --network actuallylocal
-  assert_eq '(record { a = "A query by principal"; b = "B query by principal" })' "$stdout"
+  assert_eq '(record { a = "A query by principal"; b = "B query by principal" })'
   assert_command dfx canister call          "$REMOTE_CANISTER_ID" make_struct '("A default by principal", "B default by principal")' --network actuallylocal
-  assert_eq '(record { a = "A default by principal"; b = "B default by principal" })' "$stdout"
+  assert_eq '(record { a = "A default by principal"; b = "B default by principal" })'
   assert_command dfx canister call --update "$REMOTE_CANISTER_ID" make_struct '("A update by principal", "B update by principal")' --network actuallylocal
-  assert_eq '(record { a = "A update by principal"; b = "B update by principal" })' "$stdout"
+  assert_eq '(record { a = "A update by principal"; b = "B update by principal" })'
 
   assert_command dfx canister call --query  remote make_struct '("A query by name", "B query by name")' --network actuallylocal
-  assert_eq '(record { a = "A query by name"; b = "B query by name" })' "$stdout"
+  assert_eq '(record { a = "A query by name"; b = "B query by name" })'
   assert_command dfx canister call          remote make_struct '("A default by name", "B default by name")' --network actuallylocal
-  assert_eq '(record { a = "A default by name"; b = "B default by name" })' "$stdout"
+  assert_eq '(record { a = "A default by name"; b = "B default by name" })'
   assert_command dfx canister call --update remote make_struct '("A update by name", "B update by name")' --network actuallylocal
-  assert_eq '(record { a = "A update by name"; b = "B update by name" })' "$stdout"
+  assert_eq '(record { a = "A update by name"; b = "B update by name" })'
 
   # This also should work when no canister type can be determined / if no info but the bare minimum of remote id and remote candid is given:
   jq 'del(.canisters.remote.main)' dfx.json | sponge dfx.json
   assert_command dfx canister call --query  remote make_struct '("A query by name", "B query by name")' --network actuallylocal
-  assert_eq '(record { a = "A query by name"; b = "B query by name" })' "$stdout"
+  assert_eq '(record { a = "A query by name"; b = "B query by name" })'
 
   # We can't check this for sign, because dfx canister send outputs something like this:
   #   To see the content of response, copy-paste the encoded string into cbor.me.
@@ -152,7 +152,7 @@ teardown() {
   assert_command dfx canister call remote write '("this is data in the remote canister")' --identity alice --network actuallylocal
 
   assert_command dfx canister call remote read --identity alice --network actuallylocal
-  assert_eq '("this is data in the remote canister")' "$stdout"
+  assert_eq '("this is data in the remote canister")'
 
   REMOTE_CANISTER_ID=$(jq -r .remote.actuallylocal canister_ids.json)
   echo "Remote canister id: $REMOTE_CANISTER_ID"
@@ -169,9 +169,9 @@ teardown() {
   assert_command dfx canister install --all
 
   assert_command dfx canister call basic read_remote
-  assert_eq '("")' "$stdout"
+  assert_eq '("")'
   assert_command dfx canister call remote which_am_i
-  assert_eq '("mock")' "$stdout"
+  assert_eq '("mock")'
 
   assert_command dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal -vv
@@ -179,27 +179,27 @@ teardown() {
   assert_command dfx canister install --all --network actuallylocal
 
   assert_command dfx canister call basic read_remote --network actuallylocal
-  assert_eq '("this is data in the remote canister")' "$stdout"
+  assert_eq '("this is data in the remote canister")'
 
   # We can change the value by calling the original canister
   assert_command dfx canister call "${REMOTE_CANISTER_ID}" write '("altered data (by canister id) in the remote canister")' --network actuallylocal
   assert_command dfx canister call basic read_remote --network actuallylocal
-  assert_eq '("altered data (by canister id) in the remote canister")' "$stdout"
+  assert_eq '("altered data (by canister id) in the remote canister")'
 
   # We can also call through the canister name
   assert_command dfx canister call remote write '("altered data (by canister name) in the remote canister")' --network actuallylocal
   assert_command dfx canister call basic read_remote --network actuallylocal
-  assert_eq '("altered data (by canister name) in the remote canister")' "$stdout"
+  assert_eq '("altered data (by canister name) in the remote canister")'
 
 
   assert_command dfx canister call remote which_am_i --network actuallylocal
-  assert_eq '("actual")' "$stdout"
+  assert_eq '("actual")'
 
   assert_command jq .basic.actuallylocal canister_ids.json
-  assert_eq '"'"$(dfx canister id basic --network actuallylocal)"'"' "$stdout"
+  assert_eq '"'"$(dfx canister id basic --network actuallylocal)"'"'
 
   assert_command jq .remote canister_ids.json
-  assert_eq "null" "$stdout"
+  assert_eq "null"
 
   assert_command dfx ledger fabricate-cycles --all --t 100 --network actuallylocal
   assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
@@ -292,7 +292,7 @@ teardown() {
   assert_command dfx canister call remote write '("this is data in the remote canister")' --network actuallylocal --identity alice
 
   assert_command dfx canister call remote read --network actuallylocal --identity alice
-  assert_eq '("this is data in the remote canister")' "$stdout"
+  assert_eq '("this is data in the remote canister")'
 
   REMOTE_CANISTER_ID=$(jq -r .remote.actuallylocal canister_ids.json)
   echo "Remote canister id: $REMOTE_CANISTER_ID"
@@ -305,34 +305,34 @@ teardown() {
 
   assert_command dfx deploy
   assert_command dfx canister call basic read_remote
-  assert_eq '("")' "$stdout"
+  assert_eq '("")'
   assert_command dfx canister call remote which_am_i
-  assert_eq '("mock")' "$stdout"
+  assert_eq '("mock")'
 
   assert_command dfx deploy --network actuallylocal -vv
   assert_match "Not building canister 'remote'" "$output"
   assert_command dfx canister call basic read_remote --network actuallylocal
-  assert_eq '("this is data in the remote canister")' "$stdout"
+  assert_eq '("this is data in the remote canister")'
 
   # We can change the value by calling the original canister
   assert_command dfx canister call "${REMOTE_CANISTER_ID}" write '("data altered by canister id in the remote canister")' --network actuallylocal
   assert_command dfx canister call basic read_remote --network actuallylocal
-  assert_eq '("data altered by canister id in the remote canister")' "$stdout"
+  assert_eq '("data altered by canister id in the remote canister")'
 
   # We can also call through the canister name
   assert_command dfx canister call remote write '("data altered by canister name in the remote canister")' --network actuallylocal
   assert_command dfx canister call basic read_remote --network actuallylocal
-  assert_eq '("data altered by canister name in the remote canister")' "$stdout"
+  assert_eq '("data altered by canister name in the remote canister")'
 
 
   assert_command dfx canister call remote which_am_i --network actuallylocal
-  assert_eq '("actual")' "$stdout"
+  assert_eq '("actual")'
 
   assert_command jq .basic.actuallylocal canister_ids.json
-  assert_eq '"'"$(dfx canister id basic --network actuallylocal)"'"' "$stdout"
+  assert_eq '"'"$(dfx canister id basic --network actuallylocal)"'"'
 
   assert_command jq .remote canister_ids.json
-  assert_eq "null" "$stdout"
+  assert_eq "null"
 }
 
 @test "build step sets remote cid environment variable correctly" {

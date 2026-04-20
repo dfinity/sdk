@@ -100,7 +100,7 @@ teardown() {
     dfx wallet balance
     dfx identity get-wallet
     assert_command dfx diagnose
-    assert_eq "No problems found" "$stdout"
+    assert_eq "No problems found"
   )
 
   dfx_stop

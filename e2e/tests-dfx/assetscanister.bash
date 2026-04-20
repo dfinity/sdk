@@ -142,7 +142,7 @@ check_permission_failure() {
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1" "$stdout"
+  assert_eq "164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -166,7 +166,7 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
   assert_contains "commit proposed batch 2 with evidence 164f" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
-  assert_eq "()" "$stdout"
+  assert_eq "()"
 
   # show this asset was created and its content set
   assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
@@ -180,7 +180,7 @@ check_permission_failure() {
   # show the UnsetAssetContent was applied (gzip content encoding was removed)
   assert_command curl --fail -vv -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
   assert_not_contains "content-encoding" "$output"
-  assert_eq "will not compress" "$stdout"
+  assert_eq "will not compress"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/update-my-properties.txt?canisterId="$ID"
   assert_contains "x-extra-header: x-extra-value" "$output"
@@ -248,7 +248,7 @@ check_permission_failure() {
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$stdout"
+  assert_eq "9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -260,7 +260,7 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
   assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
-  assert_eq "()" "$stdout"
+  assert_eq "()"
 
   dfx canister call --query e2e_project_frontend list '(record{})'
 
@@ -324,7 +324,7 @@ check_permission_failure() {
 
   # initialization: the deploying controller has Commit permissions, no one else has permissions
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_eq "(vec {})" "$stdout"
+  assert_eq "(vec {})"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_eq "(
   vec {
@@ -332,7 +332,7 @@ check_permission_failure() {
   },
 )" "$output"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
-  assert_eq "(vec {})" "$stdout"
+  assert_eq "(vec {})"
 
   # granting permissions
 
@@ -964,11 +964,11 @@ check_permission_failure() {
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
 
   assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
   assert_eq '()'
@@ -977,15 +977,15 @@ check_permission_failure() {
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "XWV")' "$stdout"
+  assert_eq '(blob "XWV")'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "hello, world!")' "$stdout"
+  assert_eq '(blob "hello, world!")'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "XWV")' "$stdout"
+  assert_eq '(blob "XWV")'
 
   assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
 }

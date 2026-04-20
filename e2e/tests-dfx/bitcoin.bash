@@ -82,7 +82,7 @@ set_local_network_bitcoin_enabled() {
     min_confirmations = opt (1 : nat32);
   }
 )'
-  assert_eq "(0 : nat64)" "$stdout"
+  assert_eq "(0 : nat64)"
 
   # bitcoin_get_utxos
   assert_command dfx canister call --with-cycles 10000000000 --wallet default aaaaa-aa --candid bitcoin.did bitcoin_get_utxos '(

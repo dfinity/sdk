@@ -412,14 +412,14 @@ default'
 @test "identity whoami: creates the default identity on first run" {
   # Just an example.  All the identity commands do this.
   assert_command dfx identity whoami
-  assert_eq 'default' "$stdout"
+  assert_eq 'default'
   assert_match 'Creating the "default" identity.' "$stderr"
   assert_match 'Created the "default" identity.' "$stderr"
 }
 
 @test "identity whoami: shows the current identity" {
   assert_command dfx identity whoami
-  assert_eq 'default' "$stdout"
+  assert_eq 'default'
   assert_command dfx identity new charlie
   assert_command dfx identity whoami
   assert_eq 'default'
@@ -432,7 +432,7 @@ default'
 
 @test "dfx identity whoami --identity (name): shows the overriding identity" {
   assert_command dfx identity whoami
-  assert_eq 'default' "$stdout"
+  assert_eq 'default'
   assert_command dfx identity new charlie
   assert_command dfx identity new alice
   assert_command dfx identity whoami --identity charlie
@@ -443,7 +443,7 @@ default'
 
 @test "dfx (command) --identity does not persistently change the selected identity" {
   assert_command dfx identity whoami
-  assert_eq 'default' "$stdout"
+  assert_eq 'default'
   assert_command dfx identity new charlie
   assert_command dfx identity new alice
   assert_command dfx identity use charlie
