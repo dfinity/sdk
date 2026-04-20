@@ -227,8 +227,7 @@ async fn create(
     )
     .await
     .with_context(|| format!("Failed to take snapshot of canister {canister}"))?;
-    info!(
-        env.get_logger(),
+    println!(
         "Created a new snapshot of canister {canister}. Snapshot ID: {}",
         SnapshotId(id.id)
     );
@@ -307,7 +306,7 @@ async fn list(env: &dyn Environment, canister: String, call_sender: &CallSender)
                     .unwrap()
             ))
         });
-        info!(env.get_logger(), "{snapshots}");
+        println!("{snapshots}");
     }
     Ok(())
 }

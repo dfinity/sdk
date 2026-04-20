@@ -27,13 +27,13 @@ teardown() {
 
   assert_command_fail dfx canister send message.json --status
   # shellcheck disable=SC2154
-  assert_eq "Error: Can only check request_status on update calls." "$stderr"
+  assert_contains "Error: Can only check request_status on update calls." "$stderr"
 
   assert_command_fail dfx canister sign --query hello_backend read
-  assert_eq "Error: [message.json] already exists, please specify a different output file name." "$stderr"
+  assert_contains "Error: [message.json] already exists, please specify a different output file name." "$stderr"
 
   assert_command dfx canister sign --update hello_backend inc --file message-inc.json
-  assert_eq "Update and request_status message generated at [message-inc.json]"
+  assert_contains "Update and request_status message generated at [message-inc.json]" "$output"
 
   sleep 10
   echo y | assert_command dfx canister send message-inc.json

@@ -357,17 +357,17 @@ check_permission_failure() {
   vec {
     principal \"$MANAGE_PERMISSIONS_PRINCIPAL\";
   },
-)" "$output"
+)"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
-  assert_contains "$CONTROLLER_PRINCIPAL" "$output"
-  assert_contains "$COMMIT_PRINCIPAL" "$output"
+  assert_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$COMMIT_PRINCIPAL"
 
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
   assert_eq "(
   vec {
     principal \"$PREPARE_PRINCIPAL\";
   },
-)" "$output"
+)"
 
   # create batch
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
