@@ -21,9 +21,9 @@ teardown() {
   # default amount is 10 trillion cycles, which results in an amount like 13_899_071_239_420
   assert_command dfx ledger fabricate-cycles --canister "$(dfx canister id hello_backend)"
   # bash does not accept \d, use [0-9] instead
-  assert_match 'updated balance: [0-9]{2}(_[0-9]{3}){4} cycles'
+  assert_match 'updated balance: [0-9]{2}(_[0-9]{3}){4} cycles' "$output"
   assert_command dfx ledger fabricate-cycles --all
-  assert_match 'updated balance: [0-9]{2}(_[0-9]{3}){4} cycles'
+  assert_match 'updated balance: [0-9]{2}(_[0-9]{3}){4} cycles' "$output"
 }
 
 @test "ledger fabricate-cycles works with specific amount" {
@@ -32,9 +32,9 @@ teardown() {
   dfx deploy
   # adding 100 trillion cycles, which results in an amount like 103_899_071_239_420
   assert_command dfx ledger fabricate-cycles --canister "$(dfx canister id hello_backend)" --cycles 100000000000000
-  assert_match 'updated balance: [0-9]{3}(_[0-9]{3}){4} cycles'
+  assert_match 'updated balance: [0-9]{3}(_[0-9]{3}){4} cycles' "$output"
   assert_command dfx ledger fabricate-cycles --canister hello_backend --t 100
-  assert_match 'updated balance: [0-9]{3}(_[0-9]{3}){4} cycles'
+  assert_match 'updated balance: [0-9]{3}(_[0-9]{3}){4} cycles' "$output"
 }
 
 @test "ledger fabricate-cycles fails on real IC" {
@@ -42,9 +42,9 @@ teardown() {
   # without DFX_WARNING, the command would fail with different error (Failed to create AgentEnvironment...)
   export DFX_WARNING=-mainnet_plaintext_identity
   assert_command_fail dfx ledger fabricate-cycles --all --network ic
-  assert_match "Cannot run this on the real IC."
+  assert_match "Cannot run this on the real IC." "$output"
   assert_command_fail dfx ledger fabricate-cycles --all --ic
-  assert_match "Cannot run this on the real IC."
+  assert_match "Cannot run this on the real IC." "$output"
 }
 
 @test "ledger fabricate-cycles fails with wrong option combinations" {

@@ -195,7 +195,8 @@ dfx_set_wallet() {
   export WALLET_CANISTER_ID
   WALLET_CANISTER_ID=$(dfx identity get-wallet)
   assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network "${network}"
-  assert_match 'Wallet set successfully.'
+  # shellcheck disable=SC2154
+  assert_match 'Wallet set successfully.' "$output"
 }
 
 shared_wallets_json() {

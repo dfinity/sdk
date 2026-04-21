@@ -20,7 +20,7 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match 'import error \[M0010\], package "(rate|describe)" not defined'
+  assert_match 'import error \[M0010\], package "(rate|describe)" not defined' "$output"
 }
 
 @test "build succeeds if packtool is configured" {
@@ -76,9 +76,9 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match 'Failed to invoke the package tool'
-  assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked'
-  assert_match 'No such file or directory \(os error 2\)'
+  assert_match 'Failed to invoke the package tool' "$output"
+  assert_match 'no-such-command.*that.*command.*cannot.*be.*invoked' "$output"
+  assert_match 'No such file or directory \(os error 2\)' "$output"
 }
 
 @test "failure in execution reports the command line and exit code" {
@@ -88,7 +88,7 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match 'The command.*failed'
-  assert_match 'sh.*command-that-fails.bash'
-  assert_match 'exit (code|status): 3'
+  assert_match 'The command.*failed' "$output"
+  assert_match 'sh.*command-that-fails.bash' "$output"
+  assert_match 'exit (code|status): 3' "$output"
 }

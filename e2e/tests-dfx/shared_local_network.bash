@@ -109,7 +109,7 @@ teardown() {
   (
     cd hello
     assert_command_fail dfx diagnose
-    assert_match "No wallet found; nothing to do"
+    assert_match "No wallet found; nothing to do" "$output"
   )
 }
 

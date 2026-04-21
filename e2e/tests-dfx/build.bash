@@ -70,30 +70,30 @@ teardown() {
   jq '.canisters.e2e_project.build="echo nope"' dfx.json | sponge dfx.json
 
   assert_command_fail dfx deploy
-  assert_contains "Canister 'e2e_project' defines its wasm field as a URL, and has a build step."
+  assert_contains "Canister 'e2e_project' defines its wasm field as a URL, and has a build step." "$output"
 }
 
 @test "build uses default build args" {
   install_asset default_args
   assert_command_fail dfx build --check
-  assert_match "unknown option"
-  assert_match "compacting-gcX"
+  assert_match "unknown option" "$output"
+  assert_match "compacting-gcX" "$output"
 }
 
 @test "build uses canister build args" {
   install_asset canister_args
   assert_command_fail dfx build --check
-  assert_match "unknown option"
-  assert_match "compacting-gcY"
-  assert_not_match "compacting-gcX"
+  assert_match "unknown option" "$output"
+  assert_match "compacting-gcY" "$output"
+  assert_not_match "compacting-gcX" "$output"
 }
 
 @test "empty canister build args don't shadow default" {
   install_asset empty_canister_args
   assert_command_fail dfx build --check
-  assert_match '"--error-detail" "5"'
-  assert_match "unknown option"
-  assert_match "compacting-gcX"
+  assert_match '"--error-detail" "5"' "$output"
+  assert_match "unknown option" "$output"
+  assert_match "compacting-gcX" "$output"
 }
 
 @test "build fails on invalid motoko" {
@@ -101,13 +101,13 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match "syntax error"
+  assert_match "syntax error" "$output"
 }
 
 @test "build --check fails on build error when there are no canister ids" {
   install_asset invalid
   assert_command_fail dfx build --check
-  assert_match "syntax error"
+  assert_match "syntax error" "$output"
 }
 
 @test "build --check fails on build error when there are canister ids" {
@@ -115,7 +115,7 @@ teardown() {
   dfx canister create --all
   install_asset invalid
   assert_command_fail dfx build --check
-  assert_match "syntax error"
+  assert_match "syntax error" "$output"
 }
 
 @test "build supports relative imports" {
@@ -150,8 +150,8 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_contains "Building canister 'e2e_project_backend'"
-  assert_contains "Finished building canisters."
+  assert_contains "Building canister 'e2e_project_backend'" "$output"
+  assert_contains "Finished building canisters." "$output"
 }
 
 @test "build succeeds if enable optimize" {
@@ -168,11 +168,11 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build custom -vvv
-  assert_not_match "Shrinking Wasm"
+  assert_not_match "Shrinking Wasm" "$output"
 
   jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
   assert_command dfx build custom -vvv
-  assert_match "Shrinking Wasm"
+  assert_match "Shrinking Wasm" "$output"
 }
 
 @test "build custom canister default no optimize" {
@@ -182,11 +182,11 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build custom -vvv
-  assert_not_match "Optimizing"
+  assert_not_match "Optimizing" "$output"
 
   jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
   assert_command dfx build custom -vvv
-  assert_match "Optimizing Wasm at level"
+  assert_match "Optimizing Wasm at level" "$output"
 }
 
 @test "build succeeds if enable gzip" {
@@ -222,7 +222,7 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_match "warning \[M0145\], this pattern of type"
+  assert_match "warning \[M0145\], this pattern of type" "$output"
 }
 
 @test "build fails on unknown imports" {
@@ -230,7 +230,7 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match 'import error \[M0011\], canister alias "random" not defined'
+  assert_match 'import error \[M0011\], canister alias "random" not defined' "$output"
 }
 
 @test "build fails if canister type is not supported" {
@@ -239,7 +239,7 @@ teardown() {
   jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json | sponge dfx.json
   assert_command_fail dfx build
   # shellcheck disable=SC2016
-  assert_match "canister 'e2e_project_backend' has unknown type 'unknown_canister_type' and there is no installed extension by that name which could define it"
+  assert_match "canister 'e2e_project_backend' has unknown type 'unknown_canister_type' and there is no installed extension by that name which could define it" "$output"
 
   # If canister type is invalid, `dfx stop` fails
   jq '.canisters.e2e_project_backend.type="motoko"' dfx.json | sponge dfx.json
@@ -372,5 +372,5 @@ teardown() {
   assert_command dfx build --check
   # the module contains table64 which is not supported by ic_wasm::optimize
   # optimization failure doesn't fail the build, but a warning is issued
-  assert_contains "WARNING: Failed to optimize the Wasm module:"
+  assert_contains "WARNING: Failed to optimize the Wasm module:" "$output"
 }

@@ -79,8 +79,8 @@ teardown() {
   assert_eq "4449444c00017d02"
 
   assert_command_fail dfx canister call --query hello_backend inc
-  assert_match "inc is an update method, not a query method."
-  assert_match "Run the command without '--query'."
+  assert_match "inc is an update method, not a query method." "$output"
+  assert_match "Run the command without '--query'." "$output"
 
 
   dfx canister call hello_backend inc
@@ -151,7 +151,7 @@ teardown() {
   assert_command dfx canister call hello_backend always_accepted
 
   assert_command_fail dfx canister call hello_backend always_rejected
-  assert_contains "canister_inspect_message explicitly refused message"
+  assert_contains "canister_inspect_message explicitly refused message" "$output"
 }
 
 @test "inspect message - rust" {
@@ -165,5 +165,5 @@ teardown() {
   assert_command dfx canister call hello_backend always_accepted
 
   assert_command_fail dfx canister call hello_backend always_rejected
-  assert_contains "Canister rejected the message"
+  assert_contains "Canister rejected the message" "$output"
 }

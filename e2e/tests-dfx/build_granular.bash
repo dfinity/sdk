@@ -47,7 +47,7 @@ teardown() {
   dfx build e2e_project_backend
   # validate assets canister wasn't built and can't be installed
   assert_command_fail dfx canister install e2e_project_frontend
-  assert_match "The canister must be built before install. Please run \`dfx build\`."
+  assert_match "The canister must be built before install. Please run \`dfx build\`." "$output"
 }
 
 
@@ -61,18 +61,18 @@ teardown() {
   assert_command dfx canister call e2e_project_backend greet World
 
   assert_command_fail dfx canister install e2e_project_frontend
-  assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend'."
+  assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend'." "$output"
   dfx canister create e2e_project_frontend
   dfx build e2e_project_frontend
   dfx canister install e2e_project_frontend
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
   # shellcheck disable=SC2154
-  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
 }
 
 @test "cyclic dependencies are detected" {
@@ -80,7 +80,7 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build canister_e
-  assert_match "Circular canister dependencies: canister_e -> canister_d -> canister_e"
+  assert_match "Circular canister dependencies: canister_e -> canister_d -> canister_e" "$output"
 }
 
 @test "multiple non-cyclic dependency paths to the same canister are ok" {

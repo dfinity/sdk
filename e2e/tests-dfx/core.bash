@@ -33,5 +33,5 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
-  assert_match 'import error \[M0010\], package "core" not defined'
+  assert_match 'import error \[M0010\], package "core" not defined' "$output"
 }

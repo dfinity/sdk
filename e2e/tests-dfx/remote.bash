@@ -82,15 +82,15 @@ teardown() {
   # We expect dfx to notice that the method is in fact an update, which it knows from the remote candid definition.
   #
   assert_command_fail dfx canister call --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")' --network actuallylocal
-  assert_match 'not a query method'
+  assert_match 'not a query method' "$output"
   assert_command_fail dfx canister call --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")' --network actuallylocal
-  assert_match 'not a query method'
+  assert_match 'not a query method' "$output"
 
   # And the same for dfx canister sign:
   assert_command_fail dfx canister sign --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")' --network actuallylocal
-  assert_match 'not a query method'
+  assert_match 'not a query method' "$output"
   assert_command_fail dfx canister sign --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")' --network actuallylocal
-  assert_match 'not a query method'
+  assert_match 'not a query method' "$output"
 }
 
 @test "canister create <canister> fails for a remote canister" {
@@ -112,7 +112,7 @@ teardown() {
   jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
   assert_command_fail dfx canister create remote --network actuallylocal
-  assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be created from here."
+  assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be created from here." "$output"
 }
 
 @test "canister install <canister> fails for a remote canister" {
@@ -134,7 +134,7 @@ teardown() {
   jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
   assert_command_fail dfx canister install remote --network actuallylocal
-  assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
+  assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here." "$output"
 }
 
 @test "all commands with --all skip remote canisters" {
@@ -175,7 +175,7 @@ teardown() {
 
   assert_command dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal -vv
-  assert_match "Not building canister 'remote'"
+  assert_match "Not building canister 'remote'" "$output"
   assert_command dfx canister install --all --network actuallylocal
 
   assert_command dfx canister call basic read_remote --network actuallylocal
@@ -202,30 +202,30 @@ teardown() {
   assert_eq "null"
 
   assert_command dfx ledger fabricate-cycles --all --t 100 --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   assert_command dfx canister status --all --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   assert_command dfx canister update-settings --log-visibility public --all --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   assert_command dfx canister stop --all --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   assert_command dfx canister start --all --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   # have to stop to uninstall
   assert_command dfx canister stop --all --network actuallylocal
 
   assert_command dfx canister uninstall-code --all --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   assert_command dfx build --all --network actuallylocal
 
   assert_command dfx canister delete --all --network actuallylocal
-  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'" "$output"
 
   # Assert frontend declarations are actually created
   dfx generate
@@ -310,7 +310,7 @@ teardown() {
   assert_eq '("mock")'
 
   assert_command dfx deploy --network actuallylocal -vv
-  assert_match "Not building canister 'remote'"
+  assert_match "Not building canister 'remote'" "$output"
   assert_command dfx canister call basic read_remote --network actuallylocal
   assert_eq '("this is data in the remote canister")'
 

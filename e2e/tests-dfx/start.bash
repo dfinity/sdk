@@ -79,7 +79,7 @@ teardown() {
 
 @test "start and stop outside project" {
   assert_command dfx_start
-  assert_contains "Replica API running in the background"
+  assert_contains "Replica API running in the background" "$output"
 
   mkdir subdir
   cd subdir || exit 1
@@ -88,13 +88,13 @@ teardown() {
   CANISTER_ID="$(dfx canister id e2e_project_backend)"
   cd ..
   assert_command dfx canister status "$CANISTER_ID"
-  assert_contains "Status: Running"
+  assert_contains "Status: Running" "$output"
   assert_command dfx canister stop "$CANISTER_ID"
   assert_command dfx canister status "$CANISTER_ID"
-  assert_contains "Status: Stopped"
+  assert_contains "Status: Stopped" "$output"
   assert_command dfx canister start "$CANISTER_ID"
   assert_command dfx canister status "$CANISTER_ID"
-  assert_contains "Status: Running"
+  assert_contains "Status: Running" "$output"
 }
 
 @test "uninstall-code outside of a project" {
@@ -107,11 +107,11 @@ teardown() {
   CANISTER_ID="$(dfx canister id e2e_project_backend)"
   cd ..
   assert_command dfx canister status "$CANISTER_ID"
-  assert_contains "Module hash: 0x"
+  assert_contains "Module hash: 0x" "$output"
   assert_command dfx canister uninstall-code "$CANISTER_ID"
-  assert_contains "Uninstalling code for canister $CANISTER_ID"
+  assert_contains "Uninstalling code for canister $CANISTER_ID" "$output"
   assert_command dfx canister status "$CANISTER_ID"
-  assert_contains "Module hash: None"
+  assert_contains "Module hash: None" "$output"
 }
 
 @test "pocket-ic proxy domain configuration in string form" {
@@ -216,7 +216,7 @@ teardown() {
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
   assert_command dfx start --background -v
-  assert_match "subnet type: Application"
+  assert_match "subnet type: Application" "$output"
 }
 
 @test "dfx starts pocketic with subnet type verifiedapplication - project defaults" {
@@ -225,7 +225,7 @@ teardown() {
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
   assert_command dfx start --background -v
-  assert_match "subnet type: VerifiedApplication"
+  assert_match "subnet type: VerifiedApplication" "$output"
 }
 
 @test "dfx starts pocketic with subnet type system - project defaults" {
@@ -234,7 +234,7 @@ teardown() {
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
   assert_command dfx start --background -v
-  assert_match "subnet type: System"
+  assert_match "subnet type: System" "$output"
 }
 
 @test "dfx starts pocketic with subnet type application - local network" {
@@ -243,7 +243,7 @@ teardown() {
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
   assert_command dfx start --background -v
-  assert_match "subnet type: Application"
+  assert_match "subnet type: Application" "$output"
 }
 
 @test "dfx starts pocketic with subnet type verifiedapplication - local network" {
@@ -252,7 +252,7 @@ teardown() {
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
   assert_command dfx start --background -v
-  assert_match "subnet type: VerifiedApplication"
+  assert_match "subnet type: VerifiedApplication" "$output"
 }
 
 @test "dfx starts pocketic with subnet type system - local network" {
@@ -261,7 +261,7 @@ teardown() {
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
   assert_command dfx start --background -v
-  assert_match "subnet type: System"
+  assert_match "subnet type: System" "$output"
 }
 
 
@@ -270,7 +270,7 @@ teardown() {
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx start --background -v
-  assert_match "subnet type: Application"
+  assert_match "subnet type: Application" "$output"
 }
 
 @test "dfx starts pocketic with subnet type verifiedapplication - shared network" {
@@ -278,7 +278,7 @@ teardown() {
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx start --background -v
-  assert_match "subnet type: VerifiedApplication"
+  assert_match "subnet type: VerifiedApplication" "$output"
 }
 
 @test "dfx starts pocketic with subnet type system - shared network" {
@@ -286,7 +286,7 @@ teardown() {
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx start --background -v
-  assert_match "subnet type: System"
+  assert_match "subnet type: System" "$output"
 }
 
 @test "dfx start detects if dfx is already running - shared network" {
@@ -294,7 +294,7 @@ teardown() {
   dfx_start
 
   assert_command_fail dfx start
-  assert_match "dfx is already running"
+  assert_match "dfx is already running" "$output"
 }
 
 @test "dfx start for shared network warns about default settings specified in dfx.json that do not apply" {
@@ -306,31 +306,31 @@ teardown() {
   jq 'del(.defaults)' dfx.json | sponge dfx.json
   jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
   assert_command dfx start --background
-  assert_contains "$IGNORED_MESSAGE"
-  assert_match "$APPLY_SETTINGS_MESSAGE"
-  assert_contains '"bitcoin": {'
-  assert_not_contains '"replica"'
-  assert_not_contains '"canister_http"'
+  assert_contains "$IGNORED_MESSAGE" "$output"
+  assert_match "$APPLY_SETTINGS_MESSAGE" "$output"
+  assert_contains '"bitcoin": {' "$output"
+  assert_not_contains '"replica"' "$output"
+  assert_not_contains '"canister_http"' "$output"
   assert_command dfx stop
 
   jq 'del(.defaults)' dfx.json | sponge dfx.json
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
   assert_command dfx start --background
-  assert_contains "$IGNORED_MESSAGE"
-  assert_match "$APPLY_SETTINGS_MESSAGE"
-  assert_not_contains '"bitcoin"'
-  assert_contains '"replica": {'
-  assert_not_contains '"canister_http"'
+  assert_contains "$IGNORED_MESSAGE" "$output"
+  assert_match "$APPLY_SETTINGS_MESSAGE" "$output"
+  assert_not_contains '"bitcoin"' "$output"
+  assert_contains '"replica": {' "$output"
+  assert_not_contains '"canister_http"' "$output"
   assert_command dfx stop
 
   jq 'del(.defaults)' dfx.json | sponge dfx.json
   jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
   assert_command dfx start --background
-  assert_contains "$IGNORED_MESSAGE"
-  assert_match "$APPLY_SETTINGS_MESSAGE"
-  assert_not_contains '"bitcoin"'
-  assert_not_contains '"replica"'
-  assert_contains '"canister_http": {'
+  assert_contains "$IGNORED_MESSAGE" "$output"
+  assert_match "$APPLY_SETTINGS_MESSAGE" "$output"
+  assert_not_contains '"bitcoin"' "$output"
+  assert_not_contains '"replica"' "$output"
+  assert_contains '"canister_http": {' "$output"
   assert_command dfx stop
 
   jq 'del(.defaults)' dfx.json | sponge dfx.json
@@ -338,11 +338,11 @@ teardown() {
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
   jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
   assert_command dfx start --background
-  assert_contains "$IGNORED_MESSAGE"
-  assert_match "$APPLY_SETTINGS_MESSAGE"
-  assert_contains '"bitcoin": {'
-  assert_contains '"replica": {'
-  assert_contains '"canister_http": {'
+  assert_contains "$IGNORED_MESSAGE" "$output"
+  assert_match "$APPLY_SETTINGS_MESSAGE" "$output"
+  assert_contains '"bitcoin": {' "$output"
+  assert_contains '"replica": {' "$output"
+  assert_contains '"canister_http": {' "$output"
   assert_command dfx stop
 }
 
@@ -352,12 +352,12 @@ teardown() {
   define_project_network
 
   assert_command dfx start --background --verbose
-  assert_match "log level: Warning"
+  assert_match "log level: Warning" "$output"
   assert_command dfx stop
 
   jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
   assert_command dfx start --background --verbose --clean
-  assert_match "log level: Critical"
+  assert_match "log level: Critical" "$output"
 }
 
 @test "dfx starts pocketic with correct log level - local network" {
@@ -366,12 +366,12 @@ teardown() {
   define_project_network
 
   assert_command dfx start --background --verbose
-  assert_match "log level: Warning"
+  assert_match "log level: Warning" "$output"
   assert_command dfx stop
 
   jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
   assert_command dfx start --background --verbose --clean
-  assert_match "log level: Critical"
+  assert_match "log level: Critical" "$output"
 }
 
 @test "dfx starts pocketic with correct log level - shared network" {
@@ -380,12 +380,12 @@ teardown() {
   jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx start --background --verbose
-  assert_match "log level: Warning"
+  assert_match "log level: Warning" "$output"
   assert_command dfx stop
 
   jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   assert_command dfx start --background --verbose --clean
-  assert_match "log level: Critical"
+  assert_match "log level: Critical" "$output"
 }
 
 @test "debug print statements work with default log level" {
@@ -396,7 +396,7 @@ teardown() {
   assert_command dfx canister call e2e_project hello
   sleep 2
   run tail -2 stderr.txt
-  assert_match "Hello, World! from DFINITY"
+  assert_match "Hello, World! from DFINITY" "$output"
 }
 
 # Disabled: each test has multiple dfx start/stop cycles, each taking ~1 min,

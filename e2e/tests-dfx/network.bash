@@ -26,7 +26,7 @@ teardown() {
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend --network actuallylocal
-  assert_match "$(jq -r .e2e_project_backend.actuallylocal <canister_ids.json)"
+  assert_match "$(jq -r .e2e_project_backend.actuallylocal <canister_ids.json)" "$output"
 }
 
 @test "create with wallet stores canister ids for configured-ephemeral networks in canister_ids.json" {
@@ -40,7 +40,7 @@ teardown() {
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend
-  assert_match "$(jq -r .e2e_project_backend.local .dfx/local/canister_ids.json)"
+  assert_match "$(jq -r .e2e_project_backend.local .dfx/local/canister_ids.json)" "$output"
 }
 
 @test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {
@@ -65,18 +65,18 @@ teardown() {
   jq '.local.type="persistent"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx canister create --all --network local
-  assert_contains "canister_ids.json\" file has been generated. Please make sure you store it correctly"
+  assert_contains "canister_ids.json\" file has been generated. Please make sure you store it correctly" "$output"
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend --network local
-  assert_match "$(jq -r .e2e_project_backend.local <canister_ids.json)"
+  assert_match "$(jq -r .e2e_project_backend.local <canister_ids.json)" "$output"
 }
 
 @test "failure message does not include network if for local network" {
   dfx_start
   assert_command_fail dfx build --network local
-  assert_match "Cannot find canister id."
-  assert_not_contains "--network local"
+  assert_match "Cannot find canister id." "$output"
+  assert_not_contains "--network local" "$output"
 }
 
 @test "failure message does include network if for non-local network" {
@@ -85,14 +85,14 @@ teardown() {
   setup_actuallylocal_shared_network
 
   assert_command_fail dfx build --network actuallylocal
-  assert_match "Cannot find canister id."
-  assert_match "--network actuallylocal"
+  assert_match "Cannot find canister id." "$output"
+  assert_match "--network actuallylocal" "$output"
 }
 
 @test "network 'playground' has a default definition" {
   # if network is unknown dfx fails with `Network not found: <network name>`
   assert_command_fail dfx canister id hello_backend --network playground
-  assert_contains "Cannot find canister id"
+  assert_contains "Cannot find canister id" "$output"
 }
 
 @test "equivalent: --network ic and --ic" {
@@ -100,16 +100,16 @@ teardown() {
   dfx identity get-wallet
 
   assert_command_fail dfx diagnose --network ic
-  assert_contains "The test_id identity is not stored securely."
-  assert_contains "in mainnet-facing commands"
-  assert_contains "you can suppress this warning"
+  assert_contains "The test_id identity is not stored securely." "$output"
+  assert_contains "in mainnet-facing commands" "$output"
+  assert_contains "you can suppress this warning" "$output"
 
   assert_command_fail dfx diagnose --ic
-  assert_contains "The test_id identity is not stored securely."
-  assert_contains "in mainnet-facing commands"
-  assert_contains "you can suppress this warning"
+  assert_contains "The test_id identity is not stored securely." "$output"
+  assert_contains "in mainnet-facing commands" "$output"
+  assert_contains "you can suppress this warning" "$output"
 
   assert_command dfx diagnose
-  assert_not_contains "identity is not stored securely"
+  assert_not_contains "identity is not stored securely" "$output"
   assert_eq "No problems found"
 }

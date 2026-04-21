@@ -19,15 +19,15 @@ teardown() {
     dfx_start
 
     assert_command_fail dfx canister create e2e_project_backend --reserved-cycles-limit 470000
-    assert_contains "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+    assert_contains "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead." "$output"
 
     assert_command dfx canister create e2e_project_frontend --no-wallet
     assert_command dfx canister status e2e_project_frontend
-    assert_contains "Reserved cycles limit: 5_000_000_000_000 Cycles"
+    assert_contains "Reserved cycles limit: 5_000_000_000_000 Cycles" "$output"
 
     assert_command dfx canister create e2e_project_backend --reserved-cycles-limit 470000 --no-wallet
     assert_command dfx canister status e2e_project_backend
-    assert_contains "Reserved cycles limit: 470_000 Cycles"
+    assert_contains "Reserved cycles limit: 470_000 Cycles" "$output"
 }
 
 @test "create succeeds on default project" {
@@ -46,13 +46,13 @@ teardown() {
   dfx_start
   # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
   assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
-  assert_match "The specified canister ID nojwb-ieaaa-aaaaa-aaaaa-cai is out of range. Hint: A mainnet canister ID is normally valid here."
+  assert_match "The specified canister ID nojwb-ieaaa-aaaaa-aaaaa-cai is out of range. Hint: A mainnet canister ID is normally valid here." "$output"
 }
 
 @test "create fails if set both --all and --specified-id" {
   dfx_start
   assert_command_fail dfx canister create --all --specified-id xbgkv-fyaaa-aaaaa-aaava-cai
-  assert_match "error: the argument '--all' cannot be used with '--specified-id <PRINCIPAL>'"
+  assert_match "error: the argument '--all' cannot be used with '--specified-id <PRINCIPAL>'" "$output"
 }
 
 @test "create succeeds when specify canister ID in dfx.json" {
@@ -67,12 +67,12 @@ teardown() {
   dfx_start
   jq '.canisters.e2e_project_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
   assert_command dfx canister create e2e_project_backend --specified-id n2m2m-wyaaa-aaaaa-p777a-cai
-  assert_contains "WARNING: Canister 'e2e_project_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
-  assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai."
-  assert_contains "The command line value will be used."
+  assert_contains "WARNING: Canister 'e2e_project_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai," "$output"
+  assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai." "$output"
+  assert_contains "The command line value will be used." "$output"
 
   assert_command dfx canister id e2e_project_backend
-  assert_match n2m2m-wyaaa-aaaaa-p777a-cai
+  assert_match n2m2m-wyaaa-aaaaa-p777a-cai "$output"
 }
 
 @test "create generates the canister_ids.json" {
@@ -103,14 +103,14 @@ teardown() {
 @test "build fails without create" {
   dfx_start
   assert_command_fail dfx build
-  assert_match "Cannot find canister id."
+  assert_match "Cannot find canister id." "$output"
 }
 
 @test "build fails if all canisters in project are not created" {
   dfx_start
   assert_command dfx canister create e2e_project_backend
   assert_command_fail dfx build
-  assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend'"
+  assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend'" "$output"
 }
 
 @test "create succeeds with network parameter" {
@@ -121,7 +121,7 @@ teardown() {
 @test "create fails with incorrect network" {
   dfx_start
   assert_command_fail dfx canister create --all --network nosuch
-  assert_match "Network not found"
+  assert_match "Network not found" "$output"
 }
 
 @test "create succeeds when requested network is configured" {
@@ -144,14 +144,14 @@ teardown() {
 
   jq '.networks.actuallylocal.providers=[]' dfx.json | sponge dfx.json
   assert_command_fail dfx canister create --all --network actuallylocal
-  assert_match "Did not find any providers for network 'actuallylocal'"
+  assert_match "Did not find any providers for network 'actuallylocal'" "$output"
 }
 
 @test "create fails with network parameter when network does not exist" {
   dfx_start
   jq '.networks.actuallylocal.providers=["http://not-real.nowhere.test."]' dfx.json | sponge dfx.json
   assert_command_fail dfx canister create --all --network actuallylocal
-  assert_contains "error sending request for url (http://not-real.nowhere.test./api/v2/status)"
+  assert_contains "error sending request for url (http://not-real.nowhere.test./api/v2/status)" "$output"
 }
 
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
@@ -274,8 +274,8 @@ teardown() {
   dfx identity new --storage-mode plaintext bob
 
   assert_command_fail dfx canister create --all --controller alice --controller bob --identity alice
-  assert_match "The wallet canister must be upgraded: The installed wallet does not support multiple controllers."
-  assert_match "To upgrade, run dfx wallet upgrade"
+  assert_match "The wallet canister must be upgraded: The installed wallet does not support multiple controllers." "$output"
+  assert_match "To upgrade, run dfx wallet upgrade" "$output"
 
   use_wallet_wasm 0.8.2
   assert_command dfx wallet upgrade --identity alice

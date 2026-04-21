@@ -103,7 +103,7 @@ teardown() {
 
   # should not overwrite without --overwrite
   assert_command dfx remote generate-binding remote-motoko
-  assert_match 'already exists'
+  assert_match 'already exists' "$output"
   assert_eq "to_overwrite" "$(cat remote.mo)"
 
   # should overwrite with --overwrite

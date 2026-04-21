@@ -58,9 +58,9 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match "sample-asset.txt.*text/plain.*identity"
-  assert_match "notreally.js.*text/javascript.*gzip"
-  assert_match "notreally.js.*text/javascript.*identity"
+  assert_match "sample-asset.txt.*text/plain.*identity" "$output"
+  assert_match "notreally.js.*text/javascript.*gzip" "$output"
+  assert_match "notreally.js.*text/javascript.*identity" "$output"
 }
 
 @test "lists all assets when more than 100" {
@@ -73,14 +73,14 @@ icx_asset_upload() {
   icx_asset_list
 
   # Verify we get assets from the first page
-  assert_match "test001.txt.*text/plain.*identity"
-  assert_match "test050.txt.*text/plain.*identity"
-  assert_match "test100.txt.*text/plain.*identity"
-  
+  assert_match "test001.txt.*text/plain.*identity" "$output"
+  assert_match "test050.txt.*text/plain.*identity" "$output"
+  assert_match "test100.txt.*text/plain.*identity" "$output"
+
   # Verify we get assets from the second page (beyond first 100)
-  assert_match "test101.txt.*text/plain.*identity"
-  assert_match "test125.txt.*text/plain.*identity"
-  assert_match "test150.txt.*text/plain.*identity"
+  assert_match "test101.txt.*text/plain.*identity" "$output"
+  assert_match "test125.txt.*text/plain.*identity" "$output"
+  assert_match "test150.txt.*text/plain.*identity" "$output"
 
   # Count total number of test*.txt assets listed
   # shellcheck disable=SC2154
@@ -195,7 +195,7 @@ icx_asset_upload() {
   echo "b_duplicate_contents" >multiple/b/duplicate
 
   assert_command_fail icx_asset_sync multiple/a multiple/b
-  assert_match "Asset with key '/duplicate' defined at .*/e2e_project/multiple/b/duplicate and .*/e2e_project/multiple/a/duplicate"
+  assert_match "Asset with key '/duplicate' defined at .*/e2e_project/multiple/b/duplicate and .*/e2e_project/multiple/a/duplicate" "$output"
 }
 
 @test "ignores filenames and directories starting with a dot" {
@@ -233,17 +233,17 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /a.txt.*text/plain.*identity"
-  assert_match " /b.txt.*text/plain.*identity"
+  assert_match " /a.txt.*text/plain.*identity" "$output"
+  assert_match " /b.txt.*text/plain.*identity" "$output"
 
   echo "ccc" >c.txt
   icx_asset_upload c.txt
 
   icx_asset_list
 
-  assert_match " /a.txt.*text/plain.*identity"
-  assert_match " /b.txt.*text/plain.*identity"
-  assert_match " /c.txt.*text/plain.*identity"
+  assert_match " /a.txt.*text/plain.*identity" "$output"
+  assert_match " /b.txt.*text/plain.*identity" "$output"
+  assert_match " /c.txt.*text/plain.*identity" "$output"
 }
 
 @test "deletes asset if necessary in order to change content type" {
@@ -254,8 +254,8 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /sample-asset.txt.*application/pdf.*identity"
-  assert_match " /sample-asset.txt.*application/pdf.*arbitrary"
+  assert_match " /sample-asset.txt.*application/pdf.*identity" "$output"
+  assert_match " /sample-asset.txt.*application/pdf.*arbitrary" "$output"
 
   echo "just some text" >sample-asset.txt
 
@@ -264,8 +264,8 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /sample-asset.txt.*text/plain.*identity"
-  assert_not_match " /sample-asset.txt.*application/pdf.*arbitrary"
+  assert_match " /sample-asset.txt.*text/plain.*identity" "$output"
+  assert_not_match " /sample-asset.txt.*application/pdf.*arbitrary" "$output"
 }
 
 @test "uploads multiple files" {
@@ -278,8 +278,8 @@ icx_asset_upload() {
   icx_asset_upload some_dir/*.txt
   icx_asset_list
 
-  assert_match " /a.txt.*text/plain.*identity"
-  assert_match " /b.txt.*text/plain.*identity"
+  assert_match " /a.txt.*text/plain.*identity" "$output"
+  assert_match " /b.txt.*text/plain.*identity" "$output"
 }
 
 
@@ -291,8 +291,8 @@ icx_asset_upload() {
   icx_asset_upload "$(realpath some_dir/a.txt)" "$(realpath some_dir/b.txt)"
   icx_asset_list
 
-  assert_match " /a.txt.*text/plain.*identity"
-  assert_match " /b.txt.*text/plain.*identity"
+  assert_match " /a.txt.*text/plain.*identity" "$output"
+  assert_match " /b.txt.*text/plain.*identity" "$output"
 }
 
 @test "uploads a file by name" {
@@ -302,7 +302,7 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /uploaded.txt.*text/plain.*identity"
+  assert_match " /uploaded.txt.*text/plain.*identity" "$output"
 }
 
 @test "can override asset name" {
@@ -312,7 +312,7 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /abcd.txt.*text/plain.*identity"
+  assert_match " /abcd.txt.*text/plain.*identity" "$output"
 }
 
 @test "uploads a directory by name" {
@@ -324,8 +324,8 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /some_dir/a.txt.*text/plain.*identity"
-  assert_match " /some_dir/b.txt.*text/plain.*identity"
+  assert_match " /some_dir/a.txt.*text/plain.*identity" "$output"
+  assert_match " /some_dir/b.txt.*text/plain.*identity" "$output"
 }
 
 @test "uploads a directory by name as root" {
@@ -337,6 +337,6 @@ icx_asset_upload() {
 
   icx_asset_list
 
-  assert_match " /a.txt.*text/plain.*identity"
-  assert_match " /b.txt.*text/plain.*identity"
+  assert_match " /a.txt.*text/plain.*identity" "$output"
+  assert_match " /b.txt.*text/plain.*identity" "$output"
 }

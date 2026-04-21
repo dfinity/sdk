@@ -43,13 +43,13 @@ teardown() {
   mkdir ../outside
 
   assert_command_fail dfx deploy --output-env-file nonexistent/.env
-  assert_contains "failed to canonicalize output_env_file"
-  assert_contains "working-dir/e2e_project/nonexistent"
-  assert_contains "No such file or directory"
+  assert_contains "failed to canonicalize output_env_file" "$output"
+  assert_contains "working-dir/e2e_project/nonexistent" "$output"
+  assert_contains "No such file or directory" "$output"
   assert_command_fail dfx deploy --output-env-file /etc/passwd
-  assert_contains "The output_env_file must be a relative path, but is /etc/passwd"
+  assert_contains "The output_env_file must be a relative path, but is /etc/passwd" "$output"
   assert_command_fail dfx deploy --output-env-file ../outside/.env
-  assert_match "The output_env_file must be within the project root, but is .*/working-dir/e2e_project/../outside/.env"
+  assert_match "The output_env_file must be within the project root, but is .*/working-dir/e2e_project/../outside/.env" "$output"
 }
 
 @test "build writes all environment variables to .env" {

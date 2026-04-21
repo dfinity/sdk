@@ -159,7 +159,7 @@ teardown() {
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id hello_backend --network actuallylocal
-  assert_match "$(jq -r .hello_backend.actuallylocal <.dfx/actuallylocal/canister_ids.json)"
+  assert_match "$(jq -r .hello_backend.actuallylocal <.dfx/actuallylocal/canister_ids.json)" "$output"
 }
 
 
@@ -171,11 +171,11 @@ teardown() {
   mv .dfx/network/local/pid .dfx/pid
 
   assert_command_fail dfx start
-  assert_match 'dfx is already running'
+  assert_match 'dfx is already running' "$output"
 
   assert_command dfx stop
   assert_file_not_exists .dfx/pid
-  assert_not_match "Nothing to do"
+  assert_not_match "Nothing to do" "$output"
   assert_command dfx stop
-  assert_match "Nothing to do"
+  assert_match "Nothing to do" "$output"
 }

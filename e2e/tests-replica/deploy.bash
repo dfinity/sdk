@@ -27,8 +27,8 @@ teardown() {
   dfx_start
   install_asset greet
   assert_command dfx deploy hello_backend
-  assert_match 'Deploying: hello_backend'
-  assert_not_match 'hello_frontend'
+  assert_match 'Deploying: hello_backend' "$output"
+  assert_not_match 'hello_frontend' "$output"
 }
 
 @test "deploy a canister with dependencies" {
@@ -36,21 +36,21 @@ teardown() {
   dfx_start
   install_asset greet
   assert_command dfx deploy hello_frontend
-  assert_match 'Deploying: hello_backend hello_frontend'
+  assert_match 'Deploying: hello_backend hello_frontend' "$output"
 }
 
 @test "deploy a canister with non-circular shared dependencies" {
   install_asset transitive_deps_canisters
   dfx_start
   assert_command dfx deploy canister_f
-  assert_match 'Deploying: canister_a canister_f canister_g canister_h'
+  assert_match 'Deploying: canister_a canister_f canister_g canister_h' "$output"
 }
 
 @test "report an error on attempt to deploy a canister with circular dependencies" {
   install_asset transitive_deps_canisters
   dfx_start
   assert_command_fail dfx deploy canister_d
-  assert_match 'canister_d -> canister_e -> canister_d'
+  assert_match 'canister_d -> canister_e -> canister_d' "$output"
 }
 
 @test "deploy with InstallMode::Install on an empty canister" {
@@ -60,7 +60,7 @@ teardown() {
   assert_command dfx canister create --all
 
   assert_command dfx deploy
-  assert_match 'Installed code for canister'
+  assert_match 'Installed code for canister' "$output"
 }
 
 @test "dfx deploy supports arguments" {
@@ -72,7 +72,7 @@ teardown() {
   assert_command dfx deploy hello_backend --argument '("World")'
 
   assert_command dfx canister call hello_backend greet
-  assert_match 'Hello, World'
+  assert_match 'Hello, World' "$output"
 }
 
 @test "dfx deploy with InstallMode::Install on first invocation, InstallMode::Upgrade on second" {
@@ -85,13 +85,13 @@ teardown() {
   # Therefore, there is no "attempting (install|upgrade)" message.
 
   assert_command dfx deploy hello_backend
-  assert_match 'Installed code for canister'
+  assert_match 'Installed code for canister' "$output"
 
   assert_command dfx canister call hello_backend greet '("First")'
   assert_eq '("Hello, First!")'
 
   assert_command dfx deploy hello_backend --upgrade-unchanged
-  assert_match 'Upgraded code for canister'
+  assert_match 'Upgraded code for canister' "$output"
 
   assert_command dfx canister call hello_backend greet '("Second")'
   assert_eq '("Hello, Second!")'
@@ -105,27 +105,27 @@ teardown() {
   dfx build
   dfx canister install hello_backend
   assert_command dfx canister status hello_backend
-  assert_match "Status: Running."
+  assert_match "Status: Running." "$output"
 
   # Stop
   assert_command dfx canister stop hello_backend
   assert_command dfx canister status hello_backend
-  assert_match "Status: Stopped."
+  assert_match "Status: Stopped." "$output"
   assert_command_fail dfx canister call "$(dfx canister id hello_backend)" greet '("Names are difficult")'
-  assert_match "is stopped"
+  assert_match "is stopped" "$output"
 
   # Start
   assert_command dfx canister start hello_backend
   assert_command dfx canister status hello_backend
-  assert_match "Status: Running."
+  assert_match "Status: Running." "$output"
 
   # Call
   assert_command dfx canister call "$(dfx canister id hello_backend)" greet '("Names are difficult")'
-  assert_match '("Hello, Names are difficult!")'
+  assert_match '("Hello, Names are difficult!")' "$output"
 
   # Id
   assert_command dfx canister id hello_backend
-  assert_match "$(jq -r .hello_backend.local < .dfx/local/canister_ids.json)"
+  assert_match "$(jq -r .hello_backend.local < .dfx/local/canister_ids.json)" "$output"
   x="$(dfx canister id hello_backend)"
   local old_id="$x"
 
@@ -134,10 +134,10 @@ teardown() {
   assert_command dfx canister stop hello_backend
   assert_command dfx canister delete hello_backend
   assert_command_fail dfx canister status hello_backend
-  assert_match "Cannot find canister id. Please issue 'dfx canister create hello_backend'."
+  assert_match "Cannot find canister id. Please issue 'dfx canister create hello_backend'." "$output"
 
   # Create again
   assert_command dfx canister create hello_backend
   assert_command dfx canister id hello_backend
-  assert_neq "$old_id"
+  assert_neq "$old_id" "$output"
 }

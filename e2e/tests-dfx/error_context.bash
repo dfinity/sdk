@@ -25,31 +25,31 @@ teardown() {
   echo "invalid json" >"$WALLETS_JSON"
 
   assert_command_fail dfx identity get-wallet
-  assert_match "failed to parse contents of .*/network/local/[0-9a-f]+/wallets.json as json"
-  assert_match "expected value at line 1 column 1"
+  assert_match "failed to parse contents of .*/network/local/[0-9a-f]+/wallets.json as json" "$output"
+  assert_match "expected value at line 1 column 1" "$output"
 
   assert_command_fail dfx wallet upgrade
-  assert_match "failed to parse contents of .*/network/local/[0-9a-f]+/wallets.json as json"
-  assert_match "expected value at line 1 column 1"
+  assert_match "failed to parse contents of .*/network/local/[0-9a-f]+/wallets.json as json" "$output"
+  assert_match "expected value at line 1 column 1" "$output"
 
   echo '{ "identities": {} }' >"$WALLETS_JSON"
 
   # maybe you were sudo when you made it
   chmod u=w,go= "$WALLETS_JSON"
   assert_command_fail dfx identity get-wallet
-  assert_match "failed to read .*/network/local/[0-9a-f]+/wallets.json"
-  assert_match "Permission denied"
+  assert_match "failed to read .*/network/local/[0-9a-f]+/wallets.json" "$output"
+  assert_match "Permission denied" "$output"
 
   assert_command_fail dfx wallet upgrade
-  assert_match "failed to read .*/network/local/[0-9a-f]+/wallets.json"
-  assert_match "Permission denied"
+  assert_match "failed to read .*/network/local/[0-9a-f]+/wallets.json" "$output"
+  assert_match "Permission denied" "$output"
 
   # can't write it?
   chmod u=r,go= "$WALLETS_JSON"
   assert_command dfx identity new --storage-mode plaintext alice
   assert_command_fail dfx identity get-wallet --identity alice
-  assert_match "failed to write to .*/local/[0-9a-f]+/wallets.json"
-  assert_match "Permission denied"
+  assert_match "failed to write to .*/local/[0-9a-f]+/wallets.json" "$output"
+  assert_match "Permission denied" "$output"
 }
 
 @test "address already in use" {
@@ -64,13 +64,13 @@ teardown() {
   assert_command_fail dfx start  --host "$address"
 
   # What was the purpose of the address
-  assert_match "frontend address"
+  assert_match "frontend address" "$output"
 
   # What was the address we were looking for
-  assert_match "$address"
+  assert_match "$address" "$output"
 
   # The underlying cause
-  assert_match "Address already in use"
+  assert_match "Address already in use" "$output"
 
   # Allow dfx stop to stop dfx in teardown.  Otherwise, bats will never exit
   mv "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/hidden_pid" "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/pid"
@@ -81,13 +81,13 @@ teardown() {
   assert_command_fail dfx deploy
 
   # The bare minimum is to mention the file
-  assert_match "dfx.json"
+  assert_match "dfx.json" "$output"
 
   # It's nice to mention the full path to the file
-  assert_match "$(pwd)/dfx.json"
+  assert_match "$(pwd)/dfx.json" "$output"
 
   # The underlying cause
-  assert_match "expected value at line 1 column 1"
+  assert_match "expected value at line 1 column 1" "$output"
 }
 
 @test "packtool missing" {
@@ -101,9 +101,9 @@ teardown() {
   assert_command_fail dfx build packtool_missing
 
   # expect to see the name of the packtool and the parameters
-  assert_match '"not-a-valid-packtool" "and" "some" "parameters"'
+  assert_match '"not-a-valid-packtool" "and" "some" "parameters"' "$output"
   # expect to see the underlying cause
-  assert_match "No such file or directory"
+  assert_match "No such file or directory" "$output"
 }
 
 @test "moc missing" {
@@ -117,13 +117,13 @@ teardown() {
   assert_command_fail dfx build m_o_c_missing
 
   # expect to see the name of the binary
-  assert_match "moc"
+  assert_match "moc" "$output"
 
   # expect to see the full path of the binary
-  assert_contains "$(dfx cache show)/moc"
+  assert_contains "$(dfx cache show)/moc" "$output"
 
   # expect to see the underlying cause
-  assert_match "No such file or directory"
+  assert_match "No such file or directory" "$output"
 }
 
 @test "npm is not installed" {
@@ -140,11 +140,11 @@ teardown() {
   PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
   # expect to see the npm command line
-  assert_match 'npm run build'
+  assert_match 'npm run build' "$output"
   # expect to see the name of the canister
-  assert_match "npm_missing"
+  assert_match "npm_missing" "$output"
   # expect to see the underlying cause
-  assert_match "(Is it installed?)"
+  assert_match "(Is it installed?)" "$output"
 }
 
 @test "missing asset source directory" {
@@ -155,11 +155,11 @@ teardown() {
   assert_command_fail dfx deploy asset_bad_source_path
 
   # expect to see the bad path
-  assert_match "src/does/not/exist"
+  assert_match "src/does/not/exist" "$output"
   # expect to see the name of the canister
-  assert_match "asset_bad_source_path"
+  assert_match "asset_bad_source_path" "$output"
   # expect to see the underlying cause
-  assert_match "No such file or directory"
+  assert_match "No such file or directory" "$output"
 }
 
 @test "custom bad build step" {
@@ -170,17 +170,17 @@ teardown() {
   assert_command_fail dfx build custom_bad_build_step
 
   # expect to see what it tried to call
-  assert_match "not-the-name-of-an-executable-that-exists"
+  assert_match "not-the-name-of-an-executable-that-exists" "$output"
   # expect to see the name of the canister
-  assert_match "custom_bad_build_step"
+  assert_match "custom_bad_build_step" "$output"
   # expect to see the underlying cause
-  assert_match "The custom tool failed"
+  assert_match "The custom tool failed" "$output"
 }
 
 @test "invalid optimization level" {
   jq '.canisters.bad_optimization_level.optimize="bad_level"' dfx.json | sponge dfx.json
   assert_command_fail dfx_start
-  assert_match "expected one of "
+  assert_match "expected one of " "$output"
 }
 
 @test "HTTP 403 has a full diagnosis" {
@@ -198,8 +198,8 @@ teardown() {
 
   # calling canister status with different identity provokes HTTP 403
   assert_command_fail dfx canister status hello_backend
-  assert_match "not part of the controllers" # this is part of the error explanation
-  assert_match "'dfx canister update-settings --add-controller <controller principal to add> <canister id/name or --all> \(--network ic\)'" # this is part of the solution
+  assert_match "not part of the controllers" "$output" # this is part of the error explanation
+  assert_match "'dfx canister update-settings --add-controller <controller principal to add> <canister id/name or --all> \(--network ic\)'" "$output" # this is part of the solution
 }
 
 @test "bad wallet canisters get diagnosed" {
@@ -209,16 +209,16 @@ teardown() {
   id=$(dfx canister id hello_backend)
   dfx identity set-wallet "$id" --force
   assert_command_fail dfx wallet balance
-  assert_contains "it did not contain a function that dfx was looking for"
-  assert_contains "dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>"
+  assert_contains "it did not contain a function that dfx was looking for" "$output"
+  assert_contains "dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>" "$output"
 }
 
 @test "Local replica not running has nice error messages" {
   dfx_new
   assert_command_fail dfx ping local
-  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it."
+  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it." "$output"
   assert_command_fail dfx deploy
-  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it."
+  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it." "$output"
   assert_command_fail dfx canister call um5iw-rqaaa-aaaaq-qaaba-cai some_method
-  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it."
+  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it." "$output"
 }
