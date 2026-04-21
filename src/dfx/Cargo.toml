@@ -84,13 +84,13 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "142182f2ec4d916fa32e32da59239c4eb0c87bd3" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "17d483c60a09b393ad82a2091b68a242ac69c72d" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 rust_decimal = "1.22.0"
-rustls-webpki = "0.103.10"
+rustls-webpki = "0.103.12"
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
 semver = { workspace = true }
