@@ -21,6 +21,7 @@ bytes = "1"
 flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
 hex = "0.4.3"
 reqwest.workspace = true
+semver.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
@@ -84,7 +85,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "17d483c60a09b393ad82a2091b68a242ac69c72d" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "719ff387aab462ce5759c4c20c30de959fe9538c" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
