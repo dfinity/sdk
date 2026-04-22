@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.32.0
+
 ### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.47.0
 
 ### fix: correct `dfx sns` example commands in documentation
