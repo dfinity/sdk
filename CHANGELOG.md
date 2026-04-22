@@ -4,6 +4,8 @@
 
 # 0.32.0
 
+### feat: Deprecate dfx. All commands will throw off a deprecation warning (this can be disabled with `DFX_WARNING=-deprecation`).
+
 ### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.47.0
 
 ### fix: correct `dfx sns` example commands in documentation
