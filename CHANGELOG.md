@@ -18,8 +18,25 @@ Updated Motoko to [1.4.1](https://github.com/dfinity/motoko/releases/tag/1.4.1)
 
 ### Replica
 
-Updated replica to elected commit 17d483c60a09b393ad82a2091b68a242ac69c72d.
+Updated replica to elected commit 719ff387aab462ce5759c4c20c30de959fe9538c.
 This incorporates the following executed proposals:
+
+- [141436](https://dashboard.internetcomputer.org/proposal/141436)
+- [141326](https://dashboard.internetcomputer.org/proposal/141326)
+- [141215](https://dashboard.internetcomputer.org/proposal/141215)
+- [141082](https://dashboard.internetcomputer.org/proposal/141082)
+- [140946](https://dashboard.internetcomputer.org/proposal/140946)
+- [140853](https://dashboard.internetcomputer.org/proposal/140853)
+- [140768](https://dashboard.internetcomputer.org/proposal/140768)
+- [140659](https://dashboard.internetcomputer.org/proposal/140659)
+- [140602](https://dashboard.internetcomputer.org/proposal/140602)
+- [140506](https://dashboard.internetcomputer.org/proposal/140506)
+- [140491](https://dashboard.internetcomputer.org/proposal/140491)
+- [140395](https://dashboard.internetcomputer.org/proposal/140395)
+- [140270](https://dashboard.internetcomputer.org/proposal/140270)
+- [140176](https://dashboard.internetcomputer.org/proposal/140176)
+- [140091](https://dashboard.internetcomputer.org/proposal/140091)
+- [140089](https://dashboard.internetcomputer.org/proposal/140089)
 
 # 0.31.0
 
