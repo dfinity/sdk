@@ -21,6 +21,7 @@ bytes = "1"
 flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
 hex = "0.4.3"
 reqwest.workspace = true
+semver.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"

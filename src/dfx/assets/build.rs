@@ -1,5 +1,6 @@
 use flate2::Compression;
 use flate2::write::GzEncoder;
+use semver::Version;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -193,7 +194,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
             .next()
             .and_then(|v| v.parse::<u128>().ok())
         {
-            if count < latest_distance {
+            if Version::parse(tag).is_ok() && count < latest_distance {
                 latest_tag = String::from(tag);
                 latest_distance = count;
             }
