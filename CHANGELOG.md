@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: bump `ic-agent`, `ic-identity-hsm`, `ic-utils` and `ic-transport-types` to 0.47.3
+
 # 0.32.0
 
 ### feat: Deprecate dfx. All commands will throw off a deprecation warning (this can be disabled with `DFX_WARNING=-deprecation`).
