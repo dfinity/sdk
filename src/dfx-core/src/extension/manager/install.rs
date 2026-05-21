@@ -12,7 +12,7 @@ use crate::extension::{
 use crate::http::get::get_with_retries;
 use backoff::exponential::ExponentialBackoff;
 use flate2::read::GzDecoder;
-use reqwest::Url;
+use url::Url;
 use semver::{BuildMetadata, Prerelease, Version};
 use std::io::Cursor;
 #[cfg(unix)]

@@ -104,8 +104,13 @@ pub enum NewExtensionManagerError {
 
 #[derive(Error, Debug)]
 pub enum DownloadAndInstallExtensionToTempdirError {
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     ExtensionDownloadFailed(reqwest::Error),
+
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    ExtensionDownloadFailed(reqwest012::Error),
 
     #[error(transparent)]
     EnsureExtensionDirExistsFailed(#[from] EnsureDirExistsError),
@@ -173,20 +178,36 @@ pub enum GetDependenciesError {
     #[error(transparent)]
     ParseUrl(#[from] url::ParseError),
 
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     Get(reqwest::Error),
-
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     ParseJson(reqwest::Error),
+
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    Get(reqwest012::Error),
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    ParseJson(reqwest012::Error),
 }
 
 #[derive(Error, Debug)]
 pub enum GetExtensionManifestError {
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     Get(reqwest::Error),
-
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     ParseJson(reqwest::Error),
+
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    Get(reqwest012::Error),
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    ParseJson(reqwest012::Error),
 }
 
 #[derive(Error, Debug)]
@@ -230,11 +251,19 @@ pub enum FinalizeInstallationError {
 
 #[derive(Error, Debug)]
 pub enum FetchExtensionCompatibilityMatrixError {
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error("Cannot fetch compatibility.json from '{0}'")]
     CompatibilityMatrixFetchError(String, #[source] reqwest::Error),
-
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error("Cannot parse compatibility.json")]
     MalformedCompatibilityMatrix(#[source] reqwest::Error),
+
+    #[cfg(feature = "reqwest-0_12")]
+    #[error("Cannot fetch compatibility.json from '{0}'")]
+    CompatibilityMatrixFetchError(String, #[source] reqwest012::Error),
+    #[cfg(feature = "reqwest-0_12")]
+    #[error("Cannot parse compatibility.json")]
+    MalformedCompatibilityMatrix(#[source] reqwest012::Error),
 }
 
 #[derive(Error, Debug)]
@@ -246,9 +275,17 @@ pub enum FetchCatalogError {
     #[error(transparent)]
     ParseUrl(#[from] url::ParseError),
 
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     Get(reqwest::Error),
-
+    #[cfg(not(feature = "reqwest-0_12"))]
     #[error(transparent)]
     ParseJson(reqwest::Error),
+
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    Get(reqwest012::Error),
+    #[cfg(feature = "reqwest-0_12")]
+    #[error(transparent)]
+    ParseJson(reqwest012::Error),
 }
