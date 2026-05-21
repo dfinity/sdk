@@ -17,8 +17,8 @@ workspace = true
 
 [features]
 default = ["rustls"]
-rustls = ["reqwest/rustls"]
-rustls-no-provider = ["reqwest/rustls-no-provider"]
+rustls = ["reqwest/rustls", "ic-agent/rustls"]
+rustls-no-provider = ["reqwest/rustls-no-provider", "ic-agent/rustls-no-provider"]
 
 [dependencies]
 aes-gcm.workspace = true
@@ -36,7 +36,7 @@ flate2 = { workspace = true }
 handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
-ic-agent.workspace = true
+ic-agent = { workspace = true, default-features = false, features = ["pem"] }
 ic-utils.workspace = true
 ic-identity-hsm.workspace = true
 itertools.workspace = true
