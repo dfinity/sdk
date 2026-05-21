@@ -15,6 +15,11 @@ keywords = ["internet-computer", "icp", "dfinity"]
 [lints]
 workspace = true
 
+[features]
+default = ["rustls"]
+rustls = ["reqwest/rustls"]
+rustls-no-provider = ["reqwest/rustls-no-provider"]
+
 [dependencies]
 aes-gcm.workspace = true
 argon2.workspace = true

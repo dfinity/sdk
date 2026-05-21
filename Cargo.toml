@@ -65,7 +65,7 @@ mime_guess = "2.0.4"
 num-traits = "0.2.14"
 pem = "1.0.2"
 proptest = "1.0.0"
-reqwest = { version = "0.13.2", default-features = false, features = ["rustls"] }
+reqwest = { version = "0.13.2", default-features = false }
 ring = { version = "0.17.14", features = ["std"] }
 schemars = "0.8"
 sec1 = "0.3.0"
