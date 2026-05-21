@@ -17,7 +17,7 @@ workspace = true
 
 [features]
 default = ["rustls"]
-rustls = ["reqwest/rustls", "ic-agent/rustls"]
+rustls = ["dep:rustls", "reqwest/rustls", "ic-agent/rustls"]
 rustls-no-provider = ["reqwest/rustls-no-provider", "ic-agent/rustls-no-provider"]
 rustls-ring = ["reqwest/rustls-no-provider", "ic-agent/rustls-ring"]
 
