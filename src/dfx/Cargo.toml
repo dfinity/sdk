@@ -63,7 +63,7 @@ handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
 hyper-rustls = { version = "0.27.7", default-features = false, features = ["webpki-roots", "http2"] }
-ic-agent.workspace = true
+ic-agent = { workspace = true, features = ["tls-aws-lc-rs"] }
 ic-asset.workspace = true
 ic-cdk.workspace = true
 ic-identity-hsm.workspace = true
