@@ -18,7 +18,7 @@ workspace = true
 [features]
 default = ["reqwest-0_13"]
 reqwest-0_13 = ["dep:reqwest"]
-reqwest-0_12 = ["dep:reqwest012", "ic-agent/reqwest-0_12"]
+reqwest-0_12 = ["dep:reqwest012", "ic-agent/reqwest-0_12", "ic-utils/reqwest-0_12", "ic-identity-hsm/reqwest-0_12"]
 
 [dependencies]
 aes-gcm.workspace = true
