@@ -8,6 +8,8 @@ pub async fn get_with_retries(
     url: Url,
     retry_policy: ExponentialBackoff<SystemClock>,
 ) -> Result<Response, reqwest::Error> {
+    #[cfg(feature = "rustls-ring")]
+    let _ = rustls::crypto::ring::default_provider().install_default();
     let operation = || async {
         let response = reqwest::get(url.clone())
             .await

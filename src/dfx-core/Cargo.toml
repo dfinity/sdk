@@ -19,6 +19,7 @@ workspace = true
 default = ["rustls"]
 rustls = ["reqwest/rustls", "ic-agent/rustls"]
 rustls-no-provider = ["reqwest/rustls-no-provider", "ic-agent/rustls-no-provider"]
+rustls-ring = ["reqwest/rustls-no-provider", "ic-agent/rustls-ring", "dep:rustls"]
 
 [dependencies]
 aes-gcm.workspace = true
@@ -45,6 +46,7 @@ keyring.workspace = true
 lazy_static.workspace = true
 reqwest = { workspace = true, default-features = false, features = ["blocking", "json"] }
 ring.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["ring"], optional = true }
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
 semver = { workspace = true, features = ["serde"] }

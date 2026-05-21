@@ -1804,6 +1804,7 @@ dependencies = [
  "proptest",
  "reqwest 0.13.2",
  "ring",
+ "rustls",
  "schemars",
  "sec1 0.3.0",
  "security-framework 3.7.0",
@@ -2889,7 +2890,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a46871721c4c3fd9a4c6c5815859c34a9766bdbc#a46871721c4c3fd9a4c6c5815859c34a9766bdbc"
+source = "git+https://github.com/dfinity/agent-rs?rev=9f4f08dc3f23805a01a00054f1c661f4d11eed2e#9f4f08dc3f23805a01a00054f1c661f4d11eed2e"
 dependencies = [
  "arc-swap",
  "async-channel 2.5.0",
@@ -2921,6 +2922,7 @@ dependencies = [
  "rand 0.10.1",
  "rangemap",
  "reqwest 0.13.2",
+ "rustls",
  "sec1 0.7.3",
  "serde",
  "serde_bytes",
@@ -3395,7 +3397,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a46871721c4c3fd9a4c6c5815859c34a9766bdbc#a46871721c4c3fd9a4c6c5815859c34a9766bdbc"
+source = "git+https://github.com/dfinity/agent-rs?rev=9f4f08dc3f23805a01a00054f1c661f4d11eed2e#9f4f08dc3f23805a01a00054f1c661f4d11eed2e"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3568,7 +3570,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a46871721c4c3fd9a4c6c5815859c34a9766bdbc#a46871721c4c3fd9a4c6c5815859c34a9766bdbc"
+source = "git+https://github.com/dfinity/agent-rs?rev=9f4f08dc3f23805a01a00054f1c661f4d11eed2e#9f4f08dc3f23805a01a00054f1c661f4d11eed2e"
 dependencies = [
  "candid",
  "hex",
@@ -3635,7 +3637,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a46871721c4c3fd9a4c6c5815859c34a9766bdbc#a46871721c4c3fd9a4c6c5815859c34a9766bdbc"
+source = "git+https://github.com/dfinity/agent-rs?rev=9f4f08dc3f23805a01a00054f1c661f4d11eed2e#9f4f08dc3f23805a01a00054f1c661f4d11eed2e"
 dependencies = [
  "async-trait",
  "candid",

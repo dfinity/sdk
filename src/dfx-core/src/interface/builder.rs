@@ -140,6 +140,8 @@ impl DfxInterfaceBuilder {
         identity: Arc<dyn Identity>,
         network_descriptor: &NetworkDescriptor,
     ) -> Result<Agent, BuildAgentError> {
+        #[cfg(feature = "rustls-ring")]
+        let _ = rustls::crypto::ring::default_provider().install_default();
         let route_provider = RoundRobinRouteProvider::new(network_descriptor.providers.clone())
             .map_err(BuildAgentError::CreateRouteProvider)?;
         let client = Client::builder()
