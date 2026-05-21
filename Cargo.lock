@@ -2890,7 +2890,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
+source = "git+https://github.com/dfinity/agent-rs?rev=e36c35eee489544fd80b2a621f38e985ea3e0c40#e36c35eee489544fd80b2a621f38e985ea3e0c40"
 dependencies = [
  "arc-swap",
  "async-channel 2.5.0",
@@ -2922,7 +2922,6 @@ dependencies = [
  "rand 0.10.1",
  "rangemap",
  "reqwest 0.12.28",
- "reqwest 0.13.2",
  "sec1 0.7.3",
  "serde",
  "serde_bytes",
@@ -3397,7 +3396,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
+source = "git+https://github.com/dfinity/agent-rs?rev=e36c35eee489544fd80b2a621f38e985ea3e0c40#e36c35eee489544fd80b2a621f38e985ea3e0c40"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3570,7 +3569,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
+source = "git+https://github.com/dfinity/agent-rs?rev=e36c35eee489544fd80b2a621f38e985ea3e0c40#e36c35eee489544fd80b2a621f38e985ea3e0c40"
 dependencies = [
  "candid",
  "hex",
@@ -3637,7 +3636,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.47.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
+source = "git+https://github.com/dfinity/agent-rs?rev=e36c35eee489544fd80b2a621f38e985ea3e0c40#e36c35eee489544fd80b2a621f38e985ea3e0c40"
 dependencies = [
  "async-trait",
  "candid",
@@ -5758,7 +5757,7 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams 0.4.2",
+ "wasm-streams",
  "web-sys",
  "webpki-roots",
 ]
@@ -5793,14 +5792,12 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
- "tokio-util",
  "tower",
  "tower-http",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams 0.5.0",
  "web-sys",
 ]
 
@@ -7599,19 +7596,6 @@ name = "wasm-streams"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "15053d8d85c7eccdbefef60f06769760a563c7f0a9d6902a13d35c7800b0ad65"
-dependencies = [
- "futures-util",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "wasm-streams"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d1ec4f6517c9e11ae630e200b2b65d193279042e28edd4a2cda233e46670bbb"
 dependencies = [
  "futures-util",
  "js-sys",
