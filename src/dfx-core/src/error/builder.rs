@@ -39,7 +39,12 @@ pub enum BuildIdentityError {
 #[derive(Error, Debug)]
 pub enum BuildAgentError {
     #[error("failed to create http client")]
+    #[cfg(not(feature = "reqwest-0_12"))]
     CreateHttpClient(#[source] reqwest::Error),
+
+    #[error("failed to create http client")]
+    #[cfg(feature = "reqwest-0_12")]
+    CreateHttpClient(#[source] reqwest012::Error),
 
     #[error("failed to create route provider")]
     CreateRouteProvider(#[source] AgentError),

@@ -1802,6 +1802,7 @@ dependencies = [
  "keyring",
  "lazy_static",
  "proptest",
+ "reqwest 0.12.28",
  "reqwest 0.13.2",
  "ring",
  "schemars",
@@ -2889,8 +2890,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.47.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85dbab284eac1806b77833cff143d66ae97aae74d34b0e60fb4ab4edf3d6fa12"
+source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
 dependencies = [
  "arc-swap",
  "async-channel 2.5.0",
@@ -2921,6 +2921,7 @@ dependencies = [
  "pkcs8 0.10.2",
  "rand 0.10.1",
  "rangemap",
+ "reqwest 0.12.28",
  "reqwest 0.13.2",
  "sec1 0.7.3",
  "serde",
@@ -3396,8 +3397,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.47.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "577e4411ea208f0bf7e6bf13535660df682fada94f45fbbc79b7e34c946a06ae"
+source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3570,8 +3570,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.47.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2116182b3ec5a831d579db0a205b6cf9c2ca96616493bef99480532d0b3c2f5"
+source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
 dependencies = [
  "candid",
  "hex",
@@ -3638,8 +3637,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.47.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f793db5d338dd9d0b659c2ce40080d7c9811cff6f171560f781cd2d6a43b7353"
+source = "git+https://github.com/dfinity/agent-rs?rev=da98a009ea83e1031c21fcb46bf2a68d9f43487d#da98a009ea83e1031c21fcb46bf2a68d9f43487d"
 dependencies = [
  "async-trait",
  "candid",

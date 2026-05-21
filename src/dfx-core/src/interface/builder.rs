@@ -19,7 +19,10 @@ use crate::{
     },
 };
 use ic_agent::{Agent, Identity, agent::route_provider::RoundRobinRouteProvider};
+#[cfg(not(feature = "reqwest-0_12"))]
 use reqwest::Client;
+#[cfg(feature = "reqwest-0_12")]
+use reqwest012::Client;
 use semver::Version;
 use std::path::Path;
 use std::sync::Arc;

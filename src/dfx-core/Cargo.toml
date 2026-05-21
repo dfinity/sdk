@@ -15,6 +15,9 @@ keywords = ["internet-computer", "icp", "dfinity"]
 [lints]
 workspace = true
 
+[features]
+reqwest-0_12 = ["dep:reqwest012", "ic-agent/reqwest-0_12"]
+
 [dependencies]
 aes-gcm.workspace = true
 argon2.workspace = true
@@ -39,6 +42,7 @@ k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
 reqwest = { workspace = true, features = ["blocking", "json"] }
+reqwest012 = { package = "reqwest", version = "0.12", optional = true, default-features = false, features = ["rustls-tls"] }
 ring.workspace = true
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
