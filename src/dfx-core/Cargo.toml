@@ -12,6 +12,11 @@ description = "dfx core library"
 documentation = "https://docs.rs/dfx-core"
 keywords = ["internet-computer", "icp", "dfinity"]
 
+[features]
+default = ["tls-aws-lc-rs"]
+tls-aws-lc-rs = ["ic-agent/tls-aws-lc-rs"]
+tls-ring = ["ic-agent/tls-ring"]
+
 [lints]
 workspace = true
 
