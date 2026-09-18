@@ -33,7 +33,7 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
 
     (
         cd "$(mktemp -d)"
-        wget "https://bitcoin.org/bin/bitcoin-core-$BITCOIN_CORE_VERSION/$BITCOIN_CORE_FILENAME"
+        wget "https://bitcoincore.org/bin/bitcoin-core-$BITCOIN_CORE_VERSION/$BITCOIN_CORE_FILENAME"
         echo "$BITCOIN_CORE_TARBALL_SHA  $BITCOIN_CORE_FILENAME" | shasum -c
         tar xzf "$BITCOIN_CORE_FILENAME"
         cd "bitcoin-$BITCOIN_CORE_VERSION/bin"
