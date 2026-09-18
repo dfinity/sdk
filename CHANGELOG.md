@@ -25,6 +25,12 @@ computes differ from the values earlier releases compute over the same assets. R
 re-verify the evidence of any batch proposed before the upgrade. As before, a proposed batch does
 not survive a canister upgrade.
 
+### fix: `dfx new` projects install again
+
+`vite-plugin-environment` 1.1.4 raised its peer dependency to `vite >= 8.0`, which no longer
+resolves against the `vite` version the frontend templates use, so `npm install` failed in a
+newly created project. The templates now ask for exactly 1.1.3.
+
 ### chore: bump `ic-agent`, `ic-identity-hsm`, `ic-utils` and `ic-transport-types` to 0.47.3
 
 ## Dependencies
