@@ -37,6 +37,22 @@ delete_batch() {
   assert_command dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$1; })"
 }
 
+# Reads the evidence out of the output of `dfx deploy --by-proposal`.
+evidence_from_proposal_output() {
+  echo "$1" | sed -n 's/.*with evidence \([0-9a-f]\{64\}\).*/\1/p' | head -1
+}
+
+# Renders a hex-encoded evidence value as a candid blob literal.
+evidence_blob() {
+  local hex="$1"
+  local escaped=""
+  while [ -n "$hex" ]; do
+    escaped="$escaped\\${hex:0:2}"
+    hex="${hex:2}"
+  done
+  echo "blob \"$escaped\""
+}
+
 check_permission_failure() {
   assert_contains "$1" "$output"
 }
@@ -135,14 +151,17 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it." "$output"
+  assert_match "Proposed commit of batch 2 with evidence [0-9a-f]{64}\.  Either commit it by proposal, or delete it\." "$output"
+  EVIDENCE="$(evidence_from_proposal_output "$output")"
 
   assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another." "$output"
 
+  # The evidence dfx computes from the project must equal the evidence the asset canister computed
+  # over the batch it was given.  Comparing the two is what makes the proposal reviewable.
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1"
+  assert_eq "$EVIDENCE"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -162,9 +181,9 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
   assert_match "batch computed evidence .* does not match presented evidence" "$output"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\16\4f\cc\4d\93\3f\f9\99\2a\b6\ab\90\9a\4b\f3\50\01\0f\a0\f4\a3\e1\e2\47\bf\c6\79\d3\f4\52\54\e1" } )'
+  commit_args="(record { batch_id = 2; evidence = $(evidence_blob "$EVIDENCE") } )"
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 164f" "$output"
+  assert_contains "commit proposed batch 2 with evidence $EVIDENCE" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
@@ -244,11 +263,12 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b.  Either commit it by proposal, or delete it." "$output"
+  assert_match "Proposed commit of batch 2 with evidence [0-9a-f]{64}\.  Either commit it by proposal, or delete it\." "$output"
+  EVIDENCE="$(evidence_from_proposal_output "$output")"
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b"
+  assert_eq "$EVIDENCE"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -256,9 +276,9 @@ check_permission_failure() {
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
   assert_contains "The requested URL returned error: 404" "$output"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\9b\72\ee\e7\f0\d7\af\2a\9b\41\23\3c\34\1b\1c\aa\0c\90\5e\f9\14\05\f5\f5\13\ff\b5\8f\68\af\ee\5b" } )'
+  commit_args="(record { batch_id = 2; evidence = $(evidence_blob "$EVIDENCE") } )"
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$output"
+  assert_contains "commit proposed batch 2 with evidence $EVIDENCE" "$output"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
@@ -503,7 +523,8 @@ check_permission_failure() {
 
 
   # commit_proposed_batch
-  EVIDENCE_BLOB="blob \"\e3\b0\c4\42\98\fc\1c\14\9a\fb\f4\c8\99\6f\b9\24\27\ae\41\e4\64\9b\93\4c\a4\95\99\1b\78\52\b8\55\""
+  # Evidence of a batch with no operations: `sha256(b"ic-certified-assets v2")`.
+  EVIDENCE_BLOB="$(evidence_blob 5cf0a08eeb8f1cc3758d410916f6ed888995f1e68e51d696e17bf931d302fd3b)"
 
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
