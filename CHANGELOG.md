@@ -27,6 +27,13 @@ not survive a canister upgrade.
 
 ### chore: bump `ic-agent`, `ic-identity-hsm`, `ic-utils` and `ic-transport-types` to 0.47.3
 
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 8c8193fd6bfdcaac813e1c37f55b8d52553f3545a734950b1cf09f43abff6c62
+- https://github.com/dfinity/sdk/pull/4545
+
 # 0.32.0
 
 ### feat: Deprecate dfx. All commands will throw off a deprecation warning (this can be disabled with `DFX_WARNING=-deprecation`).
