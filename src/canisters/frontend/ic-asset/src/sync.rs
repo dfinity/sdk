@@ -31,6 +31,7 @@ use crate::error::SyncError;
 use crate::error::SyncError::{ApiVersionQueryFailed, CommitBatchFailed};
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
+use crate::evidence::EVIDENCE_API_VERSION;
 use crate::progress::{AssetSyncProgressRenderer, AssetSyncState};
 use candid::Nat;
 use ic_agent::AgentError;
@@ -299,6 +300,12 @@ pub async fn prepare_sync_for_proposal(
     let canister_api_version = api_version(canister)
         .await
         .map_err(PrepareSyncForProposalError::ApiVersionQueryFailed)?;
+    if canister_api_version < EVIDENCE_API_VERSION {
+        return Err(PrepareSyncForProposalError::EvidenceApiVersionTooLow {
+            canister_api_version,
+            required_api_version: EVIDENCE_API_VERSION,
+        });
+    }
     let arg = upload_content_and_assemble_sync_operations(
         canister,
         canister_api_version,

@@ -368,6 +368,47 @@ After the hash computation has completed, the batch will no longer expire. The b
 
 Required permission: [Prepare](#permission-prepare)
 
+#### The hashed encoding
+
+The evidence is `sha256` of the encoding below, which is an injective function of the proposed
+`commit_batch` arguments: every variable-length field is length-prefixed and every operation
+begins with a tag, so each operation is self-delimiting and no two distinct batches share an
+encoding. Tooling that verifies a proposal recomputes this encoding from source, so it is
+specified here rather than left to the implementation.
+
+The encoding begins with the domain separator `ic-certified-assets v2` and is followed by the
+encoding of each operation, in the order the operations appear in the arguments.
+
+| Element                | Encoded as                                                                    |
+|------------------------|-------------------------------------------------------------------------------|
+| `bool`                 | one byte: `0` for false, `1` for true                                         |
+| `opt t`                | `2` for none, or `3` followed by the encoding of `t`                          |
+| `nat64`                | eight bytes, big endian                                                       |
+| `blob`, `text`         | the length in bytes as a `nat64`, then the bytes                              |
+| a header map           | the number of entries as a `nat64`, then each name and value as `text`, sorted by name |
+| asset content          | the total length in bytes as a `nat64`, then the bytes                        |
+
+Each operation is encoded as a one-byte tag followed by its fields, in the order they are listed
+in the [operation](#operations) it belongs to:
+
+| Operation            | Tag |
+|----------------------|-----|
+| `CreateAsset`        | `4` |
+| `SetAssetContent`    | `5` |
+| `UnsetAssetContent`  | `6` |
+| `DeleteAsset`        | `7` |
+| `Clear`              | `8` |
+| `SetAssetProperties` | `9` |
+
+`SetAssetContent` encodes the content of the asset after its declared `sha256`, as the total
+length of the content followed by the content itself. The content is the chunks named by
+`chunk_ids`, in order, followed by `last_chunk` -- exactly what `commit_batch` stores -- so how
+the content was divided into chunks does not affect the evidence.
+
+Asset canisters reporting an [API version](#api-versions) lower than 3 use an earlier encoding
+and compute a different value over the same batch. Tooling should compare evidence only against a
+canister reporting version 3 or later.
+
 ### Method: `commit_proposed_batch`
 
 This method executes the operations previously supplied by [propose_commit_batch()](#method-propose_commit_batch), and deletes the batch.
@@ -556,6 +597,12 @@ These are set by the [configure()](#method-configure) method.  All limits defaul
 ### API Version 1
 
 This version added `SetAssetProperties` to `BatchOperationKind`.
+
+### API Version 3
+
+This version hashes the encoding described under
+[compute_evidence](#the-hashed-encoding) for the evidence of a proposed batch and for the state
+hash. Both values differ from the ones an earlier version computes over the same assets.
 
 ## Permissions
 
