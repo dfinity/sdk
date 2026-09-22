@@ -31,7 +31,7 @@ not survive a canister upgrade.
 
 ### Frontend canister
 
-- Module hash: 8c8193fd6bfdcaac813e1c37f55b8d52553f3545a734950b1cf09f43abff6c62
+- Module hash: 448f6f13f2ec5efbf49561ef43bd8222bbf855ab65aacf547e01bc38f4295f36
 - https://github.com/dfinity/sdk/pull/4545
 
 # 0.32.0
