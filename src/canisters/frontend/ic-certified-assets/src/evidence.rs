@@ -29,15 +29,19 @@ const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
 /// evidence of a proposed batch and for the state hash.
 ///
 /// Every variable-length field of the encoding is length-prefixed and every operation carries a
-/// tag, so each operation is self-delimiting and the encoding is an injective function of the
-/// operations it is computed over.
+/// tag, so each operation is self-delimiting and the encoding is injective over the change a
+/// batch applies: its operations, with the content of each `SetAssetContent` taken as one byte
+/// string.  It is deliberately *not* injective over `CommitBatchArguments` itself -- two batches
+/// that differ only in how they split that content across chunks encode identically.
 ///
 /// The evidence and the state hash share this prefix on purpose: the state hash of an asset
 /// canister equals the evidence of the batch that would build it from empty, which is what makes
 /// the two comparable.
 ///
-/// Bump the version suffix whenever the encoding changes, so that a hash computed under one
-/// version can never equal a hash computed under another.
+/// The `v2` suffix versions this encoding, and is not the canister's [`crate::api_version`],
+/// which is at 3: the encoding was versioned from 1, the API from 0, so the two numbers are one
+/// apart and move independently.  Bump this suffix whenever the encoding changes, so that a hash
+/// computed under one version can never equal a hash computed under another.
 const ENCODING_DOMAIN: &[u8] = b"ic-certified-assets v2";
 
 pub enum EvidenceComputation {
@@ -250,8 +254,8 @@ fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) {
         hasher.update(TAG_NONE);
     }
     hash_headers(hasher, args.headers.as_ref());
-    hash_opt_bool(hasher, args.allow_raw_access);
     hash_opt_bool(hasher, args.enable_aliasing);
+    hash_opt_bool(hasher, args.allow_raw_access);
 }
 
 /// `content_len` is the total number of content bytes hashed after this call, by

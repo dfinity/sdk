@@ -9,8 +9,8 @@ length-prefixes every variable-length field -- asset keys, content types, conten
 header names and values, the declared `sha256`, and asset content -- and hashes the number of
 entries in a header map. This is the framing that `crates/state-hash` uses in
 [dfinity/certified-assets](https://github.com/dfinity/certified-assets). Every operation in the
-encoding is now self-delimiting, which makes the digest an injective function of the batch it is
-computed over, and the encoding is specified under `compute_evidence` in
+encoding is now self-delimiting, which makes the digest injective over the change a batch
+applies, and the encoding is specified under `compute_evidence` in
 [docs/design/asset-canister-interface.md](docs/design/asset-canister-interface.md).
 
 The evidence of a `SetAssetContent` operation now covers `last_chunk` whether or not `chunk_ids`

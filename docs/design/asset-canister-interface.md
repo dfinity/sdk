@@ -370,14 +370,23 @@ Required permission: [Prepare](#permission-prepare)
 
 #### The hashed encoding
 
-The evidence is `sha256` of the encoding below, which is an injective function of the proposed
-`commit_batch` arguments: every variable-length field is length-prefixed and every operation
-begins with a tag, so each operation is self-delimiting and no two distinct batches share an
-encoding. Tooling that verifies a proposal recomputes this encoding from source, so it is
-specified here rather than left to the implementation.
+The evidence is `sha256` of the encoding below. Every variable-length field is length-prefixed
+and every operation begins with a tag, so each operation is self-delimiting and the encoding is
+injective over the change a batch applies: its operations, with the content of each
+`SetAssetContent` taken as one byte string. Two batches that apply different changes therefore
+never share an encoding.
 
-The encoding begins with the domain separator `ic-certified-assets v2` and is followed by the
-encoding of each operation, in the order the operations appear in the arguments.
+It is deliberately *not* injective over the `commit_batch` arguments themselves: two batches that
+differ only in how they split the same content across `chunk_ids` and `last_chunk` encode
+identically, because the encoding covers the assembled content rather than the chunking.
+
+Tooling that verifies a proposal recomputes this encoding from source, so it is specified here
+rather than left to the implementation.
+
+The encoding begins with the domain separator `ic-certified-assets v2`, hashed as its 22 bytes
+with no length prefix, and is followed by the encoding of each operation, in the order the
+operations appear in the arguments. The `v2` in the separator versions this encoding; it is not
+the [API version](#api-versions), which is at 3, and the two move independently.
 
 | Element                | Encoded as                                                                    |
 |------------------------|-------------------------------------------------------------------------------|

@@ -2949,7 +2949,7 @@ mod evidence_computation {
     fn evidence_of_known_batch() {
         const CONTENT: &[u8] = b"<!DOCTYPE html><html></html>";
         const KNOWN_BATCH_EVIDENCE: &str =
-            "984350ced49ad34f6d48ddaddebd285f04c6cdeda6801053d0157f3b3c778ca6";
+            "1f8720961de4d5a2e03d31fe0be0e8b114c710729772ae1021b61393b736f48d";
 
         let mut state = State::default();
         let system_context = mock_system_context();
