@@ -2944,12 +2944,12 @@ mod evidence_computation {
     /// and `ic-asset` have to hash a batch to the same value -- comparing the two is the whole
     /// point of computing evidence -- but the two implementations are separate, so each one pins
     /// the vector and a change to either encoding that is not made to the other shows up as a
-    /// failure here.
+    /// failure here.  The batch covers every operation.
     #[test]
     fn evidence_of_known_batch() {
         const CONTENT: &[u8] = b"<!DOCTYPE html><html></html>";
         const KNOWN_BATCH_EVIDENCE: &str =
-            "1f8720961de4d5a2e03d31fe0be0e8b114c710729772ae1021b61393b736f48d";
+            "5e8a8c1ccf35e60bfcc332d76c798d806c9a0d76ed3ac59e7c1ecb00c8b28089";
 
         let mut state = State::default();
         let system_context = mock_system_context();
@@ -2988,9 +2988,27 @@ mod evidence_computation {
                         last_chunk: None,
                         sha256: Some(ByteBuf::from(content_sha256)),
                     }),
+                    BatchOperation::UnsetAssetContent(UnsetAssetContentArguments {
+                        key: "/index.html".to_string(),
+                        content_encoding: "gzip".to_string(),
+                    }),
+                    // Exercises all three shapes of an `opt opt` field: set, explicitly cleared,
+                    // and absent.  `ic-asset` reaches this operation through a different argument
+                    // type and a hand-written conversion, so it is the one most worth pinning.
+                    BatchOperation::SetAssetProperties(SetAssetPropertiesArguments {
+                        key: "/index.html".to_string(),
+                        max_age: Some(Some(300)),
+                        headers: Some(Some(BTreeMap::from([
+                            ("X-Frame-Options".to_string(), "DENY".to_string()),
+                            ("Referrer-Policy".to_string(), "same-origin".to_string()),
+                        ]))),
+                        allow_raw_access: Some(None),
+                        is_aliased: None,
+                    }),
                     BatchOperation::DeleteAsset(DeleteAssetArguments {
                         key: "/obsolete.txt".to_string(),
                     }),
+                    BatchOperation::Clear(ClearArguments {}),
                 ],
             })
             .unwrap();

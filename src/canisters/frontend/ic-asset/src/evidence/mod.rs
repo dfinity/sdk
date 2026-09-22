@@ -3,7 +3,7 @@ use crate::asset::content::Content;
 use crate::asset::content_encoder::ContentEncoder::{self, Brotli, Gzip};
 use crate::batch_upload::operations::AssetDeletionReason::Obsolete;
 use crate::batch_upload::operations::assemble_batch_operations;
-use crate::batch_upload::plumbing::{MAX_CHUNK_SIZE, ProjectAsset, make_project_assets};
+use crate::batch_upload::plumbing::{ProjectAsset, make_project_assets};
 use crate::canister_api::methods::api_version::api_version;
 use crate::canister_api::methods::asset_properties::get_assets_properties;
 use crate::canister_api::methods::list::list_assets;
@@ -274,15 +274,10 @@ fn hash_set_asset_content_raw(
     // asset canister hashes the content bytes chunk by chunk.
     hash_len(hasher, content_data.len());
 
-    // When hashing for state hash, we iterate over chunks.
-    // Since content_data is the full content, updating with it is equivalent to updating with chunks sequentially.
-    if content_data.len() > MAX_CHUNK_SIZE {
-        for chunk in content_data.chunks(MAX_CHUNK_SIZE) {
-            hasher.update(chunk);
-        }
-    } else {
-        hasher.update(content_data);
-    }
+    // The content is hashed as one byte string.  The asset canister hashes it chunk by chunk,
+    // which comes to the same thing: sha256 is streaming, so how the bytes are divided up on the
+    // way in does not affect the digest.
+    hasher.update(content_data);
 }
 
 fn hash_unset_asset_content(hasher: &mut Sha256, args: &UnsetAssetContentArguments) {
@@ -400,8 +395,14 @@ mod tests {
     /// have to hash a batch to the same value -- comparing the two is the whole point of computing
     /// evidence here -- but the two implementations are separate, so each one pins the vector and
     /// a change to either encoding that is not made to the other shows up as a failure here.
+    ///
+    /// The batch covers every operation.  `SetAssetProperties` is the one that most needs it: it
+    /// is the only operation whose arguments differ in type between the two crates, since headers
+    /// arrive here as a `Vec<(String, String)>` and in the canister as a `BTreeMap`, and the
+    /// conversion between them is written by hand.  The vector below lists those headers out of
+    /// order on purpose, so that the conversion has to sort them the way the canister does.
     const KNOWN_BATCH_EVIDENCE: &str =
-        "1f8720961de4d5a2e03d31fe0be0e8b114c710729772ae1021b61393b736f48d";
+        "5e8a8c1ccf35e60bfcc332d76c798d806c9a0d76ed3ac59e7c1ecb00c8b28089";
 
     #[test]
     fn evidence_of_known_batch() {
@@ -438,12 +439,37 @@ mod tests {
             CONTENT,
         );
 
+        hash_unset_asset_content(
+            &mut hasher,
+            &UnsetAssetContentArguments {
+                key: "/index.html".to_string(),
+                content_encoding: "gzip".to_string(),
+            },
+        );
+
+        // Exercises all three shapes of an `opt opt` field: set, explicitly cleared, and absent.
+        hash_set_asset_properties(
+            &mut hasher,
+            &SetAssetPropertiesArguments {
+                key: "/index.html".to_string(),
+                max_age: Some(Some(300)),
+                headers: Some(Some(vec![
+                    ("X-Frame-Options".to_string(), "DENY".to_string()),
+                    ("Referrer-Policy".to_string(), "same-origin".to_string()),
+                ])),
+                allow_raw_access: Some(None),
+                is_aliased: None,
+            },
+        );
+
         hash_delete_asset(
             &mut hasher,
             &DeleteAssetArguments {
                 key: "/obsolete.txt".to_string(),
             },
         );
+
+        hash_clear(&mut hasher, &ClearArguments {});
 
         let evidence: [u8; 32] = hasher.finalize().into();
         assert_eq!(hex::encode(evidence), KNOWN_BATCH_EVIDENCE);

@@ -7,8 +7,7 @@
 The encoding hashed for the evidence of a proposed batch, and for the state hash, now
 length-prefixes every variable-length field -- asset keys, content types, content encodings,
 header names and values, the declared `sha256`, and asset content -- and hashes the number of
-entries in a header map. This is the framing that `crates/state-hash` uses in
-[dfinity/certified-assets](https://github.com/dfinity/certified-assets). Every operation in the
+entries in a header map, behind a version-tagged domain separator. Every operation in the
 encoding is now self-delimiting, which makes the digest injective over the change a batch
 applies, and the encoding is specified under `compute_evidence` in
 [docs/design/asset-canister-interface.md](docs/design/asset-canister-interface.md).

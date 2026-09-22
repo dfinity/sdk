@@ -398,7 +398,9 @@ the [API version](#api-versions), which is at 3, and the two move independently.
 | asset content          | the total length in bytes as a `nat64`, then the bytes                        |
 
 Each operation is encoded as a one-byte tag followed by its fields, in the order they are listed
-in the [operation](#operations) it belongs to:
+in the [operation](#operations) it belongs to -- except `SetAssetContent`, whose `chunk_ids` and
+`last_chunk` are not encoded as declared but as the assembled content described below, after the
+`sha256` field:
 
 | Operation            | Tag |
 |----------------------|-----|
