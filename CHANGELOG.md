@@ -36,7 +36,7 @@ newly created project. The templates now ask for exactly 1.1.3.
 
 ### Frontend canister
 
-- Module hash: 448f6f13f2ec5efbf49561ef43bd8222bbf855ab65aacf547e01bc38f4295f36
+- Module hash: 3fffda14c040852d76ca3c5e6423ae2ece73176254dbb2a1b15e963891e817e1
 - https://github.com/dfinity/sdk/pull/4545
 
 # 0.32.0
