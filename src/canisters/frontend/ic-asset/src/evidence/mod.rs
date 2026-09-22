@@ -45,8 +45,9 @@ const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
 /// one byte string.  It is deliberately *not* injective over the batch arguments themselves --
 /// two batches that differ only in how they split that content across chunks encode identically.
 ///
-/// The `v2` suffix versions the encoding and is one behind the asset canister API version it
-/// ships with, which is 3; the two move independently.
+/// The suffix is `v2` because this is the second encoding of this data; the first carried no
+/// separator and no version, so no digest anywhere has a `v1` separator.  It is not the asset
+/// canister API version, which is at 3 and moves independently.
 ///
 /// Must match `ENCODING_DOMAIN` in `ic-certified-assets`, as must the rest of the encoding: the
 /// point of computing these hashes here is to compare them with the values the asset canister

@@ -38,9 +38,11 @@ const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
 /// canister equals the evidence of the batch that would build it from empty, which is what makes
 /// the two comparable.
 ///
-/// The `v2` suffix versions this encoding, and is not the canister's [`crate::api_version`],
-/// which is at 3: the encoding was versioned from 1, the API from 0, so the two numbers are one
-/// apart and move independently.  Bump this suffix whenever the encoding changes, so that a hash
+/// The suffix is `v2` because this is the second encoding of this data: the first, which every
+/// asset canister installed before API version 3 still computes, carried no separator and no
+/// version at all.  So there is no digest anywhere with a `v1` separator, and the number counts
+/// encodings rather than separators.  It is not the canister's [`crate::api_version`], which is
+/// at 3 and moves independently.  Bump this suffix whenever the encoding changes, so that a hash
 /// computed under one version can never equal a hash computed under another.
 const ENCODING_DOMAIN: &[u8] = b"ic-certified-assets v2";
 
