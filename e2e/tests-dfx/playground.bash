@@ -4,8 +4,7 @@ load ../utils/_
 
 setup_file() {
   if ! command -v ic-mops &> /dev/null; then
-    # Pinned: ic-mops 3.0.0 removed `mops toolchain init`, which setup_playground uses.
-    npm i -g ic-mops@2.24.0
+    npm i -g ic-mops
   fi
 }
 
