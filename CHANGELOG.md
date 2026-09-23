@@ -2,6 +2,28 @@
 
 # UNRELEASED
 
+### feat!: asset canister evidence and state hash length-prefix every variable-length field
+
+The encoding hashed for the evidence of a proposed batch, and for the state hash, now
+length-prefixes every variable-length field -- asset keys, content types, content encodings,
+header names and values, the declared `sha256`, and asset content -- and hashes the number of
+entries in a header map, behind a version-tagged domain separator. Every operation in the
+encoding is now self-delimiting, which makes the digest injective over the change a batch
+applies, and the encoding is specified under `compute_evidence` in
+[docs/design/asset-canister-interface.md](docs/design/asset-canister-interface.md).
+
+The evidence of a `SetAssetContent` operation now covers `last_chunk` whether or not `chunk_ids`
+is empty, matching the content that `commit_batch` stores for the same operation.
+
+The asset canister now reports `api_version` 3. `dfx deploy --by-proposal` and
+`dfx deploy --compute-evidence` report an error against an asset canister that reports a lower
+version, instead of computing a value that cannot be compared with it.
+
+**Upgrade the asset canister and dfx together.** Evidence and state hash values that this release
+computes differ from the values earlier releases compute over the same assets. Recompute and
+re-verify the evidence of any batch proposed before the upgrade. As before, a proposed batch does
+not survive a canister upgrade.
+
 ### fix: `dfx new` projects install again
 
 `vite-plugin-environment` 1.1.4 raised its peer dependency to `vite >= 8.0`, which no longer
@@ -9,6 +31,13 @@ resolves against the `vite` version the frontend templates use, so `npm install`
 newly created project. The templates now ask for exactly 1.1.3.
 
 ### chore: bump `ic-agent`, `ic-identity-hsm`, `ic-utils` and `ic-transport-types` to 0.47.3
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 3fffda14c040852d76ca3c5e6423ae2ece73176254dbb2a1b15e963891e817e1
+- https://github.com/dfinity/sdk/pull/4545
 
 # 0.32.0
 

@@ -2546,6 +2546,532 @@ mod evidence_computation {
     use crate::types::BatchOperation::SetAssetContent;
     use crate::types::{ClearArguments, ComputeEvidenceArguments, UnsetAssetContentArguments};
 
+    /// The seven headers `dfx` applies to an asset under its standard security policy, which is
+    /// the header map a reviewer of a frontend proposal is most likely to be checking.
+    fn standard_security_headers() -> BTreeMap<String, String> {
+        BTreeMap::from([
+            (
+                "Content-Security-Policy".to_string(),
+                "default-src 'self';script-src 'self'".to_string(),
+            ),
+            (
+                "Permissions-Policy".to_string(),
+                "geolocation=()".to_string(),
+            ),
+            ("Referrer-Policy".to_string(), "same-origin".to_string()),
+            (
+                "Strict-Transport-Security".to_string(),
+                "max-age=31536000; includeSubDomains".to_string(),
+            ),
+            ("X-Content-Type-Options".to_string(), "nosniff".to_string()),
+            ("X-Frame-Options".to_string(), "DENY".to_string()),
+            ("X-XSS-Protection".to_string(), "1; mode=block".to_string()),
+        ])
+    }
+
+    /// The same header bytes as [`standard_security_headers`], concatenated in the same order but
+    /// divided into name and value at one different position, leaving a single header that carries
+    /// all of them and none of the seven names.
+    fn repartitioned_security_headers() -> BTreeMap<String, String> {
+        let headers = standard_security_headers();
+        let mut concatenated = String::new();
+        for (name, value) in headers.iter() {
+            concatenated.push_str(name);
+            concatenated.push_str(value);
+        }
+        let split_at = "Content-Security-Policydefault-src".len();
+        let (name, value) = concatenated.split_at(split_at);
+        assert!(!headers.contains_key(name));
+        BTreeMap::from([(name.to_string(), value.to_string())])
+    }
+
+    /// Proposes `operations` as a batch of its own and returns the evidence computed over it.
+    fn evidence_of(
+        state: &mut State,
+        system_context: &SystemContext,
+        operations: Vec<BatchOperation>,
+    ) -> ByteBuf {
+        let batch_id = state.create_batch(system_context).unwrap();
+        state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations,
+            })
+            .unwrap();
+        let evidence = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: None,
+            })
+        })
+        .unwrap();
+        delete_batch(state, batch_id);
+        evidence
+    }
+
+    /// Proposes a single `SetAssetContent` operation carrying `content` as one chunk and returns
+    /// the evidence computed over it.
+    fn evidence_of_content(
+        state: &mut State,
+        system_context: &SystemContext,
+        key: &str,
+        content_encoding: &str,
+        content: &[u8],
+    ) -> ByteBuf {
+        let batch_id = state.create_batch(system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(content.to_vec()),
+                },
+                system_context,
+            )
+            .unwrap();
+        state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: key.to_string(),
+                    content_encoding: content_encoding.to_string(),
+                    chunk_ids: vec![chunk_id],
+                    last_chunk: None,
+                    sha256: None,
+                })],
+            })
+            .unwrap();
+        let evidence = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: None,
+            })
+        })
+        .unwrap();
+        delete_batch(state, batch_id);
+        evidence
+    }
+
+    #[test]
+    fn header_map_partition_affects_evidence() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let create_asset = |headers: BTreeMap<String, String>| {
+            vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                key: "/index.html".to_string(),
+                content_type: "text/html".to_string(),
+                max_age: None,
+                headers: Some(headers),
+                enable_aliasing: None,
+                allow_raw_access: None,
+            })]
+        };
+        assert_ne!(
+            evidence_of(
+                &mut state,
+                &system_context,
+                create_asset(standard_security_headers())
+            ),
+            evidence_of(
+                &mut state,
+                &system_context,
+                create_asset(repartitioned_security_headers())
+            ),
+        );
+
+        let set_asset_properties = |headers: BTreeMap<String, String>| {
+            vec![BatchOperation::SetAssetProperties(
+                SetAssetPropertiesArguments {
+                    key: "/index.html".to_string(),
+                    max_age: None,
+                    headers: Some(Some(headers)),
+                    allow_raw_access: None,
+                    is_aliased: None,
+                },
+            )]
+        };
+        assert_ne!(
+            evidence_of(
+                &mut state,
+                &system_context,
+                set_asset_properties(standard_security_headers())
+            ),
+            evidence_of(
+                &mut state,
+                &system_context,
+                set_asset_properties(repartitioned_security_headers())
+            ),
+        );
+    }
+
+    #[test]
+    fn header_count_affects_evidence() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let create_asset = |headers: BTreeMap<String, String>| {
+            vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                key: "/index.html".to_string(),
+                content_type: "text/html".to_string(),
+                max_age: None,
+                headers: Some(headers),
+                enable_aliasing: None,
+                allow_raw_access: None,
+            })]
+        };
+        // Both maps concatenate to the same bytes, in the same order, so only the number of
+        // entries and where each one ends tells them apart.
+        assert_ne!(
+            evidence_of(
+                &mut state,
+                &system_context,
+                create_asset(BTreeMap::from([("a".to_string(), "bc".to_string())]))
+            ),
+            evidence_of(
+                &mut state,
+                &system_context,
+                create_asset(BTreeMap::from([
+                    ("a".to_string(), "b".to_string()),
+                    ("c".to_string(), "".to_string()),
+                ]))
+            ),
+        );
+    }
+
+    #[test]
+    fn key_content_type_boundary_affects_evidence() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let create_asset = |key: &str, content_type: &str| {
+            vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                key: key.to_string(),
+                content_type: content_type.to_string(),
+                max_age: None,
+                headers: None,
+                enable_aliasing: None,
+                allow_raw_access: None,
+            })]
+        };
+        assert_ne!(
+            evidence_of(
+                &mut state,
+                &system_context,
+                create_asset("/index.html", "text/html")
+            ),
+            evidence_of(
+                &mut state,
+                &system_context,
+                create_asset("/index.htmltext/", "html")
+            ),
+        );
+    }
+
+    #[test]
+    fn key_content_encoding_boundary_affects_evidence() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let unset_asset_content = |key: &str, content_encoding: &str| {
+            vec![BatchOperation::UnsetAssetContent(
+                UnsetAssetContentArguments {
+                    key: key.to_string(),
+                    content_encoding: content_encoding.to_string(),
+                },
+            )]
+        };
+        assert_ne!(
+            evidence_of(
+                &mut state,
+                &system_context,
+                unset_asset_content("/index.html", "identity")
+            ),
+            evidence_of(
+                &mut state,
+                &system_context,
+                unset_asset_content("/index.htmliden", "tity")
+            ),
+        );
+    }
+
+    /// A key ends its operation, so the evidence has to distinguish a batch from one whose first
+    /// key runs on into a rendering of the operations that follow it.
+    #[test]
+    fn key_cannot_absorb_following_operations() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let honest = vec![
+            BatchOperation::DeleteAsset(DeleteAssetArguments {
+                key: "/leaked.txt".to_string(),
+            }),
+            BatchOperation::SetAssetProperties(SetAssetPropertiesArguments {
+                key: "/index.html".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                is_aliased: None,
+            }),
+        ];
+        // `TAG_SET_ASSET_PROPERTIES`, the key of the second operation, and the four `TAG_NONE`
+        // bytes of its remaining fields, all of which are valid UTF-8 and so can appear in a key.
+        let collapsed_key = format!(
+            "/leaked.txt{}{}{}",
+            "\u{9}", "/index.html", "\u{2}\u{2}\u{2}\u{2}"
+        );
+        let collapsed = vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+            key: collapsed_key,
+        })];
+
+        assert_ne!(
+            evidence_of(&mut state, &system_context, honest),
+            evidence_of(&mut state, &system_context, collapsed),
+        );
+    }
+
+    /// Content ends its operation too, with the same requirement as a trailing key.
+    #[test]
+    fn content_cannot_absorb_following_operations() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(b"asset content".to_vec()),
+                },
+                &system_context,
+            )
+            .unwrap();
+        state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![
+                    SetAssetContent(SetAssetContentArguments {
+                        key: "/main.js".to_string(),
+                        content_encoding: "identity".to_string(),
+                        chunk_ids: vec![chunk_id],
+                        last_chunk: None,
+                        sha256: None,
+                    }),
+                    BatchOperation::DeleteAsset(DeleteAssetArguments {
+                        key: "/leaked.txt".to_string(),
+                    }),
+                ],
+            })
+            .unwrap();
+        let honest = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: None,
+            })
+        })
+        .unwrap();
+        delete_batch(&mut state, batch_id);
+
+        // The same content, run on into `TAG_DELETE_ASSET` and the key of the operation that
+        // followed it, with that operation dropped.
+        let collapsed = evidence_of_content(
+            &mut state,
+            &system_context,
+            "/main.js",
+            "identity",
+            b"asset content\x07/leaked.txt",
+        );
+
+        assert_ne!(honest, collapsed);
+    }
+
+    /// Content split differently over the same chunks is the same content, so it has to produce
+    /// the same evidence -- the length prefix covers the whole content, not each chunk.
+    #[test]
+    fn chunk_boundaries_do_not_affect_evidence() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let one_chunk = evidence_of_content(
+            &mut state,
+            &system_context,
+            "/main.js",
+            "identity",
+            b"asset content",
+        );
+
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let mut chunk_ids = vec![];
+        for content in [&b"asset "[..], &b"content"[..]] {
+            chunk_ids.push(
+                state
+                    .create_chunk(
+                        CreateChunkArg {
+                            batch_id: batch_id.clone(),
+                            content: ByteBuf::from(content.to_vec()),
+                        },
+                        &system_context,
+                    )
+                    .unwrap(),
+            );
+        }
+        state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/main.js".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids,
+                    last_chunk: None,
+                    sha256: None,
+                })],
+            })
+            .unwrap();
+        let two_chunks = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: None,
+            })
+        })
+        .unwrap();
+        delete_batch(&mut state, batch_id);
+
+        assert_eq!(one_chunk, two_chunks);
+    }
+
+    /// A fixed batch and the evidence the encoding produces for it.
+    ///
+    /// `ic-asset` has the same vector in `evidence::tests::evidence_of_known_batch`.  This crate
+    /// and `ic-asset` have to hash a batch to the same value -- comparing the two is the whole
+    /// point of computing evidence -- but the two implementations are separate, so each one pins
+    /// the vector and a change to either encoding that is not made to the other shows up as a
+    /// failure here.  The batch covers every operation.
+    #[test]
+    fn evidence_of_known_batch() {
+        const CONTENT: &[u8] = b"<!DOCTYPE html><html></html>";
+        const KNOWN_BATCH_EVIDENCE: &str =
+            "5e8a8c1ccf35e60bfcc332d76c798d806c9a0d76ed3ac59e7c1ecb00c8b28089";
+
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let batch_id = state.create_batch(&system_context).unwrap();
+        let chunk_id = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_id.clone(),
+                    content: ByteBuf::from(CONTENT.to_vec()),
+                },
+                &system_context,
+            )
+            .unwrap();
+
+        let content_sha256: [u8; 32] = sha2::Sha256::digest(CONTENT).into();
+        state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![
+                    BatchOperation::CreateAsset(CreateAssetArguments {
+                        key: "/index.html".to_string(),
+                        content_type: "text/html".to_string(),
+                        max_age: Some(600),
+                        headers: Some(BTreeMap::from([
+                            ("X-Frame-Options".to_string(), "DENY".to_string()),
+                            ("X-XSS-Protection".to_string(), "1; mode=block".to_string()),
+                        ])),
+                        enable_aliasing: Some(true),
+                        allow_raw_access: Some(false),
+                    }),
+                    SetAssetContent(SetAssetContentArguments {
+                        key: "/index.html".to_string(),
+                        content_encoding: "identity".to_string(),
+                        chunk_ids: vec![chunk_id],
+                        last_chunk: None,
+                        sha256: Some(ByteBuf::from(content_sha256)),
+                    }),
+                    BatchOperation::UnsetAssetContent(UnsetAssetContentArguments {
+                        key: "/index.html".to_string(),
+                        content_encoding: "gzip".to_string(),
+                    }),
+                    // Exercises all three shapes of an `opt opt` field: set, explicitly cleared,
+                    // and absent.  `ic-asset` reaches this operation through a different argument
+                    // type and a hand-written conversion, so it is the one most worth pinning.
+                    BatchOperation::SetAssetProperties(SetAssetPropertiesArguments {
+                        key: "/index.html".to_string(),
+                        max_age: Some(Some(300)),
+                        headers: Some(Some(BTreeMap::from([
+                            ("X-Frame-Options".to_string(), "DENY".to_string()),
+                            ("Referrer-Policy".to_string(), "same-origin".to_string()),
+                        ]))),
+                        allow_raw_access: Some(None),
+                        is_aliased: None,
+                    }),
+                    BatchOperation::DeleteAsset(DeleteAssetArguments {
+                        key: "/obsolete.txt".to_string(),
+                    }),
+                    BatchOperation::Clear(ClearArguments {}),
+                ],
+            })
+            .unwrap();
+
+        let evidence = run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: None,
+            })
+        })
+        .unwrap();
+
+        assert_eq!(hex::encode(evidence.as_slice()), KNOWN_BATCH_EVIDENCE);
+    }
+
+    /// `set_asset_content` stores the chunks named by `chunk_ids` followed by `last_chunk`, so the
+    /// evidence has to cover `last_chunk` even when `chunk_ids` is not empty.
+    #[test]
+    fn last_chunk_affects_evidence_alongside_chunk_ids() {
+        let mut state = State::default();
+        let system_context = mock_system_context();
+
+        let evidence_with_last_chunk = |state: &mut State, last_chunk: &[u8]| {
+            let batch_id = state.create_batch(&system_context).unwrap();
+            let chunk_id = state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_id.clone(),
+                        content: ByteBuf::from(b"asset content".to_vec()),
+                    },
+                    &system_context,
+                )
+                .unwrap();
+            state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_id.clone(),
+                    operations: vec![SetAssetContent(SetAssetContentArguments {
+                        key: "/main.js".to_string(),
+                        content_encoding: "identity".to_string(),
+                        chunk_ids: vec![chunk_id],
+                        last_chunk: Some(ByteBuf::from(last_chunk.to_vec())),
+                        sha256: None,
+                    })],
+                })
+                .unwrap();
+            let evidence = run_computation_until_completion(|_progress| {
+                state.compute_evidence(&ComputeEvidenceArguments {
+                    batch_id: batch_id.clone(),
+                    max_iterations: None,
+                })
+            })
+            .unwrap();
+            delete_batch(state, batch_id);
+            evidence
+        };
+
+        assert_eq!(b"const x = 1; // aaa".len(), b"const x = 2; // bbb".len());
+        assert_ne!(
+            evidence_with_last_chunk(&mut state, b"const x = 1; // aaa"),
+            evidence_with_last_chunk(&mut state, b"const x = 2; // bbb"),
+        );
+    }
+
     #[test]
     fn evidence_with_set_single_chunk_asset_content() {
         let mut state = State::default();
@@ -4235,6 +4761,8 @@ mod validate_commit_proposed_batch {
             unreachable!()
         };
 
+        // The evidence of a batch with no operations is the hash of the encoding's domain
+        // separator alone: `sha256(b"ic-certified-assets v2")`.
         assert_eq!(
             state
                 .validate_commit_proposed_batch(CommitProposedBatchArguments {
@@ -4242,7 +4770,7 @@ mod validate_commit_proposed_batch {
                     evidence: evidence.clone(),
                 },)
                 .unwrap(),
-            "commit proposed batch 0 with evidence e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            "commit proposed batch 0 with evidence 5cf0a08eeb8f1cc3758d410916f6ed888995f1e68e51d696e17bf931d302fd3b"
         );
 
         run_computation_until_completion(|progress| {

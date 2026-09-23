@@ -10,6 +10,21 @@ use super::AssembleCommitBatchArgumentError;
 /// Errors related to computing evidence for a proposed update.
 #[derive(Error, Debug)]
 pub enum ComputeEvidenceError {
+    /// Failed when querying the asset canister for its API version.
+    #[error("Failed to query asset canister API version")]
+    ApiVersionQueryFailed(#[source] AgentError),
+
+    /// The asset canister computes evidence with an older encoding than this tool does.
+    #[error(
+        "The asset canister reports API version {canister_api_version}, but computing evidence to compare with it requires API version {required_api_version} or later. Upgrade the asset canister first."
+    )]
+    EvidenceApiVersionTooLow {
+        /// The API version the asset canister reports.
+        canister_api_version: u16,
+        /// The API version required to compute comparable evidence.
+        required_api_version: u16,
+    },
+
     /// Failed when assembling commit_batch argument.
     #[error(transparent)]
     AssembleCommitBatchArgumentFailed(#[from] AssembleCommitBatchArgumentError),

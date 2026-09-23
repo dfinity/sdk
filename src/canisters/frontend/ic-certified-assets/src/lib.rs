@@ -42,7 +42,7 @@ thread_local! {
 }
 
 pub fn api_version() -> u16 {
-    2
+    3
 }
 
 pub fn authorize(other: Principal) {

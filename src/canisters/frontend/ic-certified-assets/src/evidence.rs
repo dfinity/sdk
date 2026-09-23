@@ -25,6 +25,27 @@ const TAG_DELETE_ASSET: [u8; 1] = [7];
 const TAG_CLEAR: [u8; 1] = [8];
 const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
 
+/// Domain separator and version of the encoding hashed by [`EvidenceComputation`], both for the
+/// evidence of a proposed batch and for the state hash.
+///
+/// Every variable-length field of the encoding is length-prefixed and every operation carries a
+/// tag, so each operation is self-delimiting and the encoding is injective over the change a
+/// batch applies: its operations, with the content of each `SetAssetContent` taken as one byte
+/// string.  It is deliberately *not* injective over `CommitBatchArguments` itself -- two batches
+/// that differ only in how they split that content across chunks encode identically.
+///
+/// The evidence and the state hash share this prefix on purpose: the state hash of an asset
+/// canister equals the evidence of the batch that would build it from empty, which is what makes
+/// the two comparable.
+///
+/// The suffix is `v2` because this is the second encoding of this data: the first, which every
+/// asset canister installed before API version 3 still computes, carried no separator and no
+/// version at all.  So there is no digest anywhere with a `v1` separator, and the number counts
+/// encodings rather than separators.  It is not the canister's [`crate::api_version`], which is
+/// at 3 and moves independently.  Bump this suffix whenever the encoding changes, so that a hash
+/// computed under one version can never equal a hash computed under another.
+const ENCODING_DOMAIN: &[u8] = b"ic-certified-assets v2";
+
 pub enum EvidenceComputation {
     NextOperation {
         operation_index: usize,
@@ -80,7 +101,7 @@ impl EvidenceComputation {
             NextOperation {
                 operation_index,
                 hasher,
-            } => next_operation(args, operation_index, hasher),
+            } => next_operation(args, operation_index, hasher, chunks),
             NextChunkIndex {
                 operation_index,
                 chunk_index,
@@ -114,7 +135,11 @@ fn next_operation(
     args: &CommitBatchArguments,
     operation_index: usize,
     mut hasher: Sha256,
+    chunks: &HashMap<ChunkId, Chunk>,
 ) -> EvidenceComputation {
+    if operation_index == 0 {
+        hasher.update(ENCODING_DOMAIN);
+    }
     match args.operations.get(operation_index) {
         None => {
             let sha256: [u8; 32] = hasher.finalize().into();
@@ -128,7 +153,7 @@ fn next_operation(
             }
         }
         Some(SetAssetContent(args)) => {
-            hash_set_asset_content(&mut hasher, args);
+            hash_set_asset_content(&mut hasher, args, set_asset_content_len(args, chunks));
             NextChunkIndex {
                 operation_index,
                 chunk_index: 0,
@@ -176,14 +201,15 @@ fn next_chunk_index(
     if let Some(SetAssetContent(sac)) = args.operations.get(operation_index) {
         if let Some(chunk_id) = sac.chunk_ids.get(chunk_index) {
             hash_chunk_by_id(&mut hasher, chunk_id, chunks);
-            if chunk_index + 1 < sac.chunk_ids.len() {
-                return NextChunkIndex {
-                    operation_index,
-                    chunk_index: chunk_index + 1,
-                    hasher,
-                };
-            }
-        } else if let Some(chunk_content) = sac.last_chunk.as_ref() {
+            return NextChunkIndex {
+                operation_index,
+                chunk_index: chunk_index + 1,
+                hasher,
+            };
+        }
+        // `set_asset_content` appends `last_chunk` to the chunks named by `chunk_ids`, so the
+        // evidence covers it in the same position and regardless of how many chunk ids precede it.
+        if let Some(chunk_content) = sac.last_chunk.as_ref() {
             hash_chunk_by_content(&mut hasher, chunk_content);
         }
     }
@@ -191,6 +217,22 @@ fn next_chunk_index(
         operation_index: operation_index + 1,
         hasher,
     }
+}
+
+/// The number of content bytes that the evidence covers for a `SetAssetContent` operation, which
+/// is exactly the content `set_asset_content` assembles from the same arguments.  Chunk ids that
+/// are not present are skipped here and by [`hash_chunk_by_id`] alike.
+fn set_asset_content_len(
+    args: &SetAssetContentArguments,
+    chunks: &HashMap<ChunkId, Chunk>,
+) -> usize {
+    let from_chunk_ids: usize = args
+        .chunk_ids
+        .iter()
+        .filter_map(|chunk_id| chunks.get(chunk_id))
+        .map(|chunk| chunk.content.len())
+        .sum();
+    from_chunk_ids + args.last_chunk.as_ref().map_or(0, |chunk| chunk.len())
 }
 
 fn hash_chunk_by_id(hasher: &mut Sha256, chunk_id: &ChunkId, chunks: &HashMap<ChunkId, Chunk>) {
@@ -205,8 +247,8 @@ fn hash_chunk_by_content(hasher: &mut Sha256, chunk_content: &[u8]) {
 
 fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) {
     hasher.update(TAG_CREATE_ASSET);
-    hasher.update(&args.key);
-    hasher.update(&args.content_type);
+    hash_str(hasher, &args.key);
+    hash_str(hasher, &args.content_type);
     if let Some(max_age) = args.max_age {
         hasher.update(TAG_SOME);
         hasher.update(max_age.to_be_bytes());
@@ -214,26 +256,35 @@ fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) {
         hasher.update(TAG_NONE);
     }
     hash_headers(hasher, args.headers.as_ref());
-    hash_opt_bool(hasher, args.allow_raw_access);
     hash_opt_bool(hasher, args.enable_aliasing);
+    hash_opt_bool(hasher, args.allow_raw_access);
 }
 
-fn hash_set_asset_content(hasher: &mut Sha256, args: &SetAssetContentArguments) {
+/// `content_len` is the total number of content bytes hashed after this call, by
+/// [`hash_chunk_by_id`] and [`hash_chunk_by_content`].  Hashing it here length-prefixes the
+/// content, which makes the operation self-delimiting even though the content bytes themselves
+/// are hashed in chunks.
+fn hash_set_asset_content(
+    hasher: &mut Sha256,
+    args: &SetAssetContentArguments,
+    content_len: usize,
+) {
     hasher.update(TAG_SET_ASSET_CONTENT);
-    hasher.update(&args.key);
-    hasher.update(&args.content_encoding);
+    hash_str(hasher, &args.key);
+    hash_str(hasher, &args.content_encoding);
     hash_opt_bytebuf(hasher, args.sha256.as_ref());
+    hash_len(hasher, content_len);
 }
 
 fn hash_unset_asset_content(hasher: &mut Sha256, args: &UnsetAssetContentArguments) {
     hasher.update(TAG_UNSET_ASSET_CONTENT);
-    hasher.update(&args.key);
-    hasher.update(&args.content_encoding);
+    hash_str(hasher, &args.key);
+    hash_str(hasher, &args.content_encoding);
 }
 
 fn hash_delete_asset(hasher: &mut Sha256, args: &DeleteAssetArguments) {
     hasher.update(TAG_DELETE_ASSET);
-    hasher.update(&args.key);
+    hash_str(hasher, &args.key);
 }
 
 fn hash_clear(hasher: &mut Sha256, _args: &ClearArguments) {
@@ -242,7 +293,7 @@ fn hash_clear(hasher: &mut Sha256, _args: &ClearArguments) {
 
 fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArguments) {
     hasher.update(TAG_SET_ASSET_PROPERTIES);
-    hasher.update(&args.key);
+    hash_str(hasher, &args.key);
     if let Some(max_age) = args.max_age {
         hasher.update(TAG_SOME);
         if let Some(max_age) = max_age {
@@ -274,6 +325,24 @@ fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArgum
     }
 }
 
+/// Hashes the length of a repeated or variable-length field, so that the encoding of the field
+/// cannot be confused with the encoding of a shorter or longer one.
+fn hash_len(hasher: &mut Sha256, len: usize) {
+    hasher.update((len as u64).to_be_bytes());
+}
+
+/// Hashes a variable-length byte string, prefixed with its length, so that the boundaries of the
+/// string are part of the encoding.
+fn hash_bytes(hasher: &mut Sha256, bytes: &[u8]) {
+    hash_len(hasher, bytes.len());
+    hasher.update(bytes);
+}
+
+/// Hashes a variable-length text field, prefixed with its length.
+fn hash_str(hasher: &mut Sha256, s: &str) {
+    hash_bytes(hasher, s.as_bytes());
+}
+
 fn hash_opt_bool(hasher: &mut Sha256, b: Option<bool>) {
     if let Some(b) = b {
         hasher.update(TAG_SOME);
@@ -286,7 +355,7 @@ fn hash_opt_bool(hasher: &mut Sha256, b: Option<bool>) {
 fn hash_opt_bytebuf(hasher: &mut Sha256, buf: Option<&ByteBuf>) {
     if let Some(buf) = buf {
         hasher.update(TAG_SOME);
-        hasher.update(buf);
+        hash_bytes(hasher, buf);
     } else {
         hasher.update(TAG_NONE);
     }
@@ -295,10 +364,11 @@ fn hash_opt_bytebuf(hasher: &mut Sha256, buf: Option<&ByteBuf>) {
 fn hash_headers(hasher: &mut Sha256, headers: Option<&BTreeMap<String, String>>) {
     if let Some(headers) = headers {
         hasher.update(TAG_SOME);
+        hash_len(hasher, headers.len());
         for k in headers.keys().sorted() {
             let v = headers.get(k).unwrap();
-            hasher.update(k);
-            hasher.update(v);
+            hash_str(hasher, k);
+            hash_str(hasher, v);
         }
     } else {
         hasher.update(TAG_NONE);
@@ -332,6 +402,10 @@ fn next_virtual_step(
     virtual_state: VirtualState,
     mut hasher: Sha256,
 ) -> EvidenceComputation {
+    if current_key_index == 0 && matches!(virtual_state, VirtualState::CreateAsset) {
+        hasher.update(ENCODING_DOMAIN);
+    }
+
     if current_key_index >= sorted_keys.len() {
         let sha256: [u8; 32] = hasher.finalize().into();
         return EvidenceComputation::Computed(ByteBuf::from(sha256));
@@ -388,7 +462,12 @@ fn next_virtual_step(
                 last_chunk: None,
                 sha256: Some(ByteBuf::from(enc.sha256)),
             };
-            hash_set_asset_content(&mut hasher, &args);
+            let content_len = enc
+                .content_chunks
+                .iter()
+                .map(|chunk| chunk.len())
+                .sum::<usize>();
+            hash_set_asset_content(&mut hasher, &args, content_len);
 
             EvidenceComputation::Virtual {
                 sorted_keys,

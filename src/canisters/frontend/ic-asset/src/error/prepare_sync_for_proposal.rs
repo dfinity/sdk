@@ -9,6 +9,17 @@ pub enum PrepareSyncForProposalError {
     #[error("Failed to query asset canister API version")]
     ApiVersionQueryFailed(#[source] AgentError),
 
+    /// The asset canister computes evidence with an older encoding than this tool does.
+    #[error(
+        "The asset canister reports API version {canister_api_version}, but proposing a batch requires API version {required_api_version} or later. Upgrade the asset canister first."
+    )]
+    EvidenceApiVersionTooLow {
+        /// The API version the asset canister reports.
+        canister_api_version: u16,
+        /// The API version required to compute comparable evidence.
+        required_api_version: u16,
+    },
+
     /// Failed while requesting that the asset canister compute evidence.
     #[error("Failed to compute evidence")]
     ComputeEvidence(#[source] AgentError),
