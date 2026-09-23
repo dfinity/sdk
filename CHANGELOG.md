@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.33.0
+
 ### feat!: asset canister evidence and state hash length-prefix every variable-length field
 
 The encoding hashed for the evidence of a proposed batch, and for the state hash, now

@@ -6,8 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-23
+
 ### Changed
 
+- **BREAKING**: The encoding hashed for the evidence of a proposed batch, and for the state hash,
+  length-prefixes every variable-length field -- asset keys, content types, content encodings,
+  header names and values, the declared `sha256`, and asset content -- and hashes the number of
+  entries in a header map, behind the version-tagged domain separator `ic-certified-assets v2`.
+  Every operation in the encoding is self-delimiting, which makes the digest injective over the
+  change a batch applies. Evidence and state hash values differ from those earlier versions
+  compute over the same assets, so tooling that compares them has to be upgraded in step. The
+  encoding is specified under `compute_evidence` in
+  [docs/design/asset-canister-interface.md](https://github.com/dfinity/sdk/blob/master/docs/design/asset-canister-interface.md).
+- **BREAKING**: `api_version()` returns 3.
+- The evidence of a `SetAssetContent` operation covers `last_chunk` whether or not `chunk_ids` is
+  empty, matching the content that `commit_batch` stores for the same operation.
 - **BREAKING**: Implement `serde::Serialize` and `serde::Deserialize` for stable state structures:
   - Moved all stable state structures to the `stable_machine::v1` module, renaming them to `StableStateV1`, `StableConfigurationV1`, `StableStatePermissionsV1`, `StableAssetV1`, `StableAssetEncodingV1`
   - Removed `StableState` struct
