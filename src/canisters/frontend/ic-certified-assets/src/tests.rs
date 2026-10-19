@@ -2,7 +2,9 @@ use crate::CreateChunksArg;
 use crate::asset_certification::types::http::{
     CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackToken, StreamingStrategy,
 };
-use crate::state_machine::{BATCH_EXPIRY_NANOS, ComputationStatus, StableStateV2, State};
+use crate::state_machine::{
+    BATCH_EXPIRY_NANOS, CommitProposedBatchProgress, ComputationStatus, StableStateV2, State,
+};
 use crate::system_context::SystemContext;
 use crate::system_context::canister_env::CanisterEnv;
 use crate::types::{
@@ -766,6 +768,69 @@ fn can_propose_commit_batch_exactly_once() {
             if err == format!("batch {batch_1} already has proposed CommitBatchArguments",) => {}
         other => panic!("expected batch already proposed error, got: {other:?}"),
     };
+}
+
+#[test]
+fn evidence_does_not_carry_over_to_reproposed_arguments() {
+    let mut state = State::default();
+    let system_context = mock_system_context();
+
+    let batch_id = state.create_batch(&system_context).unwrap();
+    let proposed = |key: &str| CommitBatchArguments {
+        batch_id: batch_id.clone(),
+        operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+            key: key.to_string(),
+            content_type: "text/html".to_string(),
+            max_age: None,
+            headers: None,
+            enable_aliasing: None,
+            allow_raw_access: None,
+        })],
+    };
+    let compute_evidence = |state: &mut State| {
+        run_computation_until_completion(|_progress| {
+            state.compute_evidence(&ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: Some(100),
+            })
+        })
+        .unwrap()
+    };
+
+    state
+        .propose_commit_batch(proposed("/approved.html"))
+        .unwrap();
+    let approved_evidence = compute_evidence(&mut state);
+    let commit_args = CommitProposedBatchArguments {
+        batch_id: batch_id.clone(),
+        evidence: approved_evidence.clone(),
+    };
+
+    // Run only the first step of the commit and drop its progress. This is the state a commit
+    // leaves behind when it awaits between steps and a later message traps: only that later
+    // message rolls back, so the batch survives with its arguments taken.
+    assert!(matches!(
+        state.commit_proposed_batch(
+            &commit_args,
+            CommitProposedBatchProgress::Starting,
+            &system_context
+        ),
+        ComputationStatus::InProgress(_)
+    ));
+    assert!(
+        state
+            .validate_commit_proposed_batch(commit_args.clone())
+            .is_err()
+    );
+
+    state.propose_commit_batch(proposed("/other.html")).unwrap();
+    match state.validate_commit_proposed_batch(commit_args.clone()) {
+        Err(err) if err == "batch does not have computed evidence" => {}
+        other => panic!("expected missing evidence error, got: {other:?}"),
+    }
+    let reproposed_evidence = compute_evidence(&mut state);
+    assert_ne!(approved_evidence, reproposed_evidence);
+    assert!(state.validate_commit_proposed_batch(commit_args).is_err());
 }
 
 #[test]

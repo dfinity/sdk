@@ -2,6 +2,20 @@
 
 # UNRELEASED
 
+### fix: proposing new arguments for a batch discards its computed evidence
+
+`propose_commit_batch` now clears any evidence previously computed for the batch, and
+`commit_proposed_batch` clears it when it takes the proposed arguments. Evidence computed for a
+batch therefore always describes the arguments the batch currently holds, including after a
+`commit_proposed_batch` that failed partway through.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 4e0b1cf7a5f3b68646e10ca4e24b2b32653b3357002fc6fcd46e3d7065cea377
+- https://github.com/dfinity/sdk/pull/4551
+
 # 0.33.0
 
 ### feat!: asset canister evidence and state hash length-prefix every variable-length field
