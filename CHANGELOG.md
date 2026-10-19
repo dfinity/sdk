@@ -14,6 +14,7 @@ batch therefore always describes the arguments the batch currently holds, includ
 ### Frontend canister
 
 - Module hash: 4e0b1cf7a5f3b68646e10ca4e24b2b32653b3357002fc6fcd46e3d7065cea377
+- https://github.com/dfinity/sdk/pull/4551
 
 # 0.33.0
 
