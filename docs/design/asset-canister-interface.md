@@ -424,6 +424,8 @@ canister reporting version 3 or later.
 
 This method executes the operations previously supplied by [propose_commit_batch()](#method-propose_commit_batch), and deletes the batch.
 
+Unlike [commit_batch()](#method-commit_batch), this method executes all operations in a single message. If any operation fails, or the message runs out of instructions, the whole call is rolled back and no operation is applied. A proposed batch must therefore be small enough to commit within the per-message instruction limit.
+
 Preconditions:
 - The batch exists.
 - The batch has proposed commit batch arguments.
