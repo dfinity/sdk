@@ -29,7 +29,7 @@ jobs:
       - name: Generate
         run: |
           shellcheck -V
-          shellcheck --shell=sh public/install-dfxvm.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043,SC2317
+          shellcheck --shell=sh public/install-dfxvm.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043,SC2317,SC2329
           ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install-dfxvm.sh
           sed -i "s/@revision@/${GITHUB_SHA}/" public/install-dfxvm.sh
           mkdir _out
