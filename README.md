@@ -1,5 +1,13 @@
 # IC SDK
 
+> [!WARNING]
+> **`dfx` (the IC SDK) is deprecated and no longer maintained.** It has been replaced by [icp-cli](https://github.com/dfinity/icp-cli).
+>
+> * [icp-cli documentation](https://cli.internetcomputer.org)
+> * [Migration guide for `dfx` users](https://github.com/dfinity/icp-cli/blob/main/docs/migration/from-dfx.md)
+>
+> The rest of this README is kept as a historical reference.
+
 This repo contains the `IC SDK`: a Software Development Kit for creating and managing [canister smart contracts on the Internet Computer (ICP blockchain)](https://wiki.internetcomputer.org/wiki/Canister_smart_contract).
 
 For further reading:
