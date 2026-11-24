@@ -249,14 +249,16 @@ pub fn get_state_info() -> StateInfo {
     with_state(|s| s.get_state_info())
 }
 
-pub async fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     let system_context = SystemContext::new();
     let arg_ref = &arg;
 
-    loop_with_message_extension_until_completion(|progress| {
+    // A proposed batch is committed in a single message, so that a failure, including running
+    // out of instructions, rolls back the whole commit rather than leaving the operations
+    // applied so far live.
+    loop_until_completion(|progress| {
         with_state_mut(|s| s.commit_proposed_batch(arg_ref, progress, &system_context))
     })
-    .await
     .map_err(|msg| trap(&msg))
     .ok();
 
@@ -438,6 +440,23 @@ where
     F: FnOnce(&State) -> R,
 {
     STATE.with(|s| f(&s.borrow()))
+}
+
+/// Loops calling a state machine function until completion within the current message.
+fn loop_until_completion<F, D, P, E>(mut compute_fn: F) -> Result<D, E>
+where
+    F: FnMut(P) -> ComputationStatus<D, P, E>,
+    P: Default,
+{
+    let mut progress = P::default();
+
+    loop {
+        match compute_fn(progress) {
+            ComputationStatus::Done(done) => return Ok(done),
+            ComputationStatus::InProgress(p) => progress = p,
+            ComputationStatus::Error(e) => return Err(e),
+        }
+    }
 }
 
 /// Loops calling a state machine function until completion, periodically async-calling
@@ -710,8 +729,8 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
         #[$crate::ic_certified_assets_candid_method(update)]
-        async fn commit_proposed_batch(arg: types::CommitProposedBatchArguments) {
-            $crate::commit_proposed_batch(arg).await
+        fn commit_proposed_batch(arg: types::CommitProposedBatchArguments) {
+            $crate::commit_proposed_batch(arg)
         }
 
         #[$crate::ic_certified_assets_update]

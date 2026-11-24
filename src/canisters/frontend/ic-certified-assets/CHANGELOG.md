@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `commit_proposed_batch` is no longer `async`. It executes all operations of a
+  proposed batch in a single message, so a failure, including running out of instructions, rolls
+  back the whole commit instead of leaving the operations applied so far live. A proposed batch
+  must be small enough to commit within the per-message instruction limit.
+
+### Fixed
+
+- `propose_commit_batch` discards any evidence previously computed for the batch, and
+  `commit_proposed_batch` discards it when it takes the proposed arguments, so computed evidence
+  always describes the arguments the batch currently holds.
+
 ## [0.4.0] - 2026-09-23
 
 ### Changed

@@ -1041,6 +1041,8 @@ impl State {
             ));
         };
         batch.commit_batch_arguments = Some(arg);
+        // Evidence describes the arguments it was computed over, so new arguments need new evidence.
+        batch.evidence_computation = None;
         Ok(())
     }
 
@@ -1057,6 +1059,9 @@ impl State {
                 }
                 let batch = self.batches.get_mut(&arg.batch_id).unwrap();
                 let commit_batch_args = batch.commit_batch_arguments.take().unwrap();
+                // A commit can span several messages. If a later one traps, the batch survives
+                // without its arguments, and its evidence must not validate them again.
+                batch.evidence_computation = None;
 
                 match self.commit_batch(
                     &commit_batch_args,

@@ -2,6 +2,28 @@
 
 # UNRELEASED
 
+### fix: proposing new arguments for a batch discards its computed evidence
+
+`propose_commit_batch` now clears any evidence previously computed for the batch, and
+`commit_proposed_batch` clears it when it takes the proposed arguments. Evidence computed for a
+batch therefore always describes the arguments the batch currently holds.
+
+### fix!: the asset canister commits a proposed batch in a single message
+
+`commit_proposed_batch` executes all operations of a proposed batch in one message again, as it did
+before 0.30.2. If any operation fails, or the commit runs out of instructions, nothing is applied
+and the batch remains for a retry or `delete_batch`; previously, operations applied before the
+failure stayed live and certified responses failed until the next successful commit. A batch
+proposed with `dfx deploy --by-proposal` must therefore be small enough to commit within the
+per-message instruction limit. `commit_batch` is unchanged.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: aa4d4bf302178a281b7590e2bf8a275fbcfb3a17ba0eb27bd04429124d06edb0
+- https://github.com/dfinity/sdk/pull/4551
+
 # 0.33.0
 
 ### feat!: asset canister evidence and state hash length-prefix every variable-length field
