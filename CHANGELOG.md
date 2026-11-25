@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.33.1
+
 ### fix: proposing new arguments for a batch discards its computed evidence
 
 `propose_commit_batch` now clears any evidence previously computed for the batch, and
